@@ -44,4 +44,4 @@ include filelist.hsopt
 
 
 rmapats.so: $(HSOPT_OBJS)
-	@$(VCS_CC) $(LDFLAGS) $(LIBS) -shared -o ./../../sim/fc1_multi_block_parallel_simv.daidir/rmapats.so $(HSOPT_OBJS)
+	@$(VCS_CC) $(LDFLAGS) $(LIBS) -shared -o ./../../sim/fc1_multi_block_shared_input_simv.daidir/rmapats.so $(HSOPT_OBJS)

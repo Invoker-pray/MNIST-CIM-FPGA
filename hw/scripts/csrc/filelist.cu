@@ -1,20 +1,20 @@
 PIC_LD=ld
 
 ARCHIVE_OBJS=
-ARCHIVE_OBJS += _12904_archive_1.so
-_12904_archive_1.so : archive.16/_12904_archive_1.a
+ARCHIVE_OBJS += _16665_archive_1.so
+_16665_archive_1.so : archive.17/_16665_archive_1.a
 	@$(AR) -s $<
-	@$(PIC_LD) -shared  -Bsymbolic  -o .//../../sim/fc1_multi_block_parallel_simv.daidir//_12904_archive_1.so --whole-archive $< --no-whole-archive
+	@$(PIC_LD) -shared  -Bsymbolic  -o .//../../sim/fc1_multi_block_shared_input_simv.daidir//_16665_archive_1.so --whole-archive $< --no-whole-archive
 	@rm -f $@
-	@ln -sf .//../../sim/fc1_multi_block_parallel_simv.daidir//_12904_archive_1.so $@
+	@ln -sf .//../../sim/fc1_multi_block_shared_input_simv.daidir//_16665_archive_1.so $@
 
 
 ARCHIVE_OBJS += _prev_archive_1.so
-_prev_archive_1.so : archive.16/_prev_archive_1.a
+_prev_archive_1.so : archive.17/_prev_archive_1.a
 	@$(AR) -s $<
-	@$(PIC_LD) -shared  -Bsymbolic  -o .//../../sim/fc1_multi_block_parallel_simv.daidir//_prev_archive_1.so --whole-archive $< --no-whole-archive
+	@$(PIC_LD) -shared  -Bsymbolic  -o .//../../sim/fc1_multi_block_shared_input_simv.daidir//_prev_archive_1.so --whole-archive $< --no-whole-archive
 	@rm -f $@
-	@ln -sf .//../../sim/fc1_multi_block_parallel_simv.daidir//_prev_archive_1.so $@
+	@ln -sf .//../../sim/fc1_multi_block_shared_input_simv.daidir//_prev_archive_1.so $@
 
 
 
