@@ -1,0 +1,144 @@
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  7 17:34 2026
+Using FC1_BIAS_FILE from plusarg: ../route_b_output/fc1_bias_int32.hex
+Using INPUT_HEX_FILE from plusarg: ../route_b_output/input_0.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output/fc1_weight_int8.hex
+Using INPUT_HEX_FILE from plusarg: ../route_b_output/input_0.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output/fc1_bias_int32.hex
+TB using FC1_ACC_FILE: ../route_b_output/fc1_acc_0.hex
+time=0 : TB start
+time=0 clk=0 rst_n=0 start=0 busy=0 done=0 ob_sel=0
+time=5000 clk=1 rst_n=0 start=0 busy=0 done=0 ob_sel=0
+time=10000 clk=0 rst_n=0 start=0 busy=0 done=0 ob_sel=0
+time=12000 clk=0 rst_n=1 start=0 busy=0 done=0 ob_sel=0
+time=15000 clk=1 rst_n=1 start=1 busy=0 done=0 ob_sel=0
+time=20000 clk=0 rst_n=1 start=1 busy=0 done=0 ob_sel=0
+time=25000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=30000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=35000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=40000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=45000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=50000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=55000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=60000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=65000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=70000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=75000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=80000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=85000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=90000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=95000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=100000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=105000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=110000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=115000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=120000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=125000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=130000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=135000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=140000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=145000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=150000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=155000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=160000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=165000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=170000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=175000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=180000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=185000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=190000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=195000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=200000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=205000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=210000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=215000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=220000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=225000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=230000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=235000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=240000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=245000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=250000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=255000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=260000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=265000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=270000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=275000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=280000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=285000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=290000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=295000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=300000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=305000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=310000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=315000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=320000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=325000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=330000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=335000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=340000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=345000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=350000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=355000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=360000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=365000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=370000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=375000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=380000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=385000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=390000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=395000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=400000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=405000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=410000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=415000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=420000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=425000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=430000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=435000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=440000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=445000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=450000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=455000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=460000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=465000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=470000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=475000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=480000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=485000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=490000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=495000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=500000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=505000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=510000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=515000 clk=1 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=520000 clk=0 rst_n=1 start=0 busy=1 done=0 ob_sel=0
+time=525000 clk=1 rst_n=1 start=0 busy=0 done=1 ob_sel=0
+time=530000 clk=0 rst_n=1 start=0 busy=0 done=1 ob_sel=0
+time=535000 clk=1 rst_n=1 start=0 busy=0 done=0 ob_sel=0
+Checking fc1_acc_block for ob_sel = 0 ...
+ERROR ob=0 idx=0 got=-33055 expected=-30778
+ERROR ob=0 idx=1 got=-39968 expected=-33761
+ERROR ob=0 idx=2 got=-26710 expected=-26292
+ERROR ob=0 idx=3 got=39362 expected=32890
+ERROR ob=0 idx=4 got=86395 expected=84961
+ERROR ob=0 idx=5 got=82840 expected=82286
+ERROR ob=0 idx=6 got=-45636 expected=-42871
+ERROR ob=0 idx=7 got=-87194 expected=-83495
+ERROR ob=0 idx=8 got=17513 expected=14476
+ERROR ob=0 idx=9 got=142595 expected=143175
+ERROR ob=0 idx=10 got=52517 expected=50796
+ERROR ob=0 idx=11 got=200762 expected=204030
+ERROR ob=0 idx=12 got=29409 expected=27237
+ERROR ob=0 idx=13 got=-72522 expected=-70958
+ERROR ob=0 idx=14 got=-3251 expected=-7987
+ERROR ob=0 idx=15 got=66145 expected=69688
+FAIL: found 16 mismatches.
+$finish called from file "../tb/tb_fc1_cim_core_block.sv", line 113.
+$finish at simulation time               536000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 536000 ps
+CPU Time:      0.230 seconds;       Data structure size:   0.4Mb
+Sat Mar  7 17:34:22 2026

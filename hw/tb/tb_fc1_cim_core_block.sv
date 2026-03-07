@@ -52,6 +52,15 @@ module tb_fc1_cim_core_block;
   end
 
   // --------------------------------------------
+  // Optional monitor
+  // --------------------------------------------
+  initial begin
+    $display("time=%0t : TB start", $time);
+    $monitor("time=%0t clk=%0b rst_n=%0b start=%0b busy=%0b done=%0b ob_sel=%0d", $time, clk,
+             rst_n, start, busy, done, ob_sel);
+  end
+
+  // --------------------------------------------
   // Main test
   // --------------------------------------------
   initial begin
@@ -74,7 +83,11 @@ module tb_fc1_cim_core_block;
     @(posedge clk);
     start <= 1'b0;
 
+    // 等待 done 拉高
     wait (done == 1'b1);
+
+    // 再等一个时钟边沿，确保输出稳定
+    @(posedge clk);
     #1;
 
     $display("Checking fc1_acc_block for ob_sel = %0d ...", ob_sel);
@@ -101,3 +114,4 @@ module tb_fc1_cim_core_block;
   end
 
 endmodule
+

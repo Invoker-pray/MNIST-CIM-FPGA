@@ -3,7 +3,9 @@ module fc1_cim_core_block #(
     parameter string DEFAULT_INPUT_HEX_FILE  =
         "../../CIM-sw-version1/sw/train_quantize/route_b_output/input_0.hex",
     parameter string DEFAULT_WEIGHT_HEX_FILE =
-        "../../CIM-sw-version1/sw/train_quantize/route_b_output/fc1_weight_int8.hex"
+        "../../CIM-sw-version1/sw/train_quantize/route_b_output/fc1_weight_int8.hex",
+    parameter string DEFAULT_BIAS_HEX_FILE   =
+        "../../CIM-sw-version1/sw/train_quantize/route_b_output/fc1_bias_int32.hex"
 ) (
     input logic clk,
     input logic rst_n,
@@ -36,6 +38,7 @@ module fc1_cim_core_block #(
 
   string input_file;
   string weight_file;
+  string bias_file;
 
   // --------------------------------------------
   // Interconnect wires
@@ -56,6 +59,7 @@ module fc1_cim_core_block #(
   initial begin
     input_file  = DEFAULT_INPUT_HEX_FILE;
     weight_file = DEFAULT_WEIGHT_HEX_FILE;
+    bias_file   = DEFAULT_BIAS_HEX_FILE;
 
     if ($value$plusargs("INPUT_HEX_FILE=%s", input_file)) begin
       $display("Using INPUT_HEX_FILE from plusarg: %s", input_file);
@@ -67,6 +71,13 @@ module fc1_cim_core_block #(
       $display("Using WEIGHT_HEX_FILE from plusarg: %s", weight_file);
     end else begin
       $display("Using default WEIGHT_HEX_FILE: %s", weight_file);
+    end
+
+
+    if ($value$plusargs("FC1_BIAS_FILE=%s", bias_file)) begin
+      $display("Using FC1_BIAS_FILE from plusarg: %s", bias_file);
+    end else begin
+      $display("Using default FC1_BIAS_FILE: %s", bias_file);
     end
   end
 
@@ -177,4 +188,3 @@ module fc1_cim_core_block #(
   endgenerate
 
 endmodule
-
