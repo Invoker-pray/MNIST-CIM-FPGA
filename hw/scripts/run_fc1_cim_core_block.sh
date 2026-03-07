@@ -20,4 +20,9 @@ vcs -full64 -sverilog -timescale=1ns/1ps \
 	${TB_DIR}/tb_fc1_cim_core_block.sv \
 	2>&1 | tee ${SIM_DIR}/log/compile_tb_fc1_cim_core_block.log
 
-${SIM_DIR}/fc1_cim_core_block_simv +INPUT_HEX_FILE=${INPUT_HEX} +WEIGHT_HEX_FILE=${WEIGHT_HEX} +FC1_ACC_FILE=${FC1_ACC_HEX} +FC1_BIAS_FILE=${FC1_BIAS_HEX} 2>&1 | tee ${SIM_DIR}/log/sim_tb_fc1_cim_core_block.log
+${SIM_DIR}/fc1_cim_core_block_simv \
+	+INPUT_HEX_FILE=${INPUT_HEX} \
+	+WEIGHT_HEX_FILE=${WEIGHT_HEX} \
+	+FC1_ACC_FILE=${FC1_ACC_HEX} \
+	+FC1_BIAS_FILE=${FC1_BIAS_HEX} \
+	2>&1 | tee ${SIM_DIR}/log/sim_tb_fc1_cim_core_block.log
