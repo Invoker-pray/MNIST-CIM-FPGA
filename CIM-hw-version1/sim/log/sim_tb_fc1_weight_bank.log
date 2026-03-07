@@ -1,0 +1,15 @@
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  7 14:52 2026
+Using INPUT_HEX_FILE from plusarg: ../route_b_output/input_0.hex
+TB using INPUT_HEX_FILE: ../route_b_output/input_0.hex
+Checking input block 0...
+Checking input block 1...
+Checking last input block...
+PASS: input_buffer block extraction is correct.
+$finish called from file "../tb/tb_input_buffer.sv", line 119.
+$finish at simulation time                 3000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 3000 ps
+CPU Time:      0.220 seconds;       Data structure size:   0.0Mb
+Sat Mar  7 14:52:38 2026

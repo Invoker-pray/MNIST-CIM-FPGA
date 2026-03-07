@@ -2,18 +2,17 @@
 `timescale 1ns / 1ps
 
 module tb_input_buffer;
+
   import mnist_cim_pkg::*;
 
-  logic [$clog2(N_INPUT_BLOCKS)-1:0] ib;
+  logic        [$clog2(N_INPUT_BLOCKS)-1:0] ib;
 
-  parameter string INPUT_HEX_FILE = "../../CIM-sw-version1/sw/train&quantize/route_b_output/input_0.hex";
+  string                                    input_file;
 
-  logic signed [INPUT_WIDTH-1:0] x_tile    [0:TILE_INPUT_SIZE-1];
-  logic        [X_EFF_WIDTH-1:0] x_eff_tile[0:TILE_INPUT_SIZE-1];
+  logic signed [           INPUT_WIDTH-1:0] x_tile     [0:TILE_INPUT_SIZE-1];
+  logic        [           X_EFF_WIDTH-1:0] x_eff_tile [0:TILE_INPUT_SIZE-1];
 
-  input_buffer #(
-      .INPUT_HEX_FILE("../../CIM-sw-version1/sw/train&quantize/route_b_output/input_0.hex")
-  ) dut (
+  input_buffer dut (
       .ib(ib),
       .x_tile(x_tile),
       .x_eff_tile(x_eff_tile)
@@ -27,7 +26,18 @@ module tb_input_buffer;
   integer error_count;
 
   initial begin
-    $readmemh(INPUT_HEX_FILE, ref_input_mem);
+
+    // 默认路径
+    input_file = "../../CIM-sw-version1/sw/train&quantize/route_b_output/input_0.hex";
+
+    // plusarg 覆盖
+    if ($value$plusargs("INPUT_HEX_FILE=%s", input_file)) begin
+      $display("TB using INPUT_HEX_FILE: %s", input_file);
+    end else begin
+      $display("TB using default INPUT_HEX_FILE: %s", input_file);
+    end
+
+    $readmemh(input_file, ref_input_mem);
 
     error_count = 0;
 
@@ -38,20 +48,20 @@ module tb_input_buffer;
     #1;
 
     $display("Checking input block 0...");
-    for (tc = 0; tc < TILE_INPUT_SIZE; tc = tc + 1) begin
+    for (tc = 0; tc < TILE_INPUT_SIZE; tc++) begin
       expected_idx = ib * TILE_INPUT_SIZE + tc;
       expected_eff = ref_input_mem[expected_idx] - INPUT_ZERO_POINT;
 
       if (x_tile[tc] !== ref_input_mem[expected_idx]) begin
         $display("ERROR block0 x_tile tc=%0d got=%0d expected=%0d", tc, x_tile[tc],
                  ref_input_mem[expected_idx]);
-        error_count = error_count + 1;
+        error_count++;
       end
 
       if (x_eff_tile[tc] !== expected_eff[X_EFF_WIDTH-1:0]) begin
         $display("ERROR block0 x_eff tc=%0d got=%0d expected=%0d", tc, x_eff_tile[tc],
                  expected_eff);
-        error_count = error_count + 1;
+        error_count++;
       end
     end
 
@@ -62,20 +72,20 @@ module tb_input_buffer;
     #1;
 
     $display("Checking input block 1...");
-    for (tc = 0; tc < TILE_INPUT_SIZE; tc = tc + 1) begin
+    for (tc = 0; tc < TILE_INPUT_SIZE; tc++) begin
       expected_idx = ib * TILE_INPUT_SIZE + tc;
       expected_eff = ref_input_mem[expected_idx] - INPUT_ZERO_POINT;
 
       if (x_tile[tc] !== ref_input_mem[expected_idx]) begin
         $display("ERROR block1 x_tile tc=%0d got=%0d expected=%0d", tc, x_tile[tc],
                  ref_input_mem[expected_idx]);
-        error_count = error_count + 1;
+        error_count++;
       end
 
       if (x_eff_tile[tc] !== expected_eff[X_EFF_WIDTH-1:0]) begin
         $display("ERROR block1 x_eff tc=%0d got=%0d expected=%0d", tc, x_eff_tile[tc],
                  expected_eff);
-        error_count = error_count + 1;
+        error_count++;
       end
     end
 
@@ -86,20 +96,20 @@ module tb_input_buffer;
     #1;
 
     $display("Checking last input block...");
-    for (tc = 0; tc < TILE_INPUT_SIZE; tc = tc + 1) begin
+    for (tc = 0; tc < TILE_INPUT_SIZE; tc++) begin
       expected_idx = ib * TILE_INPUT_SIZE + tc;
       expected_eff = ref_input_mem[expected_idx] - INPUT_ZERO_POINT;
 
       if (x_tile[tc] !== ref_input_mem[expected_idx]) begin
         $display("ERROR last block x_tile tc=%0d got=%0d expected=%0d", tc, x_tile[tc],
                  ref_input_mem[expected_idx]);
-        error_count = error_count + 1;
+        error_count++;
       end
 
       if (x_eff_tile[tc] !== expected_eff[X_EFF_WIDTH-1:0]) begin
         $display("ERROR last block x_eff tc=%0d got=%0d expected=%0d", tc, x_eff_tile[tc],
                  expected_eff);
-        error_count = error_count + 1;
+        error_count++;
       end
     end
 

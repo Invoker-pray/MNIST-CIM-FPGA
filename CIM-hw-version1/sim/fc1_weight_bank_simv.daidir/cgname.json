@@ -5,6 +5,12 @@
         "module",
         1
     ],
+    "...MASTER...": [
+        "SIM",
+        "amcQw",
+        "module",
+        5
+    ],
     "mnist_cim_pkg": [
         "mnist_cim_pkg",
         "ehn8j",
@@ -15,18 +21,12 @@
         "fc1_weight_bank",
         "rE4Cd",
         "module",
-        3
+        4
     ],
     "tb_fc1_weight_bank": [
         "tb_fc1_weight_bank",
         "uRJ40",
         "module",
-        4
-    ],
-    "...MASTER...": [
-        "SIM",
-        "amcQw",
-        "module",
-        5
+        3
     ]
 }

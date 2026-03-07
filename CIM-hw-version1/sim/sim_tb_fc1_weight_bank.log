@@ -1,45 +1,15 @@
 Chronologic VCS simulator copyright 1991-2018
 Contains Synopsys proprietary information.
-Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  7 13:45 2026
-
-Warning-[STASKW_CO1] Cannot open file
-  The file 
-  '../../CIM-sw-version1/sw/train&quantize/route_b_output/fc1_weight_int8.hex'
-  could not be opened. No such file or directory.
-  Please ensure that the file exists with proper permissions.
-
-
-Warning-[STASKW_RMCOF] Cannot open file
-../rtl/fc1_weight_bank.sv, 25
-  Cannot open file 
-  '../../CIM-sw-version1/sw/train&quantize/route_b_output/fc1_weight_int8.hex'
-  passed as argument to $readmem.
-  Please verify that the first argument to $readmem is a file that exists with
-  proper permissions.
-
-
-Warning-[STASKW_CO1] Cannot open file
-  The file 
-  '../../CIM-sw-version1/sw/train&quantize/route_b_output/fc1_weight_int8.hex'
-  could not be opened. No such file or directory.
-  Please ensure that the file exists with proper permissions.
-
-
-Warning-[STASKW_RMCOF] Cannot open file
-../tb/tb_fc1_weight_bank.sv, 28
-  Cannot open file 
-  '../../CIM-sw-version1/sw/train&quantize/route_b_output/fc1_weight_int8.hex'
-  passed as argument to $readmem.
-  Please verify that the first argument to $readmem is a file that exists with
-  proper permissions.
-
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  7 14:45 2026
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output/fc1_weight_int8.hex
+TB using WEIGHT_HEX_FILE: ../route_b_output/fc1_weight_int8.hex
 Checking tile (0,0)...
 Checking tile (1,2)...
 Checking tile (last,last)...
 PASS: fc1_weight_bank tile extraction is correct.
-$finish called from file "../tb/tb_fc1_weight_bank.sv", line 104.
+$finish called from file "../tb/tb_fc1_weight_bank.sv", line 110.
 $finish at simulation time                 3000
            V C S   S i m u l a t i o n   R e p o r t 
 Time: 3000 ps
-CPU Time:      0.270 seconds;       Data structure size:   0.6Mb
-Sat Mar  7 13:45:58 2026
+CPU Time:      0.210 seconds;       Data structure size:   0.6Mb
+Sat Mar  7 14:45:46 2026

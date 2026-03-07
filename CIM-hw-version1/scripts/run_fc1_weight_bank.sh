@@ -10,4 +10,4 @@ vcs -full64 -sverilog -timescale=1ns/1ps \
 	${TB_DIR}/tb_fc1_weight_bank.sv \
 	2>&1 | tee ${SIM_DIR}/log/compile_tb_fc1_weight_bank.log
 
-${SIM_DIR}/fc1_weight_bank_simv 2>&1 | tee ${SIM_DIR}/sim_tb_fc1_weight_bank.log
+${SIM_DIR}/fc1_weight_bank_simv +WEIGHT_HEX_FILE=../route_b_output/fc1_weight_int8.hex 2>&1 | tee ${SIM_DIR}/log/sim_tb_fc1_weight_bank.log
