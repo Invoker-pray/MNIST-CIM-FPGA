@@ -53,6 +53,10 @@ module fc1_cim_core_block #(
 
   logic signed [PSUM_WIDTH-1:0] psum[0:TILE_OUTPUT_SIZE-1];
 
+  logic signed [BIAS_WIDTH-1:0] bias_block[0:TILE_OUTPUT_SIZE-1];
+
+  logic signed [PSUM_WIDTH-1:0] fc1_acc_with_bias[0:TILE_OUTPUT_SIZE-1];
+
   // --------------------------------------------
   // Read plusargs once
   // --------------------------------------------
@@ -72,7 +76,6 @@ module fc1_cim_core_block #(
     end else begin
       $display("Using default WEIGHT_HEX_FILE: %s", weight_file);
     end
-
 
     if ($value$plusargs("FC1_BIAS_FILE=%s", bias_file)) begin
       $display("Using FC1_BIAS_FILE from plusarg: %s", bias_file);
@@ -113,6 +116,13 @@ module fc1_cim_core_block #(
       .en(en_psum),
       .tile_psum(tile_psum),
       .psum(psum)
+  );
+
+  fc1_bias_bank #(
+      .DEFAULT_BIAS_HEX_FILE(DEFAULT_BIAS_HEX_FILE)
+  ) u_fc1_bias_bank (
+      .ob(ob_sel),
+      .bias_block(bias_block)
   );
 
   // --------------------------------------------
@@ -179,12 +189,15 @@ module fc1_cim_core_block #(
 
   // --------------------------------------------
   // Output connect
+  // fc1_acc_0.hex = pure MAC accumulation + bias
   // --------------------------------------------
   genvar g;
   generate
     for (g = 0; g < TILE_OUTPUT_SIZE; g = g + 1) begin : GEN_OUT
-      assign fc1_acc_block[g] = psum[g];
+      assign fc1_acc_with_bias[g] = psum[g] + bias_block[g];  // Add bias to psum
+      assign fc1_acc_block[g]     = fc1_acc_with_bias[g];  // Output the final result
     end
   endgenerate
 
 endmodule
+

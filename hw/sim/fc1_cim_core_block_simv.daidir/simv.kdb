@@ -7,7 +7,7 @@ UUM=FALSE
 KDB=FALSE
 USE_NOVAS_HOME=FALSE
 COSIM=FALSE
-TOP=fc1_bias_bank tb_fc1_cim_core_block 
+TOP=tb_fc1_cim_core_block 
 OPTION=-ssv -ssy 
 ELAB_OPTION=-ssv -ssy 
 
