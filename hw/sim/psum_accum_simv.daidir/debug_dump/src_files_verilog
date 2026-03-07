@@ -1,0 +1,3 @@
+/home/icer/MNIST-CIM-FPGA/hw/rtl/package.sv
+/home/icer/MNIST-CIM-FPGA/hw/rtl/psum_accum.sv
+/home/icer/MNIST-CIM-FPGA/hw/tb/tb_psum_accum.sv

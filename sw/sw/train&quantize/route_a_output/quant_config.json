@@ -1,0 +1,16 @@
+{
+  "layer": "fc1_only",
+  "weight_shape": [
+    128,
+    784
+  ],
+  "weight_layout": "row-major [out][in]",
+  "input_layout": "[in]",
+  "bias_layout": "[out]",
+  "input_scale": 0.00392156862745098,
+  "input_zero_point": -128,
+  "fc1_weight_scale": 0.003941324282818892,
+  "fc1_weight_zero_point": 0,
+  "fc1_bias_scale": 1.5456173658113303e-05,
+  "fc1_bias_dtype": "int32"
+}

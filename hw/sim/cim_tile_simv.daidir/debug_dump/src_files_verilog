@@ -1,0 +1,3 @@
+/home/icer/MNIST-CIM-FPGA/hw/rtl/cim_tile.sv
+/home/icer/MNIST-CIM-FPGA/hw/rtl/package.sv
+/home/icer/MNIST-CIM-FPGA/hw/tb/tb_cim_tile_single.sv
