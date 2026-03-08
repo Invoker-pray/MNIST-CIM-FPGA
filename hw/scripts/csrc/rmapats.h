@@ -2434,44 +2434,6 @@ static inline U asm_bsf (U in)
 #ifdef __cplusplus
 extern "C" {
 #endif
-void  hs_0_M_0_21__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_0_0__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_0_1__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val, U  I677, scalar  * I1303, U  did);
-void  hs_0_M_0_2__mnist_inference_top_simv_daidir (UB  * pcode);
-void  hs_0_M_0_11__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_1_21__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_1_0__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_1_1__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val, U  I677, scalar  * I1303, U  did);
-void  hs_0_M_1_2__mnist_inference_top_simv_daidir (UB  * pcode);
-void  hs_0_M_1_11__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_2_21__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_2_0__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_2_1__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val, U  I677, scalar  * I1303, U  did);
-void  hs_0_M_2_2__mnist_inference_top_simv_daidir (UB  * pcode);
-void  hs_0_M_2_11__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_3_21__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_3_0__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_3_1__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val, U  I677, scalar  * I1303, U  did);
-void  hs_0_M_3_2__mnist_inference_top_simv_daidir (UB  * pcode);
-void  hs_0_M_3_11__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_4_21__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_4_0__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_4_1__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val, U  I677, scalar  * I1303, U  did);
-void  hs_0_M_4_2__mnist_inference_top_simv_daidir (UB  * pcode);
-void  hs_0_M_4_11__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_5_0__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_6_0__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_7_21__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_7_0__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_7_1__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val, U  I677, scalar  * I1303, U  did);
-void  hs_0_M_7_2__mnist_inference_top_simv_daidir (UB  * pcode);
-void  hs_0_M_7_11__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_8_21__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_8_0__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_8_1__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val, U  I677, scalar  * I1303, U  did);
-void  hs_0_M_8_2__mnist_inference_top_simv_daidir (UB  * pcode);
-void  hs_0_M_8_11__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_9_0__mnist_inference_top_simv_daidir (UB  * pcode, scalar  val);
 void  hsG_0__0 (struct dummyq_struct * I1289, EBLK  * I1283, U  I685);
 #ifdef __cplusplus
 }
