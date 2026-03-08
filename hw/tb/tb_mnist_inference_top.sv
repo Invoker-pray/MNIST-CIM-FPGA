@@ -139,7 +139,7 @@ module tb_mnist_inference_top;
     end
 
     if (error_count == 0)
-      $display("PASS: mnist_inference_top matches logits_0.hex and pred_0.txt.");
+      $display("PASS: mnist_inference_top matches provided logits/pred golden files.");
     else $display("FAIL: found %0d mismatches.", error_count);
 
     $finish;

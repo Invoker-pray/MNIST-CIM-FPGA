@@ -1,0 +1,49 @@
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  8 11:14 2026
+Using INPUT_HEX_FILE from plusarg: ../route_b_output/input_11.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output/fc1_bias_int32.hex
+Using FC2_WEIGHT_HEX_FILE from plusarg: ../route_b_output/fc2_weight_int8.hex
+Using FC2_BIAS_FILE from plusarg: ../route_b_output/fc2_bias_int32.hex
+TB using INPUT_HEX_FILE: ../route_b_output/input_11.hex
+TB using WEIGHT_HEX_FILE: ../route_b_output/fc1_weight_int8.hex
+TB using FC1_BIAS_FILE: ../route_b_output/fc1_bias_int32.hex
+TB using FC2_WEIGHT_HEX_FILE: ../route_b_output/fc2_weight_int8.hex
+TB using FC2_BIAS_FILE: ../route_b_output/fc2_bias_int32.hex
+TB using LOGITS_FILE: ../route_b_output/logits_11.hex
+TB using PRED_FILE: ../route_b_output/pred_11.txt
+Checking logits_all ...
+MATCH LOGIT idx=0 value=-9
+MATCH LOGIT idx=1 value=-27
+MATCH LOGIT idx=2 value=-6
+MATCH LOGIT idx=3 value=-18
+MATCH LOGIT idx=4 value=-8
+MATCH LOGIT idx=5 value=1
+MATCH LOGIT idx=6 value=39
+MATCH LOGIT idx=7 value=-38
+MATCH LOGIT idx=8 value=1
+MATCH LOGIT idx=9 value=-42
+Checking pred_class ...
+MATCH PRED value=6
+PASS: mnist_inference_top matches provided logits/pred golden files.
+$finish called from file "../tb/tb_mnist_inference_top.sv", line 145.
+$finish at simulation time               536000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 536000 ps
+CPU Time:      0.240 seconds;       Data structure size:   3.3Mb
+Sun Mar  8 11:14:13 2026
