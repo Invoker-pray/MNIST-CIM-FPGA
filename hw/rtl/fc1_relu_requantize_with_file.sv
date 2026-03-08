@@ -1,5 +1,5 @@
 
-module fc1_relu_requantize (
+module fc1_relu_requantize_with_file (
     input logic [31:0] fc1_requant_mult,
     input logic [31:0] fc1_requant_shift,
 
@@ -37,3 +37,4 @@ module fc1_relu_requantize (
   end
 
 endmodule
+

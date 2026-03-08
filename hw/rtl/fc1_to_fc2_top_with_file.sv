@@ -1,8 +1,9 @@
 
-module fc1_to_fc2_top #(
-    parameter string DEFAULT_QUANT_PARAM_FILE = "../route_b_output/quant_params.hex",
-    parameter string DEFAULT_FC2_WEIGHT_HEX_FILE = "../route_b_output/fc2_weight_int8.hex",
-    parameter string DEFAULT_FC2_BIAS_HEX_FILE = "../route_b_output/fc2_bias_int32.hex"
+
+module fc1_to_fc2_top_with_file #(
+    parameter string DEFAULT_QUANT_PARAM_FILE    = "../route_b_output_2/quant_params.hex",
+    parameter string DEFAULT_FC2_WEIGHT_HEX_FILE = "../route_b_output_2/fc2_weight_int8.hex",
+    parameter string DEFAULT_FC2_BIAS_HEX_FILE   = "../route_b_output_2/fc2_bias_int32.hex"
 ) (
     input logic signed [mnist_cim_pkg::PSUM_WIDTH-1:0] fc1_acc_all[0:mnist_cim_pkg::HIDDEN_DIM-1],
 
@@ -22,16 +23,16 @@ module fc1_to_fc2_top #(
   logic [31:0] fc2_requant_mult;
   logic [31:0] fc2_requant_shift;
 
-  quant_param_bank #(
+  quantize_param_bank #(
       .DEFAULT_QUANT_PARAM_FILE(DEFAULT_QUANT_PARAM_FILE)
-  ) u_quant_param_bank (
+  ) u_quantize_param_bank (
       .fc1_requant_mult (fc1_requant_mult),
       .fc1_requant_shift(fc1_requant_shift),
       .fc2_requant_mult (fc2_requant_mult),
       .fc2_requant_shift(fc2_requant_shift)
   );
 
-  fc1_relu_requantize u_fc1_relu_requantize (
+  fc1_relu_requantize_with_file u_fc1_relu_requantize_with_file (
       .fc1_requant_mult (fc1_requant_mult),
       .fc1_requant_shift(fc1_requant_shift),
       .fc1_acc_all      (fc1_acc_all),
@@ -39,10 +40,10 @@ module fc1_to_fc2_top #(
       .fc1_out_all      (fc1_out_all)
   );
 
-  fc2_core #(
+  fc2_core_with_file #(
       .DEFAULT_WEIGHT_HEX_FILE(DEFAULT_FC2_WEIGHT_HEX_FILE),
       .DEFAULT_BIAS_HEX_FILE  (DEFAULT_FC2_BIAS_HEX_FILE)
-  ) u_fc2_core (
+  ) u_fc2_core_with_file (
       .fc2_requant_mult (fc2_requant_mult),
       .fc2_requant_shift(fc2_requant_shift),
       .fc1_out_all      (fc1_out_all),

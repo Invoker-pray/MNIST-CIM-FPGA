@@ -1,5 +1,5 @@
 
-module quant_param_bank #(
+module quantize_param_bank #(
     parameter string DEFAULT_QUANT_PARAM_FILE = "../route_b_output/quant_params.hex"
 ) (
     output logic [31:0] fc1_requant_mult,

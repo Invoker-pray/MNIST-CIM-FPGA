@@ -1,7 +1,8 @@
 
-module fc2_core #(
-    parameter string DEFAULT_WEIGHT_HEX_FILE = "../route_b_output/fc2_weight_int8.hex",
-    parameter string DEFAULT_BIAS_HEX_FILE   = "../route_b_output/fc2_bias_int32.hex"
+
+module fc2_core_with_file #(
+    parameter string DEFAULT_WEIGHT_HEX_FILE = "../route_b_output_2/fc2_weight_int8.hex",
+    parameter string DEFAULT_BIAS_HEX_FILE   = "../route_b_output_2/fc2_bias_int32.hex"
 ) (
     input logic [31:0] fc2_requant_mult,
     input logic [31:0] fc2_requant_shift,

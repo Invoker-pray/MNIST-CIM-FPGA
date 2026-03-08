@@ -44,4 +44,4 @@ include filelist.hsopt
 
 
 rmapats.so: $(HSOPT_OBJS)
-	@$(VCS_CC) $(LDFLAGS) $(LIBS) -shared -o ./../../sim/fc1_to_fc2_top_with_file_simv.daidir/rmapats.so $(HSOPT_OBJS)
+	@$(VCS_CC) $(LDFLAGS) $(LIBS) -shared -o ./../../sim/mnist_inference_top_with_file_simv.daidir/rmapats.so $(HSOPT_OBJS)

@@ -1,0 +1,1478 @@
+.
+├── build
+├── constraints
+├── data
+├── docs
+├── model
+├── README.md
+├── report
+├── route_b_output
+│   ├── fc1_acc_0.hex
+│   ├── fc1_acc_10.hex
+│   ├── fc1_acc_11.hex
+│   ├── fc1_acc_12.hex
+│   ├── fc1_acc_13.hex
+│   ├── fc1_acc_14.hex
+│   ├── fc1_acc_15.hex
+│   ├── fc1_acc_16.hex
+│   ├── fc1_acc_17.hex
+│   ├── fc1_acc_18.hex
+│   ├── fc1_acc_19.hex
+│   ├── fc1_acc_1.hex
+│   ├── fc1_acc_2.hex
+│   ├── fc1_acc_3.hex
+│   ├── fc1_acc_4.hex
+│   ├── fc1_acc_5.hex
+│   ├── fc1_acc_6.hex
+│   ├── fc1_acc_7.hex
+│   ├── fc1_acc_8.hex
+│   ├── fc1_acc_9.hex
+│   ├── fc1_bias_int32.hex
+│   ├── fc1_out_0.hex
+│   ├── fc1_out_10.hex
+│   ├── fc1_out_11.hex
+│   ├── fc1_out_12.hex
+│   ├── fc1_out_13.hex
+│   ├── fc1_out_14.hex
+│   ├── fc1_out_15.hex
+│   ├── fc1_out_16.hex
+│   ├── fc1_out_17.hex
+│   ├── fc1_out_18.hex
+│   ├── fc1_out_19.hex
+│   ├── fc1_out_1.hex
+│   ├── fc1_out_2.hex
+│   ├── fc1_out_3.hex
+│   ├── fc1_out_4.hex
+│   ├── fc1_out_5.hex
+│   ├── fc1_out_6.hex
+│   ├── fc1_out_7.hex
+│   ├── fc1_out_8.hex
+│   ├── fc1_out_9.hex
+│   ├── fc1_relu_0.hex
+│   ├── fc1_relu_10.hex
+│   ├── fc1_relu_11.hex
+│   ├── fc1_relu_12.hex
+│   ├── fc1_relu_13.hex
+│   ├── fc1_relu_14.hex
+│   ├── fc1_relu_15.hex
+│   ├── fc1_relu_16.hex
+│   ├── fc1_relu_17.hex
+│   ├── fc1_relu_18.hex
+│   ├── fc1_relu_19.hex
+│   ├── fc1_relu_1.hex
+│   ├── fc1_relu_2.hex
+│   ├── fc1_relu_3.hex
+│   ├── fc1_relu_4.hex
+│   ├── fc1_relu_5.hex
+│   ├── fc1_relu_6.hex
+│   ├── fc1_relu_7.hex
+│   ├── fc1_relu_8.hex
+│   ├── fc1_relu_9.hex
+│   ├── fc1_weight_int8.hex
+│   ├── fc2_acc_0.hex
+│   ├── fc2_acc_10.hex
+│   ├── fc2_acc_11.hex
+│   ├── fc2_acc_12.hex
+│   ├── fc2_acc_13.hex
+│   ├── fc2_acc_14.hex
+│   ├── fc2_acc_15.hex
+│   ├── fc2_acc_16.hex
+│   ├── fc2_acc_17.hex
+│   ├── fc2_acc_18.hex
+│   ├── fc2_acc_19.hex
+│   ├── fc2_acc_1.hex
+│   ├── fc2_acc_2.hex
+│   ├── fc2_acc_3.hex
+│   ├── fc2_acc_4.hex
+│   ├── fc2_acc_5.hex
+│   ├── fc2_acc_6.hex
+│   ├── fc2_acc_7.hex
+│   ├── fc2_acc_8.hex
+│   ├── fc2_acc_9.hex
+│   ├── fc2_bias_int32.hex
+│   ├── fc2_weight_int8.hex
+│   ├── input_0.hex
+│   ├── input_10.hex
+│   ├── input_11.hex
+│   ├── input_12.hex
+│   ├── input_13.hex
+│   ├── input_14.hex
+│   ├── input_15.hex
+│   ├── input_16.hex
+│   ├── input_17.hex
+│   ├── input_18.hex
+│   ├── input_19.hex
+│   ├── input_1.hex
+│   ├── input_2.hex
+│   ├── input_3.hex
+│   ├── input_4.hex
+│   ├── input_5.hex
+│   ├── input_6.hex
+│   ├── input_7.hex
+│   ├── input_8.hex
+│   ├── input_9.hex
+│   ├── labels.txt
+│   ├── logits_0.hex
+│   ├── logits_10.hex
+│   ├── logits_11.hex
+│   ├── logits_12.hex
+│   ├── logits_13.hex
+│   ├── logits_14.hex
+│   ├── logits_15.hex
+│   ├── logits_16.hex
+│   ├── logits_17.hex
+│   ├── logits_18.hex
+│   ├── logits_19.hex
+│   ├── logits_1.hex
+│   ├── logits_2.hex
+│   ├── logits_3.hex
+│   ├── logits_4.hex
+│   ├── logits_5.hex
+│   ├── logits_6.hex
+│   ├── logits_7.hex
+│   ├── logits_8.hex
+│   ├── logits_9.hex
+│   ├── mlp_route_b.pth
+│   ├── pred_0.txt
+│   ├── pred_10.txt
+│   ├── pred_11.txt
+│   ├── pred_12.txt
+│   ├── pred_13.txt
+│   ├── pred_14.txt
+│   ├── pred_15.txt
+│   ├── pred_16.txt
+│   ├── pred_17.txt
+│   ├── pred_18.txt
+│   ├── pred_19.txt
+│   ├── pred_1.txt
+│   ├── pred_2.txt
+│   ├── pred_3.txt
+│   ├── pred_4.txt
+│   ├── pred_5.txt
+│   ├── pred_6.txt
+│   ├── pred_7.txt
+│   ├── pred_8.txt
+│   ├── pred_9.txt
+│   ├── preds.txt
+│   └── quant_config.json
+├── route_b_output_2
+│   ├── fc1_acc_0.hex
+│   ├── fc1_acc_10.hex
+│   ├── fc1_acc_11.hex
+│   ├── fc1_acc_12.hex
+│   ├── fc1_acc_13.hex
+│   ├── fc1_acc_14.hex
+│   ├── fc1_acc_15.hex
+│   ├── fc1_acc_16.hex
+│   ├── fc1_acc_17.hex
+│   ├── fc1_acc_18.hex
+│   ├── fc1_acc_19.hex
+│   ├── fc1_acc_1.hex
+│   ├── fc1_acc_2.hex
+│   ├── fc1_acc_3.hex
+│   ├── fc1_acc_4.hex
+│   ├── fc1_acc_5.hex
+│   ├── fc1_acc_6.hex
+│   ├── fc1_acc_7.hex
+│   ├── fc1_acc_8.hex
+│   ├── fc1_acc_9.hex
+│   ├── fc1_bias_int32.hex
+│   ├── fc1_out_0.hex
+│   ├── fc1_out_10.hex
+│   ├── fc1_out_11.hex
+│   ├── fc1_out_12.hex
+│   ├── fc1_out_13.hex
+│   ├── fc1_out_14.hex
+│   ├── fc1_out_15.hex
+│   ├── fc1_out_16.hex
+│   ├── fc1_out_17.hex
+│   ├── fc1_out_18.hex
+│   ├── fc1_out_19.hex
+│   ├── fc1_out_1.hex
+│   ├── fc1_out_2.hex
+│   ├── fc1_out_3.hex
+│   ├── fc1_out_4.hex
+│   ├── fc1_out_5.hex
+│   ├── fc1_out_6.hex
+│   ├── fc1_out_7.hex
+│   ├── fc1_out_8.hex
+│   ├── fc1_out_9.hex
+│   ├── fc1_relu_0.hex
+│   ├── fc1_relu_10.hex
+│   ├── fc1_relu_11.hex
+│   ├── fc1_relu_12.hex
+│   ├── fc1_relu_13.hex
+│   ├── fc1_relu_14.hex
+│   ├── fc1_relu_15.hex
+│   ├── fc1_relu_16.hex
+│   ├── fc1_relu_17.hex
+│   ├── fc1_relu_18.hex
+│   ├── fc1_relu_19.hex
+│   ├── fc1_relu_1.hex
+│   ├── fc1_relu_2.hex
+│   ├── fc1_relu_3.hex
+│   ├── fc1_relu_4.hex
+│   ├── fc1_relu_5.hex
+│   ├── fc1_relu_6.hex
+│   ├── fc1_relu_7.hex
+│   ├── fc1_relu_8.hex
+│   ├── fc1_relu_9.hex
+│   ├── fc1_weight_int8.hex
+│   ├── fc2_acc_0.hex
+│   ├── fc2_acc_10.hex
+│   ├── fc2_acc_11.hex
+│   ├── fc2_acc_12.hex
+│   ├── fc2_acc_13.hex
+│   ├── fc2_acc_14.hex
+│   ├── fc2_acc_15.hex
+│   ├── fc2_acc_16.hex
+│   ├── fc2_acc_17.hex
+│   ├── fc2_acc_18.hex
+│   ├── fc2_acc_19.hex
+│   ├── fc2_acc_1.hex
+│   ├── fc2_acc_2.hex
+│   ├── fc2_acc_3.hex
+│   ├── fc2_acc_4.hex
+│   ├── fc2_acc_5.hex
+│   ├── fc2_acc_6.hex
+│   ├── fc2_acc_7.hex
+│   ├── fc2_acc_8.hex
+│   ├── fc2_acc_9.hex
+│   ├── fc2_bias_int32.hex
+│   ├── fc2_weight_int8.hex
+│   ├── input_0.hex
+│   ├── input_10.hex
+│   ├── input_11.hex
+│   ├── input_12.hex
+│   ├── input_13.hex
+│   ├── input_14.hex
+│   ├── input_15.hex
+│   ├── input_16.hex
+│   ├── input_17.hex
+│   ├── input_18.hex
+│   ├── input_19.hex
+│   ├── input_1.hex
+│   ├── input_2.hex
+│   ├── input_3.hex
+│   ├── input_4.hex
+│   ├── input_5.hex
+│   ├── input_6.hex
+│   ├── input_7.hex
+│   ├── input_8.hex
+│   ├── input_9.hex
+│   ├── labels.txt
+│   ├── logits_0.hex
+│   ├── logits_10.hex
+│   ├── logits_11.hex
+│   ├── logits_12.hex
+│   ├── logits_13.hex
+│   ├── logits_14.hex
+│   ├── logits_15.hex
+│   ├── logits_16.hex
+│   ├── logits_17.hex
+│   ├── logits_18.hex
+│   ├── logits_19.hex
+│   ├── logits_1.hex
+│   ├── logits_2.hex
+│   ├── logits_3.hex
+│   ├── logits_4.hex
+│   ├── logits_5.hex
+│   ├── logits_6.hex
+│   ├── logits_7.hex
+│   ├── logits_8.hex
+│   ├── logits_9.hex
+│   ├── mlp_route_b.pth
+│   ├── pred_0.txt
+│   ├── pred_10.txt
+│   ├── pred_11.txt
+│   ├── pred_12.txt
+│   ├── pred_13.txt
+│   ├── pred_14.txt
+│   ├── pred_15.txt
+│   ├── pred_16.txt
+│   ├── pred_17.txt
+│   ├── pred_18.txt
+│   ├── pred_19.txt
+│   ├── pred_1.txt
+│   ├── pred_2.txt
+│   ├── pred_3.txt
+│   ├── pred_4.txt
+│   ├── pred_5.txt
+│   ├── pred_6.txt
+│   ├── pred_7.txt
+│   ├── pred_8.txt
+│   ├── pred_9.txt
+│   ├── preds.txt
+│   ├── quant_config.json
+│   └── quant_params.hex
+├── route_b_output_3
+│   ├── fc1_acc_0.hex
+│   ├── fc1_acc_10.hex
+│   ├── fc1_acc_11.hex
+│   ├── fc1_acc_12.hex
+│   ├── fc1_acc_13.hex
+│   ├── fc1_acc_14.hex
+│   ├── fc1_acc_15.hex
+│   ├── fc1_acc_16.hex
+│   ├── fc1_acc_17.hex
+│   ├── fc1_acc_18.hex
+│   ├── fc1_acc_19.hex
+│   ├── fc1_acc_1.hex
+│   ├── fc1_acc_2.hex
+│   ├── fc1_acc_3.hex
+│   ├── fc1_acc_4.hex
+│   ├── fc1_acc_5.hex
+│   ├── fc1_acc_6.hex
+│   ├── fc1_acc_7.hex
+│   ├── fc1_acc_8.hex
+│   ├── fc1_acc_9.hex
+│   ├── fc1_bias_int32.hex
+│   ├── fc1_out_0.hex
+│   ├── fc1_out_10.hex
+│   ├── fc1_out_11.hex
+│   ├── fc1_out_12.hex
+│   ├── fc1_out_13.hex
+│   ├── fc1_out_14.hex
+│   ├── fc1_out_15.hex
+│   ├── fc1_out_16.hex
+│   ├── fc1_out_17.hex
+│   ├── fc1_out_18.hex
+│   ├── fc1_out_19.hex
+│   ├── fc1_out_1.hex
+│   ├── fc1_out_2.hex
+│   ├── fc1_out_3.hex
+│   ├── fc1_out_4.hex
+│   ├── fc1_out_5.hex
+│   ├── fc1_out_6.hex
+│   ├── fc1_out_7.hex
+│   ├── fc1_out_8.hex
+│   ├── fc1_out_9.hex
+│   ├── fc1_relu_0.hex
+│   ├── fc1_relu_10.hex
+│   ├── fc1_relu_11.hex
+│   ├── fc1_relu_12.hex
+│   ├── fc1_relu_13.hex
+│   ├── fc1_relu_14.hex
+│   ├── fc1_relu_15.hex
+│   ├── fc1_relu_16.hex
+│   ├── fc1_relu_17.hex
+│   ├── fc1_relu_18.hex
+│   ├── fc1_relu_19.hex
+│   ├── fc1_relu_1.hex
+│   ├── fc1_relu_2.hex
+│   ├── fc1_relu_3.hex
+│   ├── fc1_relu_4.hex
+│   ├── fc1_relu_5.hex
+│   ├── fc1_relu_6.hex
+│   ├── fc1_relu_7.hex
+│   ├── fc1_relu_8.hex
+│   ├── fc1_relu_9.hex
+│   ├── fc1_weight_int8.hex
+│   ├── fc2_acc_0.hex
+│   ├── fc2_acc_10.hex
+│   ├── fc2_acc_11.hex
+│   ├── fc2_acc_12.hex
+│   ├── fc2_acc_13.hex
+│   ├── fc2_acc_14.hex
+│   ├── fc2_acc_15.hex
+│   ├── fc2_acc_16.hex
+│   ├── fc2_acc_17.hex
+│   ├── fc2_acc_18.hex
+│   ├── fc2_acc_19.hex
+│   ├── fc2_acc_1.hex
+│   ├── fc2_acc_2.hex
+│   ├── fc2_acc_3.hex
+│   ├── fc2_acc_4.hex
+│   ├── fc2_acc_5.hex
+│   ├── fc2_acc_6.hex
+│   ├── fc2_acc_7.hex
+│   ├── fc2_acc_8.hex
+│   ├── fc2_acc_9.hex
+│   ├── fc2_bias_int32.hex
+│   ├── fc2_weight_int8.hex
+│   ├── input_0.hex
+│   ├── input_10.hex
+│   ├── input_11.hex
+│   ├── input_12.hex
+│   ├── input_13.hex
+│   ├── input_14.hex
+│   ├── input_15.hex
+│   ├── input_16.hex
+│   ├── input_17.hex
+│   ├── input_18.hex
+│   ├── input_19.hex
+│   ├── input_1.hex
+│   ├── input_2.hex
+│   ├── input_3.hex
+│   ├── input_4.hex
+│   ├── input_5.hex
+│   ├── input_6.hex
+│   ├── input_7.hex
+│   ├── input_8.hex
+│   ├── input_9.hex
+│   ├── labels.txt
+│   ├── logits_0.hex
+│   ├── logits_10.hex
+│   ├── logits_11.hex
+│   ├── logits_12.hex
+│   ├── logits_13.hex
+│   ├── logits_14.hex
+│   ├── logits_15.hex
+│   ├── logits_16.hex
+│   ├── logits_17.hex
+│   ├── logits_18.hex
+│   ├── logits_19.hex
+│   ├── logits_1.hex
+│   ├── logits_2.hex
+│   ├── logits_3.hex
+│   ├── logits_4.hex
+│   ├── logits_5.hex
+│   ├── logits_6.hex
+│   ├── logits_7.hex
+│   ├── logits_8.hex
+│   ├── logits_9.hex
+│   ├── mlp_route_b.pth
+│   ├── pred_0.txt
+│   ├── pred_10.txt
+│   ├── pred_11.txt
+│   ├── pred_12.txt
+│   ├── pred_13.txt
+│   ├── pred_14.txt
+│   ├── pred_15.txt
+│   ├── pred_16.txt
+│   ├── pred_17.txt
+│   ├── pred_18.txt
+│   ├── pred_19.txt
+│   ├── pred_1.txt
+│   ├── pred_2.txt
+│   ├── pred_3.txt
+│   ├── pred_4.txt
+│   ├── pred_5.txt
+│   ├── pred_6.txt
+│   ├── pred_7.txt
+│   ├── pred_8.txt
+│   ├── pred_9.txt
+│   ├── preds.txt
+│   ├── quant_config.json
+│   └── quant_params.hex
+├── rtl
+│   ├── argmax_int8.sv
+│   ├── cim_tile.sv
+│   ├── fc1_bias_bank.sv
+│   ├── fc1_cim_core_block.sv
+│   ├── fc1_cim_core_dual_instance.sv
+│   ├── fc1_multi_block_parallel.sv
+│   ├── fc1_relu_requantize.sv
+│   ├── fc1_relu_requantize_with_file.sv
+│   ├── fc1_to_fc2_top.sv
+│   ├── fc1_to_fc2_top_with_file.sv
+│   ├── fc1_weight_bank.sv
+│   ├── fc2_bias_bank.sv
+│   ├── fc2_core.sv
+│   ├── fc2_core_with_file.sv
+│   ├── fc2_weight_bank.sv
+│   ├── input_buffer.sv
+│   ├── mnist_inference_top.sv
+│   ├── package.sv
+│   ├── psum_accum.sv
+│   └── quantize_param_bank.sv
+├── rtl_shared_buffer_ib
+│   ├── cim_tile.sv
+│   ├── fc1_bias_bank.sv
+│   ├── fc1_multi_block_shared_input.sv
+│   ├── fc1_ob_engine_shared_input.sv
+│   ├── fc1_weight_bank.sv
+│   ├── input_buffer.sv
+│   ├── package.sv
+│   └── psum_accum.sv
+├── scripts
+│   ├── csrc
+│   │   ├── archive.25
+│   │   │   ├── _12011_archive_1.a
+│   │   │   ├── _12011_archive_1.a.info
+│   │   │   ├── _prev_archive_1.a
+│   │   │   └── _prev_archive_1.a.info
+│   │   ├── cgincr.sdb
+│   │   ├── cginfo.json
+│   │   ├── cgproc.12011.json
+│   │   ├── diag
+│   │   ├── filelist
+│   │   ├── filelist.cu
+│   │   ├── filelist.dpi
+│   │   ├── filelist.hsopt
+│   │   ├── filelist.hsopt.llvm2_0.objs
+│   │   ├── filelist.hsopt.objs
+│   │   ├── filelist.pli
+│   │   ├── hsim
+│   │   │   └── hsim.sdb
+│   │   ├── import_dpic.h
+│   │   ├── Makefile
+│   │   ├── Makefile.hsopt
+│   │   ├── objs
+│   │   │   └── amcQw_d.o
+│   │   ├── pre.cgincr.sdb
+│   │   ├── _prev_cginfo.json
+│   │   ├── product_timestamp
+│   │   ├── rmapats.c
+│   │   ├── rmapats.h
+│   │   ├── rmapats.m
+│   │   ├── rmapats_mop.o
+│   │   ├── rmapats.o
+│   │   ├── rmar0.h
+│   │   ├── rmar.c
+│   │   ├── rmar.h
+│   │   ├── rmar_llvm_0_0.o
+│   │   ├── rmar_llvm_0_1.o
+│   │   ├── rmar_nd.o
+│   │   ├── rmar.o
+│   │   ├── SIM_l.o
+│   │   ├── _vcs_pli_stub_.c
+│   │   └── _vcs_pli_stub_.o
+│   ├── run_cim_tile_single.sh
+│   ├── run_fc1_cim_core_block_all_scan.sh
+│   ├── run_fc1_cim_core_block.sh
+│   ├── run_fc1_cim_core_dual_instance.sh
+│   ├── run_fc1_multi_block_parallel.sh
+│   ├── run_fc1_multi_block_shared_input.sh
+│   ├── run_fc1_relu_requantize.sh
+│   ├── run_fc1_to_fc2_top.sh
+│   ├── run_fc1_to_fc2_top_with_file.sh
+│   ├── run_fc1_weight_bank.sh
+│   ├── run_fc2_bias_bank.sh
+│   ├── run_fc2_core.sh
+│   ├── run_fc2_weight_bank.sh
+│   ├── run_input_buffer.sh
+│   ├── run_mnist_inference_regression.sv
+│   ├── run_mnist_inference_top.sv
+│   ├── run_psum_accum.sh
+│   └── ucli.key
+├── sim
+│   ├── cim_tile_simv
+│   ├── cim_tile_simv.daidir
+│   │   ├── _9274_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_D4l39s.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── fc1_cim_core_block_all_scan_simv
+│   ├── fc1_cim_core_block_all_scan_simv.daidir
+│   │   ├── _9016_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cc
+│   │   │   ├── cc_bcode.db
+│   │   │   └── cc_dummy_file
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── _csrc0.so
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_F5U17I.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_callgraph.sdb
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── rmapats.so
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hil_stmts.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_merge.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── fc1_cim_core_block_simv
+│   ├── fc1_cim_core_block_simv.daidir
+│   │   ├── _9890_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cc
+│   │   │   ├── cc_bcode.db
+│   │   │   └── cc_dummy_file
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── _csrc0.so
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_1woZ1h.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_callgraph.sdb
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── rmapats.so
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hil_stmts.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_merge.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── fc1_cim_core_dual_instance_simv
+│   ├── fc1_cim_core_dual_instance_simv.daidir
+│   │   ├── _11143_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cc
+│   │   │   ├── cc_bcode.db
+│   │   │   └── cc_dummy_file
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_tapi.xml.gz
+│   │   │   │   └── idents_Uua7FL.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_callgraph.sdb
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── rmapats.so
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hil_stmts.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_merge.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── fc1_multi_block_parallel_simv
+│   ├── fc1_multi_block_parallel_simv.daidir
+│   │   ├── _12904_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cc
+│   │   │   ├── cc_bcode.db
+│   │   │   └── cc_dummy_file
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_ABZN7O.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_callgraph.sdb
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── rmapats.so
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hil_stmts.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_merge.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── fc1_multi_block_shared_input_simv
+│   ├── fc1_multi_block_shared_input_simv.daidir
+│   │   ├── _16665_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cc
+│   │   │   ├── cc_bcode.db
+│   │   │   └── cc_dummy_file
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_bpxLg4.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_callgraph.sdb
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── rmapats.so
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hil_stmts.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_merge.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── fc1_relu_requantize_simv
+│   ├── fc1_relu_requantize_simv.daidir
+│   │   ├── _4850_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_tapi.xml.gz
+│   │   │   │   └── idents_wcu3t3.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── fc1_to_fc2_top_simv
+│   ├── fc1_to_fc2_top_simv.daidir
+│   │   ├── _8769_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_qfU5TC.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── fc1_to_fc2_top_with_file_simv
+│   ├── fc1_to_fc2_top_with_file_simv.daidir
+│   │   ├── _12011_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_bLg90U.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── fc1_weight_bank_simv
+│   ├── fc1_weight_bank_simv.daidir
+│   │   ├── _16045_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cc
+│   │   │   ├── cc_bcode.db
+│   │   │   └── cc_dummy_file
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── _csrc0.so
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_P4lgNl.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── fc2_bias_bank_simv
+│   ├── fc2_bias_bank_simv.daidir
+│   │   ├── _6286_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_tapi.xml.gz
+│   │   │   │   └── idents_uJ8Pz3.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── fc2_core_simv
+│   ├── fc2_core_simv.daidir
+│   │   ├── _7194_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_g9T7lC.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── fc2_weight_bank_simv
+│   ├── fc2_weight_bank_simv.daidir
+│   │   ├── _5751_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_puyDFZ.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── input_buffer_simv
+│   ├── input_buffer_simv.daidir
+│   │   ├── _20724_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── _csrc0.so
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_dk0eeh.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── log
+│   │   ├── compile_input_buffer.log
+│   │   ├── compile_tb_cim_tile_single.log
+│   │   ├── compile_tb_fc1_cim_core_block_all_scan.log
+│   │   ├── compile_tb_fc1_cim_core_block.log
+│   │   ├── compile_tb_fc1_cim_core_dual_instance.log
+│   │   ├── compile_tb_fc1_multi_block_parallel.log
+│   │   ├── compile_tb_fc1_multi_block_shared_input.log
+│   │   ├── compile_tb_fc1_relu_requantize.log
+│   │   ├── compile_tb_fc1_to_fc2_top.log
+│   │   ├── compile_tb_fc1_to_fc2_top_with_file.log
+│   │   ├── compile_tb_fc1_weight_bank.log
+│   │   ├── compile_tb_fc2_bias_bank.log
+│   │   ├── compile_tb_fc2_core.log
+│   │   ├── compile_tb_fc2_weight_bank.log
+│   │   ├── compile_tb_input_buffer.log
+│   │   ├── compile_tb_mnist_inference_top.log
+│   │   ├── compile_tb_mnist_inference_top_regression.log
+│   │   ├── compile_tb_psum_accum.log
+│   │   ├── sim_tb_cim_tile_single.log
+│   │   ├── sim_tb_fc1_cim_core_block_all_scan.log
+│   │   ├── sim_tb_fc1_cim_core_block.log
+│   │   ├── sim_tb_fc1_cim_core_dual_instance.log
+│   │   ├── sim_tb_fc1_multi_block_parallel.log
+│   │   ├── sim_tb_fc1_multi_block_shared_input.log
+│   │   ├── sim_tb_fc1_relu_requantize.log
+│   │   ├── sim_tb_fc1_to_fc2_top.log
+│   │   ├── sim_tb_fc1_to_fc2_top_with_file.log
+│   │   ├── sim_tb_fc1_weight_bank.log
+│   │   ├── sim_tb_fc2_bias_bank.log
+│   │   ├── sim_tb_fc2_core.log
+│   │   ├── sim_tb_fc2_weight_bank.log
+│   │   ├── sim_tb_mnist_inference_top.log
+│   │   └── sim_tb_tb_psum_accum.log
+│   ├── log_regression
+│   │   ├── sim_sample_0.log
+│   │   ├── sim_sample_10.log
+│   │   ├── sim_sample_11.log
+│   │   ├── sim_sample_12.log
+│   │   ├── sim_sample_13.log
+│   │   ├── sim_sample_14.log
+│   │   ├── sim_sample_15.log
+│   │   ├── sim_sample_16.log
+│   │   ├── sim_sample_17.log
+│   │   ├── sim_sample_18.log
+│   │   ├── sim_sample_19.log
+│   │   ├── sim_sample_1.log
+│   │   ├── sim_sample_2.log
+│   │   ├── sim_sample_3.log
+│   │   ├── sim_sample_4.log
+│   │   ├── sim_sample_5.log
+│   │   ├── sim_sample_6.log
+│   │   ├── sim_sample_7.log
+│   │   ├── sim_sample_8.log
+│   │   └── sim_sample_9.log
+│   ├── mnist_inference_top_simv
+│   ├── mnist_inference_top_simv.daidir
+│   │   ├── _12651_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cc
+│   │   │   ├── cc_bcode.db
+│   │   │   └── cc_dummy_file
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── _csrc0.so
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_lSGJoK.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_callgraph.sdb
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── rmapats.so
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hil_stmts.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_merge.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── psum_accum_simv
+│   ├── psum_accum_simv.daidir
+│   │   ├── _24209_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_MFOK4J.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_callgraph.sdb
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── rmapats.so
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── sim_input_buffer.log
+│   └── sim_tb_fc1_weight_bank.log
+├── tb
+│   ├── tb_cim_tile_single.sv
+│   ├── tb_fc1_cim_core_block_all_scan.sv
+│   ├── tb_fc1_cim_core_block.sv
+│   ├── tb_fc1_cim_core_dual_instance.sv
+│   ├── tb_fc1_multi_block_parallel.sv
+│   ├── tb_fc1_multi_block_shared_input.sv
+│   ├── tb_fc1_relu_requantize.sv
+│   ├── tb_fc1_to_fc2_top.sv
+│   ├── tb_fc1_to_fc2_top_with_file.sv
+│   ├── tb_fc1_weight_bank.sv
+│   ├── tb_fc2_bias_bank.sv
+│   ├── tb_fc2_core.sv
+│   ├── tb_fc2_weight_bank.sv
+│   ├── tb_input_buffer.sv
+│   ├── tb_mnist_inference_top.sv
+│   └── tb_psum_accum.sv
+└── tree.txt
+
+77 directories, 1399 files

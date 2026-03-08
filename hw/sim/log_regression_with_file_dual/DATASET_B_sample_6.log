@@ -1,0 +1,40 @@
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  8 17:59 2026
+Using INPUT_HEX_FILE from plusarg: ../route_b_output_3/input_6.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_3/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_3/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_3/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_3/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_3/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_3/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_3/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_3/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_3/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_3/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_3/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_3/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_3/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_3/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_3/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_3/fc1_bias_int32.hex
+Using FC2_WEIGHT_HEX_FILE from plusarg: ../route_b_output_3/fc2_weight_int8.hex
+Using FC2_BIAS_FILE from plusarg: ../route_b_output_3/fc2_bias_int32.hex
+Using QUANT_PARAM_FILE from plusarg: ../route_b_output_3/quant_params.hex
+TB using INPUT_HEX_FILE: ../route_b_output_3/input_6.hex
+TB using WEIGHT_HEX_FILE: ../route_b_output_3/fc1_weight_int8.hex
+TB using FC1_BIAS_FILE: ../route_b_output_3/fc1_bias_int32.hex
+TB using FC2_WEIGHT_HEX_FILE: ../route_b_output_3/fc2_weight_int8.hex
+TB using FC2_BIAS_FILE: ../route_b_output_3/fc2_bias_int32.hex
+TB using QUANT_PARAM_FILE: ../route_b_output_3/quant_params.hex
+TB using LOGITS_FILE: ../route_b_output_3/logits_6.hex
+TB using PRED_FILE: ../route_b_output_3/pred_6.txt
+Checking logits_all ...
+Checking pred_class ...
+PASS: mnist_inference_top_with_file matches provided logits/pred golden files.
+$finish called from file "../tb/tb_mnist_inference_top_with_file.sv", line 132.
+$finish at simulation time               536000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 536000 ps
+CPU Time:      0.260 seconds;       Data structure size:   3.3Mb
+Sun Mar  8 17:59:30 2026
