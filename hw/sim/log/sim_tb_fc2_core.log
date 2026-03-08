@@ -1,0 +1,37 @@
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  8 10:49 2026
+Using FC2_WEIGHT_HEX_FILE from plusarg: ../route_b_output/fc2_weight_int8.hex
+Using FC2_BIAS_FILE from plusarg: ../route_b_output/fc2_bias_int32.hex
+TB using FC1_OUT_FILE: ../route_b_output/fc1_out_0.hex
+TB using FC2_ACC_FILE: ../route_b_output/fc2_acc_0.hex
+TB using LOGITS_FILE: ../route_b_output/logits_0.hex
+Checking fc2_acc_all ...
+MATCH ACC idx=0 value=-4896
+MATCH ACC idx=1 value=-16312
+MATCH ACC idx=2 value=-323
+MATCH ACC idx=3 value=3145
+MATCH ACC idx=4 value=-18220
+MATCH ACC idx=5 value=-6401
+MATCH ACC idx=6 value=-23474
+MATCH ACC idx=7 value=13394
+MATCH ACC idx=8 value=-4847
+MATCH ACC idx=9 value=-4991
+Checking logits_all ...
+MATCH LOGIT idx=0 value=-15
+MATCH LOGIT idx=1 value=-50
+MATCH LOGIT idx=2 value=-1
+MATCH LOGIT idx=3 value=10
+MATCH LOGIT idx=4 value=-56
+MATCH LOGIT idx=5 value=-20
+MATCH LOGIT idx=6 value=-72
+MATCH LOGIT idx=7 value=41
+MATCH LOGIT idx=8 value=-15
+MATCH LOGIT idx=9 value=-15
+PASS: fc2_core matches fc2_acc_0.hex and logits_0.hex.
+$finish called from file "../tb/tb_fc2_core.sv", line 80.
+$finish at simulation time                 1000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 1000 ps
+CPU Time:      0.190 seconds;       Data structure size:   0.1Mb
+Sun Mar  8 10:49:38 2026

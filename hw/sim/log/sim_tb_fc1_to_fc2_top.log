@@ -1,0 +1,21 @@
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  8 10:51 2026
+Using FC2_WEIGHT_HEX_FILE from plusarg: ../route_b_output/fc2_weight_int8.hex
+Using FC2_BIAS_FILE from plusarg: ../route_b_output/fc2_bias_int32.hex
+TB using FC1_ACC_FILE: ../route_b_output/fc1_acc_0.hex
+TB using FC1_RELU_FILE: ../route_b_output/fc1_relu_0.hex
+TB using FC1_OUT_FILE: ../route_b_output/fc1_out_0.hex
+TB using FC2_ACC_FILE: ../route_b_output/fc2_acc_0.hex
+TB using LOGITS_FILE: ../route_b_output/logits_0.hex
+Checking fc1_relu_all ...
+Checking fc1_out_all ...
+Checking fc2_acc_all ...
+Checking logits_all ...
+PASS: fc1_to_fc2_top matches all golden files.
+$finish called from file "../tb/tb_fc1_to_fc2_top.sv", line 113.
+$finish at simulation time                 1000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 1000 ps
+CPU Time:      0.210 seconds;       Data structure size:   0.1Mb
+Sun Mar  8 10:51:01 2026

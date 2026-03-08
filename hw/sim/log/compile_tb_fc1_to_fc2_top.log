@@ -1,0 +1,34 @@
+                         Chronologic VCS (TM)
+       Version O-2018.09-SP2_Full64 -- Sun Mar  8 10:51:01 2026
+               Copyright (c) 1991-2018 by Synopsys Inc.
+                         ALL RIGHTS RESERVED
+
+This program is proprietary and confidential information of Synopsys Inc.
+and may be used and disclosed only as authorized in a license agreement
+controlling such use and disclosure.
+
+Parsing design file '../rtl/package.sv'
+Parsing design file '../rtl/fc1_relu_requantize.sv'
+Parsing design file '../rtl/fc2_weight_bank.sv'
+Parsing design file '../rtl/fc2_bias_bank.sv'
+Parsing design file '../rtl/fc2_core.sv'
+Parsing design file '../rtl/fc1_to_fc2_top.sv'
+Parsing design file '../tb/tb_fc1_to_fc2_top.sv'
+Top Level Modules:
+       tb_fc1_to_fc2_top
+TimeScale is 1 ns / 1 ps
+Starting vcs inline pass...
+7 modules and 0 UDP read.
+recompiling module fc1_relu_requantize
+recompiling module fc2_weight_bank
+recompiling module fc2_bias_bank
+recompiling module fc2_core
+recompiling module fc1_to_fc2_top
+recompiling module tb_fc1_to_fc2_top
+6 of 7 modules done
+	However, due to incremental compilation, only 6 modules need to be compiled. 
+rm -f _csrc*.so pre_vcsobj_*.so share_vcsobj_*.so
+if [ -x ../../sim/fc1_to_fc2_top_simv ]; then chmod -x ../../sim/fc1_to_fc2_top_simv; fi
+g++  -o ../../sim/fc1_to_fc2_top_simv    -Wl,-rpath-link=./ -Wl,-rpath='$ORIGIN'/fc1_to_fc2_top_simv.daidir/ -Wl,-rpath=./fc1_to_fc2_top_simv.daidir/ -Wl,-rpath='$ORIGIN'/fc1_to_fc2_top_simv.daidir//scsim.db.dir  -rdynamic  -Wl,-rpath=/opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib -L/opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib   objs/amcQw_d.o   _8769_archive_1.so _prev_archive_1.so  SIM_l.o       rmapats_mop.o rmapats.o rmar.o rmar_nd.o  rmar_llvm_0_1.o rmar_llvm_0_0.o          -lzerosoft_rt_stubs -lvirsim -lerrorinf -lsnpsmalloc -lvfs    -lvcsnew -lsimprofile -luclinative /opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib/vcs_tls.o   -Wl,-whole-archive -lvcsucli -Wl,-no-whole-archive        _vcs_pli_stub_.o   /opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib/vcs_save_restore_new.o /opt/Synopsys/Verdi2018/verdi/Verdi_O-2018.09-SP2/share/PLI/VCS/LINUX64/pli.a -ldl  -lc -lm -lpthread -ldl 
+../../sim/fc1_to_fc2_top_simv up to date
+CPU time: .250 seconds to compile + .161 seconds to elab + .209 seconds to link

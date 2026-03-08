@@ -1,0 +1,22 @@
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  8 10:49 2026
+Using FC2_BIAS_FILE from plusarg: ../route_b_output/fc2_bias_int32.hex
+TB using FC2_BIAS_FILE: ../route_b_output/fc2_bias_int32.hex
+MATCH idx=0 value=-129
+MATCH idx=1 value=142
+MATCH idx=2 value=-100
+MATCH idx=3 value=-140
+MATCH idx=4 value=152
+MATCH idx=5 value=208
+MATCH idx=6 value=-151
+MATCH idx=7 value=75
+MATCH idx=8 value=-27
+MATCH idx=9 value=-122
+PASS: fc2_bias_bank matches fc2_bias_int32.hex.
+$finish called from file "../tb/tb_fc2_bias_bank.sv", line 43.
+$finish at simulation time                 1000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 1000 ps
+CPU Time:      0.200 seconds;       Data structure size:   0.0Mb
+Sun Mar  8 10:49:03 2026

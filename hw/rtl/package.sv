@@ -67,10 +67,10 @@ package mnist_cim_pkg;
   // -----------------------------
 
 
-  parameter int FC2_IN_DIM = HIDDEN_DIM;
-  parameter int FC2_OUT_DIM = 10;
-  parameter int FC2_WEIGHT_DEPTH = FC2_OUT_DIM * FC2_IN_DIM;
-  parameter int FC2_BIAS_DEPTH = FC2_OUT_DIM;
+  //parameter int FC2_IN_DIM = HIDDEN_DIM;
+  //parameter int FC2_OUT_DIM = 10;
+  //parameter int FC2_WEIGHT_DEPTH = FC2_OUT_DIM * FC2_IN_DIM;
+  //parameter int FC2_BIAS_DEPTH = FC2_OUT_DIM;
 
 
 endpackage

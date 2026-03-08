@@ -14,7 +14,7 @@ vcs -full64 -sverilog -timescale=1ns/1ps \
 	-debug_access+all \
 	-o ${SIM_DIR}/fc1_to_fc2_top_simv \
 	${RTL_DIR}/package.sv \
-	${RTL_DIR}/fc1_relu_requant.sv \
+	${RTL_DIR}/fc1_relu_requantize.sv \
 	${RTL_DIR}/fc2_weight_bank.sv \
 	${RTL_DIR}/fc2_bias_bank.sv \
 	${RTL_DIR}/fc2_core.sv \

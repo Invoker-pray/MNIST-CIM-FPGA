@@ -1,0 +1,32 @@
+{
+    "std": [
+        "std",
+        "reYIK",
+        "module",
+        1
+    ],
+    "mnist_cim_pkg": [
+        "mnist_cim_pkg",
+        "ehn8j",
+        "module",
+        2
+    ],
+    "fc1_relu_requantize": [
+        "fc1_relu_requantize",
+        "MWDHa",
+        "module",
+        13
+    ],
+    "...MASTER...": [
+        "SIM",
+        "amcQw",
+        "module",
+        5
+    ],
+    "tb_fc1_relu_requantize": [
+        "tb_fc1_relu_requantize",
+        "NmnjV",
+        "module",
+        6
+    ]
+}

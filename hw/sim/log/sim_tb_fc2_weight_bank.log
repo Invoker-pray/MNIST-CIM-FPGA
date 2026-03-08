@@ -1,0 +1,12 @@
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  8 10:49 2026
+Using FC2_WEIGHT_HEX_FILE from plusarg: ../route_b_output/fc2_weight_int8.hex
+TB using FC2_WEIGHT_HEX_FILE: ../route_b_output/fc2_weight_int8.hex
+PASS: fc2_weight_bank matches fc2_weight_int8.hex layout.
+$finish called from file "../tb/tb_fc2_weight_bank.sv", line 45.
+$finish at simulation time                 1000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 1000 ps
+CPU Time:      0.150 seconds;       Data structure size:   0.0Mb
+Sun Mar  8 10:49:15 2026

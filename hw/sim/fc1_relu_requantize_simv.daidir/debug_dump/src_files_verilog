@@ -1,0 +1,3 @@
+/home/icer/MNIST-CIM-FPGA/hw/rtl/fc1_relu_requantize.sv
+/home/icer/MNIST-CIM-FPGA/hw/rtl/package.sv
+/home/icer/MNIST-CIM-FPGA/hw/tb/tb_fc1_relu_requantize.sv

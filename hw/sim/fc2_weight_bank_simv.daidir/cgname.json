@@ -1,0 +1,32 @@
+{
+    "fc2_weight_bank": [
+        "fc2_weight_bank",
+        "xUbR5",
+        "module",
+        12
+    ],
+    "std": [
+        "std",
+        "reYIK",
+        "module",
+        1
+    ],
+    "mnist_cim_pkg": [
+        "mnist_cim_pkg",
+        "ehn8j",
+        "module",
+        2
+    ],
+    "tb_fc2_weight_bank": [
+        "tb_fc2_weight_bank",
+        "rehQx",
+        "module",
+        11
+    ],
+    "...MASTER...": [
+        "SIM",
+        "amcQw",
+        "module",
+        5
+    ]
+}

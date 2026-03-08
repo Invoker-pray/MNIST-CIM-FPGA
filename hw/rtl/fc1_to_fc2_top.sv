@@ -16,7 +16,7 @@ module fc1_to_fc2_top #(
 );
   import mnist_cim_pkg::*;
 
-  fc1_relu_requant u_fc1_relu_requant (
+  fc1_relu_requantize u_fc1_relu_requantize (
       .fc1_acc_all (fc1_acc_all),
       .fc1_relu_all(fc1_relu_all),
       .fc1_out_all (fc1_out_all)
