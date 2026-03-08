@@ -1,0 +1,110 @@
+{
+    "std": [
+        "std",
+        "reYIK",
+        "module",
+        1
+    ],
+    "mnist_cim_pkg": [
+        "mnist_cim_pkg",
+        "ehn8j",
+        "module",
+        2
+    ],
+    "fc2_weight_bank": [
+        "fc2_weight_bank",
+        "xUbR5",
+        "module",
+        8
+    ],
+    "input_buffer": [
+        "input_buffer",
+        "pbTwn",
+        "module",
+        6
+    ],
+    "fc1_weight_bank": [
+        "fc1_weight_bank",
+        "rE4Cd",
+        "module",
+        11
+    ],
+    "fc1_bias_bank": [
+        "fc1_bias_bank",
+        "Bg6nL",
+        "module",
+        12
+    ],
+    "...MASTER...": [
+        "SIM",
+        "amcQw",
+        "module",
+        5
+    ],
+    "cim_tile": [
+        "cim_tile",
+        "Nb8n4",
+        "module",
+        13
+    ],
+    "psum_accum": [
+        "psum_accum",
+        "Zw2Gu",
+        "module",
+        14
+    ],
+    "argmax_int8": [
+        "argmax_int8",
+        "Wg902",
+        "module",
+        17
+    ],
+    "fc1_ob_engine_shared_input_0000": [
+        "fc1_ob_engine_shared_input_0000",
+        "sJitK",
+        "module",
+        15
+    ],
+    "fc1_multi_block_shared_input_0000": [
+        "fc1_multi_block_shared_input_0000",
+        "D9FTh",
+        "module",
+        16
+    ],
+    "fc2_core": [
+        "fc2_core",
+        "tnnq7",
+        "module",
+        7
+    ],
+    "fc1_relu_requantize": [
+        "fc1_relu_requantize",
+        "MWDHa",
+        "module",
+        9
+    ],
+    "fc2_bias_bank": [
+        "fc2_bias_bank",
+        "Dm76d",
+        "module",
+        10
+    ],
+    "mnist_inference_top": [
+        "mnist_inference_top",
+        "Lb7mi",
+        "module",
+        18
+    ],
+    "fc1_to_fc2_top": [
+        "fc1_to_fc2_top",
+        "JkhY8",
+        "module",
+        4
+    ],
+    "tb_mnist_inference_top": [
+        "tb_mnist_inference_top",
+        "H4y4I",
+        "module",
+        19
+    ]
+}

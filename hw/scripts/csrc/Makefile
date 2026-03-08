@@ -8,7 +8,7 @@ VSRC=..
 TARGET_ARCH=
 
 # Choose name of executable 
-PRODUCTBASE=$(VSRC)/../sim/fc1_to_fc2_top_simv
+PRODUCTBASE=$(VSRC)/../sim/mnist_inference_top_simv
 
 PRODUCT=$(PRODUCTBASE)
 
@@ -41,7 +41,7 @@ STRIPFLAGS=
 PRE_LDFLAGS= # Loader Flags
 LDFLAGS= -rdynamic  -Wl,-rpath=/opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib -L/opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib 
 # Picarchive Flags
-PICLDFLAGS=-Wl,-rpath-link=./ -Wl,-rpath='$$ORIGIN'/fc1_to_fc2_top_simv.daidir/ -Wl,-rpath=./fc1_to_fc2_top_simv.daidir/ -Wl,-rpath='$$ORIGIN'/fc1_to_fc2_top_simv.daidir//scsim.db.dir 
+PICLDFLAGS=-Wl,-rpath-link=./ -Wl,-rpath='$$ORIGIN'/mnist_inference_top_simv.daidir/ -Wl,-rpath=./mnist_inference_top_simv.daidir/ -Wl,-rpath='$$ORIGIN'/mnist_inference_top_simv.daidir//scsim.db.dir 
 
 # C run time startup
 CRT0=
