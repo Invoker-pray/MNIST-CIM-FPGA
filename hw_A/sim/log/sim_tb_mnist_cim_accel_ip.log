@@ -1,0 +1,29 @@
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 13:19 2026
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+Using FC2_WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc2_weight_int8.hex
+Using FC2_BIAS_FILE from plusarg: ../route_b_output_2/fc2_bias_int32.hex
+Using QUANT_PARAM_FILE from plusarg: ../route_b_output_2/quant_params.hex
+PASS: mnist_cim_accel_ip CSR path works for sample0.
+$finish called from file "../tb/tb_mnist_cim_accel_ip.sv", line 133.
+$finish at simulation time               577000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 577000 ps
+CPU Time:      0.200 seconds;       Data structure size:   3.3Mb
+Mon Mar  9 13:19:34 2026

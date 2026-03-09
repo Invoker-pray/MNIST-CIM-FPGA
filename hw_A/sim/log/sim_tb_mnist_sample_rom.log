@@ -1,0 +1,11 @@
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 13:15 2026
+TB using SAMPLE_HEX_FILE: ../data/mnist_samples_route_b_output_2.hex
+PASS: mnist_sample_rom address mapping and x_eff conversion are correct.
+$finish called from file "../tb/tb_mnist_sample_rom.sv", line 69.
+$finish at simulation time               980000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 980000 ps
+CPU Time:      0.220 seconds;       Data structure size:   0.1Mb
+Mon Mar  9 13:15:20 2026

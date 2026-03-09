@@ -35,13 +35,15 @@ module tb_uart_pred_sender;
 
   task automatic uart_recv_byte(output reg [7:0] data);
     begin
-      wait (uart_tx == 1'b0);
+      @(negedge uart_tx);  // 等真正的 start bit 边沿
       #(BIT_TIME + BIT_TIME / 2);
+
       for (i = 0; i < 8; i = i + 1) begin
         data[i] = uart_tx;
         #BIT_TIME;
       end
-      #BIT_TIME;
+
+      #BIT_TIME;  // stop bit
     end
   endtask
 
@@ -63,9 +65,20 @@ module tb_uart_pred_sender;
     uart_recv_byte(b1);
     uart_recv_byte(b2);
 
-    if (b0 !== 8'h37) error_count = error_count + 1;
-    if (b1 !== 8'h0D) error_count = error_count + 1;
-    if (b2 !== 8'h0A) error_count = error_count + 1;
+    $display("UART bytes: b0=0x%02x b1=0x%02x b2=0x%02x", b0, b1, b2);
+
+    if (b0 !== 8'h37) begin
+      $display("ERROR b0 got=0x%02x expected=0x37", b0);
+      error_count = error_count + 1;
+    end
+    if (b1 !== 8'h0D) begin
+      $display("ERROR b1 got=0x%02x expected=0x0D", b1);
+      error_count = error_count + 1;
+    end
+    if (b2 !== 8'h0A) begin
+      $display("ERROR b2 got=0x%02x expected=0x0A", b2);
+      error_count = error_count + 1;
+    end
 
     if (error_count == 0) $display("PASS: uart_pred_sender sends digit/CR/LF correctly.");
     else $display("FAIL: found %0d mismatches.", error_count);
@@ -74,3 +87,4 @@ module tb_uart_pred_sender;
   end
 
 endmodule
+

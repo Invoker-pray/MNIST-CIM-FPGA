@@ -1,0 +1,265 @@
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 13:15 2026
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_weight_int8.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_weight_bank.sv, 31
+  Cannot open file '../route_b_output_2/fc1_weight_int8.hex' passed as 
+  argument to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_bias_int32.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_bias_bank.sv, 30
+  Cannot open file '../route_b_output_2/fc1_bias_int32.hex' passed as argument
+  to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_weight_int8.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_weight_bank.sv, 31
+  Cannot open file '../route_b_output_2/fc1_weight_int8.hex' passed as 
+  argument to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_bias_int32.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_bias_bank.sv, 30
+  Cannot open file '../route_b_output_2/fc1_bias_int32.hex' passed as argument
+  to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_weight_int8.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_weight_bank.sv, 31
+  Cannot open file '../route_b_output_2/fc1_weight_int8.hex' passed as 
+  argument to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_bias_int32.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_bias_bank.sv, 30
+  Cannot open file '../route_b_output_2/fc1_bias_int32.hex' passed as argument
+  to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_weight_int8.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_weight_bank.sv, 31
+  Cannot open file '../route_b_output_2/fc1_weight_int8.hex' passed as 
+  argument to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_bias_int32.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_bias_bank.sv, 30
+  Cannot open file '../route_b_output_2/fc1_bias_int32.hex' passed as argument
+  to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_weight_int8.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_weight_bank.sv, 31
+  Cannot open file '../route_b_output_2/fc1_weight_int8.hex' passed as 
+  argument to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_bias_int32.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_bias_bank.sv, 30
+  Cannot open file '../route_b_output_2/fc1_bias_int32.hex' passed as argument
+  to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_weight_int8.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_weight_bank.sv, 31
+  Cannot open file '../route_b_output_2/fc1_weight_int8.hex' passed as 
+  argument to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_bias_int32.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_bias_bank.sv, 30
+  Cannot open file '../route_b_output_2/fc1_bias_int32.hex' passed as argument
+  to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_weight_int8.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_weight_bank.sv, 31
+  Cannot open file '../route_b_output_2/fc1_weight_int8.hex' passed as 
+  argument to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_bias_int32.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_bias_bank.sv, 30
+  Cannot open file '../route_b_output_2/fc1_bias_int32.hex' passed as argument
+  to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+Using WEIGHT_HEX_FILE from plusarg: ../route_b_output_2/fc1_weight_int8.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_weight_int8.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_weight_bank.sv, 31
+  Cannot open file '../route_b_output_2/fc1_weight_int8.hex' passed as 
+  argument to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+Using FC1_BIAS_FILE from plusarg: ../route_b_output_2/fc1_bias_int32.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_bias_int32.hex' could not be opened. No 
+  such file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../rtl_shared_buffer_ib/fc1_bias_bank.sv, 30
+  Cannot open file '../route_b_output_2/fc1_bias_int32.hex' passed as argument
+  to $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+TB using FC1_ACC_FILE: ../route_b_output_2/fc1_acc_0.hex
+
+Warning-[STASKW_CO1] Cannot open file
+  The file '../route_b_output_2/fc1_acc_0.hex' could not be opened. No such 
+  file or directory.
+  Please ensure that the file exists with proper permissions.
+
+
+Warning-[STASKW_RMCOF] Cannot open file
+../tb/tb_fc1_multi_block_shared_sample_rom.sv, 48
+  Cannot open file '../route_b_output_2/fc1_acc_0.hex' passed as argument to 
+  $readmem.
+  Please verify that the first argument to $readmem is a file that exists with
+  proper permissions.
+
+PASS: fc1_multi_block_shared_sample_rom matches fc1_acc_0.hex.
+$finish called from file "../tb/tb_fc1_multi_block_shared_sample_rom.sv", line 80.
+$finish at simulation time               536000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 536000 ps
+CPU Time:      0.230 seconds;       Data structure size:   3.3Mb
+Mon Mar  9 13:15:30 2026

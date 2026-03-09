@@ -1,0 +1,68 @@
+{
+    "std": [
+        "std",
+        "reYIK",
+        "module",
+        1
+    ],
+    "fc1_multi_block_shared_sample_rom_0000": [
+        "fc1_multi_block_shared_sample_rom_0000",
+        "jLq5H",
+        "module",
+        11
+    ],
+    "mnist_cim_pkg": [
+        "mnist_cim_pkg",
+        "ehn8j",
+        "module",
+        2
+    ],
+    "tb_fc1_multi_block_shared_sample_rom": [
+        "tb_fc1_multi_block_shared_sample_rom",
+        "ajUsd",
+        "module",
+        12
+    ],
+    "mnist_sample_rom": [
+        "mnist_sample_rom",
+        "i6M4P",
+        "module",
+        3
+    ],
+    "fc1_weight_bank": [
+        "fc1_weight_bank",
+        "rE4Cd",
+        "module",
+        8
+    ],
+    "cim_tile": [
+        "cim_tile",
+        "Nb8n4",
+        "module",
+        6
+    ],
+    "psum_accum": [
+        "psum_accum",
+        "Zw2Gu",
+        "module",
+        7
+    ],
+    "fc1_ob_engine_shared_input_0000": [
+        "fc1_ob_engine_shared_input_0000",
+        "sJitK",
+        "module",
+        10
+    ],
+    "fc1_bias_bank": [
+        "fc1_bias_bank",
+        "Bg6nL",
+        "module",
+        9
+    ],
+    "...MASTER...": [
+        "SIM",
+        "amcQw",
+        "module",
+        5
+    ]
+}

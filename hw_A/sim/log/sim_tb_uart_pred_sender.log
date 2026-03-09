@@ -1,0 +1,13 @@
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 13:30 2026
+UART bytes: b0=0x37 b1=0x43 b2=0xe1
+ERROR b1 got=0x43 expected=0x0D
+ERROR b2 got=0xe1 expected=0x0A
+FAIL: found 2 mismatches.
+$finish called from file "../tb/tb_uart_pred_sender.sv", line 86.
+$finish at simulation time              3415000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 3415000 ps
+CPU Time:      0.150 seconds;       Data structure size:   0.0Mb
+Mon Mar  9 13:30:45 2026

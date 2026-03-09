@@ -1,0 +1,3 @@
+/home/icer/MNIST-CIM-FPGA/hw_A/rtl/package.sv
+/home/icer/MNIST-CIM-FPGA/hw_A/rtl_ip/mnist_sample_rom.sv
+/home/icer/MNIST-CIM-FPGA/hw_A/tb/tb_mnist_sample_rom.sv

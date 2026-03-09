@@ -1,0 +1,122 @@
+                         Chronologic VCS (TM)
+       Version O-2018.09-SP2_Full64 -- Mon Mar  9 13:19:33 2026
+               Copyright (c) 1991-2018 by Synopsys Inc.
+                         ALL RIGHTS RESERVED
+
+This program is proprietary and confidential information of Synopsys Inc.
+and may be used and disclosed only as authorized in a license agreement
+controlling such use and disclosure.
+
+Parsing design file '../rtl/package.sv'
+Parsing design file '../rtl/quantize_param_bank.sv'
+Parsing design file '../rtl/fc1_relu_requantize_with_file.sv'
+Parsing design file '../rtl/fc2_weight_bank.sv'
+Parsing design file '../rtl/fc2_bias_bank.sv'
+Parsing design file '../rtl/fc2_core_with_file.sv'
+Parsing design file '../rtl/fc1_to_fc2_top_with_file.sv'
+Parsing design file '../rtl/argmax_int8.sv'
+Parsing design file '../rtl_ip/mnist_sample_rom.sv'
+Parsing design file '../rtl_shared_buffer_ib/cim_tile.sv'
+Parsing design file '../rtl_shared_buffer_ib/psum_accum.sv'
+Parsing design file '../rtl_shared_buffer_ib/fc1_weight_bank.sv'
+Parsing design file '../rtl_shared_buffer_ib/fc1_bias_bank.sv'
+Parsing design file '../rtl_shared_buffer_ib/fc1_ob_engine_shared_input.sv'
+Parsing design file '../rtl_ip/fc1_multi_block_shared_sample_rom.sv'
+Parsing design file '../rtl_ip/mnist_inference_core_board.sv'
+Parsing design file '../rtl_ip/mnist_cim_accel_ip.sv'
+Parsing design file '../tb/tb_mnist_cim_accel_ip.sv'
+Top Level Modules:
+       tb_mnist_cim_accel_ip
+TimeScale is 1 ns / 1 ps
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[0].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 0)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[0]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[0].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 0)
+  	use +lint=PCWM for more details
+
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[1].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 1)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[1]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[1].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 1)
+  	use +lint=PCWM for more details
+
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[2].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 2)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[2]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[2].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 2)
+  	use +lint=PCWM for more details
+
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[3].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 3)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[3]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[3].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 3)
+  	use +lint=PCWM for more details
+
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[4].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 4)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[4]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[4].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 4)
+  	use +lint=PCWM for more details
+
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[5].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 5)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[5]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[5].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 5)
+  	use +lint=PCWM for more details
+
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[6].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 6)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[6]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[6].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 6)
+  	use +lint=PCWM for more details
+
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[7].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 7)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[7]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[7].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 7)
+  	use +lint=PCWM for more details
+
+Starting vcs inline pass...
+16 modules and 0 UDP read.
+recompiling module fc1_ob_engine_shared_input
+recompiling module fc1_multi_block_shared_sample_rom
+recompiling module tb_mnist_cim_accel_ip
+3 of 16 modules done
+	However, due to incremental compilation, only 3 modules need to be compiled. 
+rm -f _csrc*.so pre_vcsobj_*.so share_vcsobj_*.so
+if [ -x ../../sim/tb_mnist_cim_accel_ip_simv ]; then chmod -x ../../sim/tb_mnist_cim_accel_ip_simv; fi
+g++  -o ../../sim/tb_mnist_cim_accel_ip_simv    -Wl,-rpath-link=./ -Wl,-rpath='$ORIGIN'/tb_mnist_cim_accel_ip_simv.daidir/ -Wl,-rpath=./tb_mnist_cim_accel_ip_simv.daidir/ -Wl,-rpath='$ORIGIN'/tb_mnist_cim_accel_ip_simv.daidir//scsim.db.dir  -rdynamic  -Wl,-rpath=/opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib -L/opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib   objs/amcQw_d.o   _12423_archive_1.so _prev_archive_1.so  SIM_l.o       rmapats_mop.o rmapats.o rmar.o rmar_nd.o  rmar_llvm_0_1.o rmar_llvm_0_0.o          -lzerosoft_rt_stubs -lvirsim -lerrorinf -lsnpsmalloc -lvfs    -lvcsnew -lsimprofile -luclinative /opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib/vcs_tls.o   -Wl,-whole-archive -lvcsucli -Wl,-no-whole-archive        _vcs_pli_stub_.o   /opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib/vcs_save_restore_new.o /opt/Synopsys/Verdi2018/verdi/Verdi_O-2018.09-SP2/share/PLI/VCS/LINUX64/pli.a -ldl  -lc -lm -lpthread -ldl 
+../../sim/tb_mnist_cim_accel_ip_simv up to date
+CPU time: .421 seconds to compile + .186 seconds to elab + .178 seconds to link
