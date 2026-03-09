@@ -32,6 +32,8 @@ module mnist_cim_demo_a_top #(
   logic busy, done;
   logic done_d;
 
+  logic done_latched;
+
   logic signed [OUTPUT_WIDTH-1:0] logits_all[0:FC2_OUT_DIM-1];
   logic [$clog2(FC2_OUT_DIM)-1:0] pred_class;
 
@@ -79,6 +81,21 @@ module mnist_cim_demo_a_top #(
   end
 
   //--------------------------------------------------------------------------
+  // done
+  //--------------------------------------------------------------------------
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      done_latched <= 1'b0;
+    end else if (start_pulse) begin
+      done_latched <= 1'b0;
+    end else if (done) begin
+      done_latched <= 1'b1;
+    end
+  end
+
+
+  //--------------------------------------------------------------------------
   // Core inference block
   //--------------------------------------------------------------------------
 
@@ -121,6 +138,7 @@ module mnist_cim_demo_a_top #(
   //--------------------------------------------------------------------------
 
   assign led_busy = busy;
-  assign led_done = done;
+  //assign led_done = done;
+  assign led_done = done_latched;
 
 endmodule

@@ -141,7 +141,7 @@ CALIBRE_HOME=/opt/Mentor/calibre2018/aoi_cal_2018.4_34.26
 1773057577 ../rtl/ctrl/onepulse.sv
 1773057562 ../rtl/ctrl/debounce.sv
 1773059380 ../tb/tb_mnist_cim_demo_a_top.sv
-1773059164 ../rtl/top/mnist_cim_demo_a_top.sv
+1773059760 ../rtl/top/mnist_cim_demo_a_top.sv
 1773048478 ../rtl/uart/uart_pred_sender.sv
 1773048478 ../rtl/uart/uart_tx.sv
 1773054961 ../rtl/core/mnist_inference_core_board.sv
@@ -169,5 +169,5 @@ CALIBRE_HOME=/opt/Mentor/calibre2018/aoi_cal_2018.4_34.26
 1551421792 /opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib/liberrorinf.so
 1551421768 /opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib/libsnpsmalloc.so
 1551421789 /opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib/libvfs.so
-1773059392 ../sim/tb_mnist_cim_demo_a_top_simv.daidir
+1773059789 ../sim/tb_mnist_cim_demo_a_top_simv.daidir
 -1 partitionlib
