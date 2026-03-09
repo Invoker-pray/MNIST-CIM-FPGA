@@ -35,7 +35,13 @@ module tb_uart_pred_sender;
 
   task automatic uart_recv_byte(output reg [7:0] data);
     begin
-      @(negedge uart_tx);  // 等真正的 start bit 边沿
+      // 先确保线路处于 idle
+      wait (uart_tx == 1'b1);
+
+      // 等这一帧真正的 start bit 下降沿
+      @(negedge uart_tx);
+
+      // 到第 1 个数据位中心
       #(BIT_TIME + BIT_TIME / 2);
 
       for (i = 0; i < 8; i = i + 1) begin
@@ -43,7 +49,10 @@ module tb_uart_pred_sender;
         #BIT_TIME;
       end
 
-      #BIT_TIME;  // stop bit
+      // 此时已经位于 stop bit 中心，不要再多等一个 BIT_TIME
+      if (uart_tx !== 1'b1) begin
+        $display("ERROR: stop bit is not high at time %0t", $time);
+      end
     end
   endtask
 
@@ -87,4 +96,3 @@ module tb_uart_pred_sender;
   end
 
 endmodule
-

@@ -37,7 +37,9 @@ module tb_uart_tx;
 
   task automatic uart_recv_byte(output reg [7:0] data);
     begin
-      wait (tx == 1'b0);
+
+      @(negedge tx);
+
       #(BIT_TIME + BIT_TIME / 2);
       for (i = 0; i < 8; i = i + 1) begin
         data[i] = tx;

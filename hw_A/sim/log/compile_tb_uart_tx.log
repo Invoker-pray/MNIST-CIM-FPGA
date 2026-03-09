@@ -1,5 +1,5 @@
                          Chronologic VCS (TM)
-       Version O-2018.09-SP2_Full64 -- Mon Mar  9 13:20:08 2026
+       Version O-2018.09-SP2_Full64 -- Mon Mar  9 13:44:24 2026
                Copyright (c) 1991-2018 by Synopsys Inc.
                          ALL RIGHTS RESERVED
 
@@ -7,7 +7,16 @@ This program is proprietary and confidential information of Synopsys Inc.
 and may be used and disclosed only as authorized in a license agreement
 controlling such use and disclosure.
 
-The design hasn't changed and need not be recompiled. 
-If you really want to, delete file /home/icer/MNIST-CIM-FPGA/hw_A/scripts/../sim/tb_uart_tx_simv.daidir/.vcs.timestamp and
-run VCS again.
-
+Parsing design file '../rtl_ip/uart_tx.sv'
+Parsing design file '../tb/tb_uart_tx.sv'
+Top Level Modules:
+       tb_uart_tx
+TimeScale is 1 ns / 1 ps
+Starting vcs inline pass...
+1 module and 0 UDP read.
+recompiling module tb_uart_tx
+rm -f _csrc*.so pre_vcsobj_*.so share_vcsobj_*.so
+if [ -x ../../sim/tb_uart_tx_simv ]; then chmod -x ../../sim/tb_uart_tx_simv; fi
+g++  -o ../../sim/tb_uart_tx_simv    -Wl,-rpath-link=./ -Wl,-rpath='$ORIGIN'/tb_uart_tx_simv.daidir/ -Wl,-rpath=./tb_uart_tx_simv.daidir/ -Wl,-rpath='$ORIGIN'/tb_uart_tx_simv.daidir//scsim.db.dir  -rdynamic  -Wl,-rpath=/opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib -L/opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib   objs/amcQw_d.o   _17346_archive_1.so _prev_archive_1.so  SIM_l.o       rmapats_mop.o rmapats.o rmar.o rmar_nd.o  rmar_llvm_0_1.o rmar_llvm_0_0.o          -lzerosoft_rt_stubs -lvirsim -lerrorinf -lsnpsmalloc -lvfs    -lvcsnew -lsimprofile -luclinative /opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib/vcs_tls.o   -Wl,-whole-archive -lvcsucli -Wl,-no-whole-archive        _vcs_pli_stub_.o   /opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib/vcs_save_restore_new.o /opt/Synopsys/Verdi2018/verdi/Verdi_O-2018.09-SP2/share/PLI/VCS/LINUX64/pli.a -ldl  -lc -lm -lpthread -ldl 
+../../sim/tb_uart_tx_simv up to date
+CPU time: .195 seconds to compile + .187 seconds to elab + .152 seconds to link
