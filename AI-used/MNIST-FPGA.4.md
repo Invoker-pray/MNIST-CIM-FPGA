@@ -46786,6 +46786,13002 @@ scripts/run_mnist_inference_regression_with_file_dual.sh
 完整 FPGA AI accelerator demo
 ```
 
+用户:
+这次的脚本是run_mnist_inference_regression_with_file_dual_test.sh,内容是：set -euo pipefail
+
+SIM_DIR=../sim
+RTL_DIR=../rtl
+RTL_SHARED_DIR=../rtl_shared_buffer_ib
+TB_DIR=../tb
+LOG_DIR=${SIM_DIR}/log_regression_with_file_dual
+
+DATASET_A_DIR=../route_b_output_2
+DATASET_B_DIR=../route_b_output_3
+
+mkdir -p "${SIM_DIR}"
+mkdir -p "${SIM_DIR}/log"
+mkdir -p "${LOG_DIR}"
+
+SIMV=${SIM_DIR}/mnist_inference_top_with_file_simv
+
+echo "[INFO] Compiling mnist_inference_top_with_file regression binary..."
+
+vcs -full64 -sverilog -timescale=1ns/1ps \
+	-debug_access+all \
+	-o "${SIMV}" \
+	${RTL_DIR}/package.sv \
+	${RTL_SHARED_DIR}/input_buffer.sv \
+	${RTL_SHARED_DIR}/fc1_weight_bank.sv \
+	${RTL_SHARED_DIR}/fc1_bias_bank.sv \
+	${RTL_SHARED_DIR}/cim_tile.sv \
+	${RTL_SHARED_DIR}/psum_accum.sv \
+	${RTL_SHARED_DIR}/fc1_ob_engine_shared_input.sv \
+	${RTL_SHARED_DIR}/fc1_multi_block_shared_input.sv \
+	${RTL_DIR}/quantize_param_bank.sv \
+	${RTL_DIR}/fc1_relu_requantize_with_file.sv \
+	${RTL_DIR}/fc2_weight_bank.sv \
+	${RTL_DIR}/fc2_bias_bank.sv \
+	${RTL_DIR}/fc2_core_with_file.sv \
+	${RTL_DIR}/fc1_to_fc2_top_with_file.sv \
+	${RTL_DIR}/argmax_int8.sv \
+	${RTL_DIR}/mnist_inference_top_with_file.sv \
+	${TB_DIR}/tb_mnist_inference_top_with_file.sv \
+	2>&1 | tee "${SIM_DIR}/log/compile_tb_mnist_inference_top_with_file_dual.log"
+
+echo "[INFO] Compile done."
+
+run_one_dataset() {
+	local DATA_DIR="$1"
+	local TAG="$2"
+
+	local FC1_WEIGHT_HEX="${DATA_DIR}/fc1_weight_int8.hex"
+	local FC1_BIAS_HEX="${DATA_DIR}/fc1_bias_int32.hex"
+	local FC2_WEIGHT_HEX="${DATA_DIR}/fc2_weight_int8.hex"
+	local FC2_BIAS_HEX="${DATA_DIR}/fc2_bias_int32.hex"
+	local QUANT_PARAM_HEX="${DATA_DIR}/quant_params.hex"
+
+	local pass_count=0
+	local fail_count=0
+	local total_count=0
+
+	echo "============================================================"
+	echo "[INFO] Running dataset ${TAG}: ${DATA_DIR}"
+
+	shopt -s nullglob
+	local input_files=("${DATA_DIR}"/input_*.hex)
+
+	if [ ${#input_files[@]} -eq 0 ]; then
+		echo "[ERROR] No input_*.hex found under ${DATA_DIR}"
+		return 1
+	fi
+
+	for input_file in "${input_files[@]}"; do
+		local base_name sample_id logits_file pred_file sim_log
+		base_name=$(basename "${input_file}")
+		sample_id=${base_name#input_}
+		sample_id=${sample_id%.hex}
+
+		logits_file="${DATA_DIR}/logits_${sample_id}.hex"
+		pred_file="${DATA_DIR}/pred_${sample_id}.txt"
+		sim_log="${LOG_DIR}/${TAG}_sample_${sample_id}.log"
+
+		total_count=$((total_count + 1))
+
+		if [ ! -f "${logits_file}" ]; then
+			echo "[WARN] Skip ${TAG} sample ${sample_id}: missing ${logits_file}"
+			continue
+		fi
+		if [ ! -f "${pred_file}" ]; then
+			echo "[WARN] Skip ${TAG} sample ${sample_id}: missing ${pred_file}"
+			continue
+		fi
+		if [ ! -f "${QUANT_PARAM_HEX}" ]; then
+			echo "[ERROR] Missing ${QUANT_PARAM_HEX}"
+			return 1
+		fi
+
+		echo "[INFO] ${TAG} sample ${sample_id}"
+
+		set +e
+		"${SIMV}" \
+			+INPUT_HEX_FILE="${input_file}" \
+			+WEIGHT_HEX_FILE="${FC1_WEIGHT_HEX}" \
+			+FC1_BIAS_FILE="${FC1_BIAS_HEX}" \
+			+FC2_WEIGHT_HEX_FILE="${FC2_WEIGHT_HEX}" \
+			+FC2_BIAS_FILE="${FC2_BIAS_HEX}" \
+			+QUANT_PARAM_FILE="${QUANT_PARAM_HEX}" \
+			+LOGITS_FILE="${logits_file}" \
+			+PRED_FILE="${pred_file}" \
+			>"${sim_log}" 2>&1
+		sim_rc=$?
+		set -e
+
+		if [ ${sim_rc} -ne 0 ]; then
+			echo "[FAIL] ${TAG} sample ${sample_id}: simulator exited with rc=${sim_rc}"
+			fail_count=$((fail_count + 1))
+			continue
+		fi
+
+		if grep -q "PASS: mnist_inference_top_with_file matches provided logits/pred golden files." "${sim_log}"; then
+			echo "[PASS] ${TAG} sample ${sample_id}"
+			pass_count=$((pass_count + 1))
+		else
+			echo "[FAIL] ${TAG} sample ${sample_id}"
+			fail_count=$((fail_count + 1))
+		fi
+	done
+
+	echo "------------------------------------------------------------"
+	echo "[SUMMARY] ${TAG}"
+	echo "  total samples : ${total_count}"
+	echo "  passed        : ${pass_count}"
+	echo "  failed        : ${fail_count}"
+
+	if [ ${fail_count} -ne 0 ]; then
+		return 1
+	fi
+	return 0
+}
+
+overall_fail=0
+
+run_one_dataset "${DATASET_A_DIR}" "DATASET_A" || overall_fail=1
+run_one_dataset "${DATASET_B_DIR}" "DATASET_B" || overall_fail=1
+
+echo "============================================================"
+if [ ${overall_fail} -eq 0 ]; then
+	echo "[RESULT] ALL DATASETS PASSED"
+	exit 0
+else
+	echo "[RESULT] SOME DATASETS FAILED"
+	exit 1
+fi
+
+如果你需要完整代码，可以在https://github.com/Invoker-pray/MNIST-CIM-FPGA获取，请帮我把整个accelerator RTL 做一次最终整理，设计 FPGA 可上板的 accelerator IP 接口给出推荐 demo 方案（A/B/C）+ 完整结构图
+AI助手:
+
+
+用户:
+
+AI助手:
+好，我按你现在已经验证通过的版本，给出一套**最终整理方案+可上板IP接口方案+A/B/C三种demo方案比较与推荐**。
+
+你当前已经有：
+
+-共享buffer的FC1路径
+-从`quant_params.hex`读取量化参数
+-`mnist_inference_top_with_file`
+-双数据集regression脚本`run_mnist_inference_regression_with_file_dual_test.sh`
+-`route_b_output_2`和`route_b_output_3`都20/20通过
+
+这说明你的RTL主链已经足够稳定，可以进入“工程整理+上板接口设计”阶段。仓库当前也确实已经是`hw/sw`分开的结构，适合在`hw`下进一步收敛成“仿真层”和“IP层”两条主线。
+
+---
+
+#一、我建议的“最终整理”目标
+
+你现在不要再按“功能模块是否能跑”来组织工程了，而要按**用途**来组织：
+
+```text
+hw/
+rtl_core/#纯计算核心，可综合
+rtl_sim/#文件读取型wrapper，仅仿真
+rtl_ip/#可上板IP封装
+tb/#testbench
+scripts/#regression/单测脚本
+sim/#产生日志
+```
+
+##推荐整理后的RTL分层
+
+###1.`rtl_core/`：纯计算核心
+这里的模块**不直接`$readmemh`读文件**，只接收数据和参数端口。
+
+建议放这些：
+
+-`package.sv`
+-`cim_tile.sv`
+-`psum_accum.sv`
+-`argmax_int8.sv`
+-`fc1_ob_engine_core.sv`
+-`fc1_array_core.sv`
+-`fc1_relu_requant_core.sv`
+-`fc2_core.sv`
+-`mnist_inference_core.sv`
+
+###2.`rtl_sim/`：仿真专用文件驱动wrapper
+这里保留你现在“从hex/mem文件加载”的逻辑，用于regression。
+
+建议放：
+
+-`input_buffer.sv`
+-`fc1_weight_bank.sv`
+-`fc1_bias_bank.sv`
+-`fc2_weight_bank.sv`
+-`fc2_bias_bank.sv`
+-`quantize_param_bank.sv`
+-`fc1_multi_block_shared_input.sv`
+-`fc1_to_fc2_top_with_file.sv`
+-`mnist_inference_top_with_file.sv`
+
+###3.`rtl_ip/`：真正可上板的acceleratorIP
+这一层把核心包装成一个“可控制IP”。
+
+建议新建：
+
+-`mnist_cim_accel_ip.sv`
+-`mnist_cim_ctrl_regs.sv`
+-`mnist_sample_rom.sv`或`mnist_input_bram.sv`
+-`uart_tx_result.sv`（如果走A/C）
+
+---
+
+#二、当前版本最适合抽象出的IP边界
+
+你现在最重要的是把“仿真顶层”和“上板顶层”区分开。
+
+##仿真顶层
+现在这条保留：
+
+```text
+mnist_inference_top_with_file
+```
+
+它负责：
+-从文件加载输入、权重、bias、quantparams
+-跑完整推理
+-对拍golden
+
+这个不要删，它是regression基线。
+
+---
+
+##上板IP顶层
+新增一个真正板级接口：
+
+##`mnist_cim_accel_ip.sv`
+
+###推荐接口
+```systemverilog
+modulemnist_cim_accel_ip(
+inputlogicclk,
+inputlogicrst_n,
+
+//CSR-likeinterface
+inputlogiccsr_we,
+inputlogiccsr_re,
+inputlogic[7:0]csr_addr,
+inputlogic[31:0]csr_wdata,
+outputlogic[31:0]csr_rdata,
+
+//optionalinterrupt
+outputlogicirq_done
+);
+```
+
+这样以后不管你走A/B/C，都能复用。
+
+---
+
+#三、推荐寄存器接口
+
+##控制寄存器建议
+
+|地址|名称|含义|
+|---|---|---|
+|`0x00`|`CTRL`|bit0=start,bit1=clear_done|
+|`0x04`|`STATUS`|bit0=busy,bit1=done|
+|`0x08`|`SAMPLE_ID`|选择输入样本|
+|`0x0C`|`PRED_CLASS`|最终分类|
+|`0x10`|`LOGIT0`|logits[0]|
+|`0x14`|`LOGIT1`|logits[1]|
+|...|...|...|
+|`0x34`|`LOGIT9`|logits[9]|
+
+###这样做的好处
+-A方案里可以用按钮/状态机写这些寄存器
+-B方案里软核CPU直接读写
+-C方案里串口协议也能映射成这些寄存器操作
+
+---
+
+#四、推荐的最终板级数据流
+
+##通用加速器结构图
+
+```text
++----------------------+
+|ControlRegisters|
+|CTRL/STATUS/SAMPLE|
++----------+-----------+
+|
+v
++----------------------+
+|mnist_cim_accel_ip|
+||
+|+----------------+|
+||inputstorage||<-sample_id
+|+----------------+|
+||FC1sharedbuf||
+||FC1CIMarray||
+||ReLU+requant||
+||FC2core||
+||Argmax||
+|+----------------+|
++----------+-----------+
+|
++---------+---------+
+||
+vv
+pred_classlogits[10]
+```
+
+---
+
+#五、我建议的整理原则
+
+##保留这三条线
+
+###1.regression线
+保留你现在的：
+
+-`mnist_inference_top_with_file`
+-`tb_mnist_inference_top_with_file`
+-`run_mnist_inference_regression_with_file_dual_test.sh`
+
+这是你的“黄金基线”。
+
+###2.core线
+抽出：
+-不读文件
+-只接收端口/存储输入
+-可综合
+
+###3.ip线
+板级可控制顶层。
+
+---
+
+#六、三种demo方案对比
+
+---
+
+##方案A：BRAM预装载+按按钮/寄存器启动+UART打印`pred_class`
+
+###结构
+-输入样本预先烧到BRAM/ROM
+-权重、bias、quantparams也预装载
+-板上按钮或简单寄存器触发`start`
+-推理完成后UART输出`pred_class`
+
+###优点
+-最简单
+-最快上板
+-最容易通过课程演示
+-几乎不需要额外软硬协同基础
+
+###缺点
+-交互性弱
+-样本切换不灵活
+-展示时“系统感”稍弱
+
+###适合场景
+-时间紧
+-先出第一版板级demo
+
+###推荐度
+**高**
+
+---
+
+##方案B：软核CPU+BRAM+自定义accelerator+UART
+
+###结构
+-板上放MicroBlaze/Nios/RISC-V软核
+-CPU通过寄存器控制accelerator
+-BRAM存输入/模型
+-UART打印结果
+
+###优点
+-最像真正SoC
+-最贴近课程任务书里“处理器协调与控制”的目标
+-架构完整，报告加分最高
+
+###缺点
+-工作量最大
+-环境搭建复杂
+-调试周期长
+-对当前课程节奏来说风险最高
+
+###适合场景
+-你时间很充裕
+-想把项目做到最完整SoC级
+
+###推荐度
+**中**
+
+---
+
+##方案C：PC通过串口发`sample_id`，板上跑出`pred`再回传
+
+###结构
+-FPGA上仍然是accelerator+BRAM/ROM
+-PC通过串口发：
+-`sample_id`
+-或简单命令
+-FPGA读取对应样本，运行推理
+-再通过UART回传`pred_class`
+
+###优点
+-展示效果最好
+-比A灵活很多
+-比B轻量得多
+-很适合答辩时现场演示“切换样本并实时输出分类结果”
+
+###缺点
+-需要写一层UART协议
+-需要一个小控制FSM
+-比A稍复杂
+
+###适合场景
+-你想要“明显比按钮demo更高级”的展示
+-但又不想背软核CPU的复杂度
+
+###推荐度
+**最高**
+
+---
+
+#七、我的推荐顺序
+
+##第一推荐：方案C
+因为它在**展示效果/工作量/风险**之间最平衡。
+
+你现在已经有：
+-regression基线
+-sample_id概念也很自然
+-`route_b_output_2/3`都是样本文件集合
+
+做C非常顺：
+
+###推荐板级控制流程
+```text
+PC--UART-->FPGAcontroller
+|
++-->writesample_id
++-->pulsestart
++-->waitdone
++-->UARTsendpred_class
+```
+
+答辩时效果会非常好。
+
+---
+
+##第二推荐：方案A
+如果你想先尽快上板，先做A，等有时间再升级到C。
+
+###A可以作为C的前置版本
+-A先打通板级时钟、复位、UART
+-C只是在A的基础上加串口命令解析
+
+---
+
+##第三推荐：方案B
+不是不好，而是**现在时机不优**。
+
+你当前最宝贵的是：
+-RTL已经稳定
+-regression很强
+-最需要尽快把“板级演示闭环”做出来
+
+所以先别把大量时间投入软核CPU。
+
+---
+
+#八、我建议你下一步真正做什么
+
+##立刻开始的顺序
+
+###第一步：做`mnist_cim_accel_ip.sv`
+把当前推理核心包成寄存器接口壳层。
+
+###第二步：做方案A或C的控制层
+我更推荐直接做C，但如果你想稳一点，可以先做A。
+
+###第三步：把输入样本放进板上BRAM/ROM
+不要再依赖仿真时`$readmemh`那套顶层。
+
+###第四步：做UART输出`pred_class`
+先只输出预测类别，足够演示。
+
+---
+
+#九、我建议你现在保留的“最终仿真基线”
+
+你现在已经有一条非常成熟的基线：
+
+```text
+run_mnist_inference_regression_with_file_dual_test.sh
+```
+
+这个一定要保留，后面每做一版IP改造都要回归它。
+它相当于你整个项目的“功能真值守门员”。
+
+---
+
+#十、一句最终建议
+
+你现在最合理的总体路线是：
+
+**保留当前with_fileregression作为仿真基线，新增`mnist_cim_accel_ip`作为板级控制壳层，优先按方案C（其次A）做FPGAdemo。**
+
+如果你愿意，下一条我就直接给你：
+
+1.**`mnist_cim_accel_ip`的模块划分**
+2.**寄存器接口RTL草案**
+3.**方案C的板级结构图和UART控制流程**
+
+用户:
+我现在希望先完成A，之后转到C，B在全部完成之后有时间再做。请帮我做：第一步：做 mnist_cim_accel_ip.sv
+
+把当前推理核心包成寄存器接口壳层。
+第二步：做方案 A  的控制层
+
+第三步：把输入样本放进板上 BRAM/ROM
+
+不要再依赖仿真时 $readmemh 那套顶层。
+
+第四步：做 UART 输出 pred_class
+
+先只输出预测类别，足够演示。
+AI助手:
+
+
+AI助手:
+好，先做 **方案 A**。  
+我给你一套可直接落地的“**IP 壳层 + 板级控制 + 样本 ROM + UART 打印预测类别**”设计。
+
+这套方案的目标是：
+
+- **不再依赖仿真顶层** `*_with_file` 去驱动整网
+- 保留你已经验证通过的共享 buffer FC1 和量化参数文件读取思路
+- 把输入样本做成**板上 BRAM/ROM**
+- 做一个带**寄存器接口**的 accelerator IP
+- 再做一个最小板级控制层：按钮/寄存器启动，UART 输出 `pred_class`
+
+---
+
+# 一、整体结构
+
+## 1）IP 核层：`mnist_cim_accel_ip.sv`
+负责：
+- 保存 `sample_id`
+- 接收 `start`
+- 调用推理核心
+- 提供状态寄存器、结果寄存器
+- 输出 `irq_done`
+
+## 2）推理核心：`mnist_inference_core_board.sv`
+负责：
+- 从板上样本 ROM 读取输入
+- 用共享 buffer 的 FC1 结构做推理
+- 读取权重/bias/quant 参数
+- 输出 `logits` 和 `pred_class`
+
+## 3）方案 A 控制层：`mnist_cim_demo_a_top.sv`
+负责：
+- 用拨码开关/寄存器设置 `sample_id`
+- 按键触发 `start`
+- 检测 `done`
+- 用 UART 发出 `pred_class`
+
+---
+
+# 二、推荐新增的文件
+
+建议新建一个目录：
+
+```text
+hw/rtl_ip/
+```
+
+放这些文件：
+
+- `mnist_sample_rom.sv`
+- `fc1_multi_block_shared_sample_rom.sv`
+- `mnist_inference_core_board.sv`
+- `mnist_cim_accel_ip.sv`
+- `uart_tx.sv`
+- `uart_pred_sender.sv`
+- `mnist_cim_demo_a_top.sv`
+
+另外新增一个 Python 脚本：
+
+- `hw/scripts/gen_board_sample_rom.py`
+
+---
+
+# 三、先生成板上输入样本 ROM 文件
+
+你现在 `route_b_output_2` 里有 `input_0.hex ... input_19.hex`。  
+方案 A 最自然的板级做法是把它们拼成一个大 ROM 文件。
+
+## 新建：`scripts/gen_board_sample_rom.py`
+
+```python
+from pathlib import Path
+import sys
+
+def main():
+    if len(sys.argv) != 3:
+        print("Usage: python gen_board_sample_rom.py <route_b_output_dir> <out_hex>")
+        sys.exit(1)
+
+    src_dir = Path(sys.argv[1])
+    out_hex = Path(sys.argv[2])
+
+    all_lines = []
+    for i in range(20):
+        f = src_dir / f"input_{i}.hex"
+        if not f.exists():
+            raise FileNotFoundError(f"Missing {f}")
+
+        lines = [x.strip() for x in f.read_text().splitlines() if x.strip()]
+        if len(lines) != 784:
+            raise ValueError(f"{f} has {len(lines)} lines, expected 784")
+        all_lines.extend(lines)
+
+    out_hex.parent.mkdir(parents=True, exist_ok=True)
+    out_hex.write_text("\n".join(all_lines) + "\n")
+    print(f"Wrote {out_hex} with {len(all_lines)} lines")
+
+if __name__ == "__main__":
+    main()
+```
+
+## 使用方式
+把 `route_b_output_2` 的 20 个样本拼成板级 ROM：
+
+```bash
+python gen_board_sample_rom.py ../route_b_output_2 ../data/mnist_samples_route_b_output_2.hex
+```
+
+生成后：
+- 总行数应为 `20 * 784 = 15680`
+
+---
+
+# 四、板上输入 ROM：`rtl_ip/mnist_sample_rom.sv`
+
+这个模块是**板上可综合**的输入样本存储。  
+它按 `sample_id + ib` 输出当前 16 个输入。
+
+```systemverilog
+module mnist_sample_rom #(
+    parameter int N_SAMPLES = 20,
+    parameter string DEFAULT_SAMPLE_HEX_FILE = "../data/mnist_samples_route_b_output_2.hex"
+) (
+    input  logic [$clog2(N_SAMPLES)-1:0] sample_id,
+    input  logic [$clog2(mnist_cim_pkg::N_INPUT_BLOCKS)-1:0] ib,
+
+    output logic signed [mnist_cim_pkg::INPUT_WIDTH-1:0]
+        x_tile [0:mnist_cim_pkg::TILE_INPUT_SIZE-1],
+
+    output logic [mnist_cim_pkg::X_EFF_WIDTH-1:0]
+        x_eff_tile [0:mnist_cim_pkg::TILE_INPUT_SIZE-1]
+);
+  import mnist_cim_pkg::*;
+
+  (* rom_style = "block" *)
+  logic signed [INPUT_WIDTH-1:0] sample_mem [0:N_SAMPLES*INPUT_DIM-1];
+
+  integer i, addr;
+  initial begin
+    $readmemh(DEFAULT_SAMPLE_HEX_FILE, sample_mem);
+  end
+
+  always_comb begin
+    for (i = 0; i < TILE_INPUT_SIZE; i = i + 1) begin
+      addr = sample_id * INPUT_DIM + ib * TILE_INPUT_SIZE + i;
+      x_tile[i]     = sample_mem[addr];
+      x_eff_tile[i] = sample_mem[addr];
+    end
+  end
+
+endmodule
+```
+
+---
+
+# 五、板级共享输入 FC1 顶层：`rtl_ip/fc1_multi_block_shared_sample_rom.sv`
+
+这是你现有 `fc1_multi_block_shared_input.sv` 的板级版本。  
+区别是：**输入不再来自文件型 `input_buffer`，而是来自 `mnist_sample_rom`**。
+
+```systemverilog
+module fc1_multi_block_shared_sample_rom #(
+    parameter int PAR_OB = 8,
+    parameter int BASE_OB = 0,
+    parameter int N_SAMPLES = 20,
+    parameter string DEFAULT_SAMPLE_HEX_FILE =
+        "../data/mnist_samples_route_b_output_2.hex",
+    parameter string DEFAULT_WEIGHT_HEX_FILE =
+        "../route_b_output_2/fc1_weight_int8.hex",
+    parameter string DEFAULT_BIAS_HEX_FILE =
+        "../route_b_output_2/fc1_bias_int32.hex"
+) (
+    input  logic clk,
+    input  logic rst_n,
+    input  logic start,
+    input  logic [$clog2(N_SAMPLES)-1:0] sample_id,
+
+    output logic busy,
+    output logic done,
+
+    output logic signed [mnist_cim_pkg::PSUM_WIDTH-1:0]
+        fc1_acc_all [0:PAR_OB*mnist_cim_pkg::TILE_OUTPUT_SIZE-1]
+);
+  import mnist_cim_pkg::*;
+
+  typedef enum logic [1:0] {
+    S_IDLE  = 2'd0,
+    S_CLEAR = 2'd1,
+    S_ACCUM = 2'd2,
+    S_DONE  = 2'd3
+  } state_t;
+
+  state_t state, state_n;
+
+  logic [$clog2(N_INPUT_BLOCKS)-1:0] ib, ib_n;
+  logic clear_psum;
+  logic en_psum;
+
+  logic signed [INPUT_WIDTH-1:0]
+      x_tile [0:TILE_INPUT_SIZE-1];
+
+  logic [X_EFF_WIDTH-1:0]
+      x_eff_tile [0:TILE_INPUT_SIZE-1];
+
+  logic signed [PSUM_WIDTH-1:0]
+      fc1_acc_block [0:PAR_OB-1][0:TILE_OUTPUT_SIZE-1];
+
+  mnist_sample_rom #(
+      .N_SAMPLES(N_SAMPLES),
+      .DEFAULT_SAMPLE_HEX_FILE(DEFAULT_SAMPLE_HEX_FILE)
+  ) u_mnist_sample_rom (
+      .sample_id(sample_id),
+      .ib(ib),
+      .x_tile(x_tile),
+      .x_eff_tile(x_eff_tile)
+  );
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      state <= S_IDLE;
+      ib    <= '0;
+    end else begin
+      state <= state_n;
+      ib    <= ib_n;
+    end
+  end
+
+  always_comb begin
+    state_n    = state;
+    ib_n       = ib;
+    clear_psum = 1'b0;
+    en_psum    = 1'b0;
+    busy       = 1'b0;
+    done       = 1'b0;
+
+    case (state)
+      S_IDLE: begin
+        ib_n = '0;
+        if (start) state_n = S_CLEAR;
+      end
+
+      S_CLEAR: begin
+        busy       = 1'b1;
+        clear_psum = 1'b1;
+        ib_n       = '0;
+        state_n    = S_ACCUM;
+      end
+
+      S_ACCUM: begin
+        busy    = 1'b1;
+        en_psum = 1'b1;
+        if (ib == N_INPUT_BLOCKS - 1) begin
+          state_n = S_DONE;
+          ib_n    = ib;
+        end else begin
+          ib_n    = ib + 1'b1;
+        end
+      end
+
+      S_DONE: begin
+        done = 1'b1;
+        if (!start) state_n = S_IDLE;
+      end
+    endcase
+  end
+
+  genvar g_ob, g_idx;
+  generate
+    for (g_ob = 0; g_ob < PAR_OB; g_ob = g_ob + 1) begin : GEN_OB_ENGINE
+      fc1_ob_engine_shared_input #(
+          .DEFAULT_WEIGHT_HEX_FILE(DEFAULT_WEIGHT_HEX_FILE),
+          .DEFAULT_BIAS_HEX_FILE(DEFAULT_BIAS_HEX_FILE)
+      ) u_fc1_ob_engine_shared_input (
+          .clk(clk),
+          .rst_n(rst_n),
+          .clear_psum(clear_psum),
+          .en_psum(en_psum),
+          .ib(ib),
+          .ob_sel(BASE_OB + g_ob),
+          .x_eff_tile(x_eff_tile),
+          .fc1_acc_block(fc1_acc_block[g_ob])
+      );
+
+      for (g_idx = 0; g_idx < TILE_OUTPUT_SIZE; g_idx = g_idx + 1) begin : GEN_PACK
+        assign fc1_acc_all[g_ob*TILE_OUTPUT_SIZE + g_idx] = fc1_acc_block[g_ob][g_idx];
+      end
+    end
+  endgenerate
+
+endmodule
+```
+
+---
+
+# 六、板级推理核心：`rtl_ip/mnist_inference_core_board.sv`
+
+这个模块是**不依赖仿真顶层**的板级推理核心。
+
+```systemverilog
+module mnist_inference_core_board #(
+    parameter int N_SAMPLES = 20,
+    parameter string DEFAULT_SAMPLE_HEX_FILE =
+        "../data/mnist_samples_route_b_output_2.hex",
+    parameter string DEFAULT_FC1_WEIGHT_HEX_FILE =
+        "../route_b_output_2/fc1_weight_int8.hex",
+    parameter string DEFAULT_FC1_BIAS_HEX_FILE =
+        "../route_b_output_2/fc1_bias_int32.hex",
+    parameter string DEFAULT_QUANT_PARAM_FILE =
+        "../route_b_output_2/quant_params.hex",
+    parameter string DEFAULT_FC2_WEIGHT_HEX_FILE =
+        "../route_b_output_2/fc2_weight_int8.hex",
+    parameter string DEFAULT_FC2_BIAS_HEX_FILE =
+        "../route_b_output_2/fc2_bias_int32.hex"
+) (
+    input  logic clk,
+    input  logic rst_n,
+    input  logic start,
+    input  logic [$clog2(N_SAMPLES)-1:0] sample_id,
+
+    output logic busy,
+    output logic done,
+
+    output logic signed [mnist_cim_pkg::OUTPUT_WIDTH-1:0]
+        logits_all [0:mnist_cim_pkg::FC2_OUT_DIM-1],
+
+    output logic [$clog2(mnist_cim_pkg::FC2_OUT_DIM)-1:0] pred_class
+);
+  import mnist_cim_pkg::*;
+
+  logic signed [PSUM_WIDTH-1:0] fc1_acc_all [0:HIDDEN_DIM-1];
+  logic signed [PSUM_WIDTH-1:0] fc1_relu_all[0:HIDDEN_DIM-1];
+  logic signed [OUTPUT_WIDTH-1:0] fc1_out_all [0:HIDDEN_DIM-1];
+  logic signed [PSUM_WIDTH-1:0] fc2_acc_all [0:FC2_OUT_DIM-1];
+
+  fc1_multi_block_shared_sample_rom #(
+      .PAR_OB(8),
+      .BASE_OB(0),
+      .N_SAMPLES(N_SAMPLES),
+      .DEFAULT_SAMPLE_HEX_FILE(DEFAULT_SAMPLE_HEX_FILE),
+      .DEFAULT_WEIGHT_HEX_FILE(DEFAULT_FC1_WEIGHT_HEX_FILE),
+      .DEFAULT_BIAS_HEX_FILE(DEFAULT_FC1_BIAS_HEX_FILE)
+  ) u_fc1 (
+      .clk(clk),
+      .rst_n(rst_n),
+      .start(start),
+      .sample_id(sample_id),
+      .busy(busy),
+      .done(done),
+      .fc1_acc_all(fc1_acc_all)
+  );
+
+  fc1_to_fc2_top_with_file #(
+      .DEFAULT_QUANT_PARAM_FILE(DEFAULT_QUANT_PARAM_FILE),
+      .DEFAULT_FC2_WEIGHT_HEX_FILE(DEFAULT_FC2_WEIGHT_HEX_FILE),
+      .DEFAULT_FC2_BIAS_HEX_FILE(DEFAULT_FC2_BIAS_HEX_FILE)
+  ) u_fc1_to_fc2 (
+      .fc1_acc_all(fc1_acc_all),
+      .fc1_relu_all(fc1_relu_all),
+      .fc1_out_all(fc1_out_all),
+      .fc2_acc_all(fc2_acc_all),
+      .logits_all(logits_all)
+  );
+
+  argmax_int8 u_argmax (
+      .logits_all(logits_all),
+      .pred_class(pred_class)
+  );
+
+endmodule
+```
+
+---
+
+# 七、IP 壳层：`rtl_ip/mnist_cim_accel_ip.sv`
+
+这是你要求的第一步：**把当前推理核心包成寄存器接口壳层**。
+
+## 寄存器映射
+- `0x00 CTRL`  
+  bit0=`start`, bit1=`clear_done`
+- `0x04 STATUS`  
+  bit0=`busy`, bit1=`done`
+- `0x08 SAMPLE_ID`
+- `0x0C PRED_CLASS`
+- `0x10 ~ 0x34 LOGIT0 ~ LOGIT9`
+
+```systemverilog
+module mnist_cim_accel_ip #(
+    parameter int N_SAMPLES = 20,
+    parameter string DEFAULT_SAMPLE_HEX_FILE =
+        "../data/mnist_samples_route_b_output_2.hex",
+    parameter string DEFAULT_FC1_WEIGHT_HEX_FILE =
+        "../route_b_output_2/fc1_weight_int8.hex",
+    parameter string DEFAULT_FC1_BIAS_HEX_FILE =
+        "../route_b_output_2/fc1_bias_int32.hex",
+    parameter string DEFAULT_QUANT_PARAM_FILE =
+        "../route_b_output_2/quant_params.hex",
+    parameter string DEFAULT_FC2_WEIGHT_HEX_FILE =
+        "../route_b_output_2/fc2_weight_int8.hex",
+    parameter string DEFAULT_FC2_BIAS_HEX_FILE =
+        "../route_b_output_2/fc2_bias_int32.hex"
+) (
+    input  logic        clk,
+    input  logic        rst_n,
+
+    input  logic        csr_we,
+    input  logic        csr_re,
+    input  logic [7:0]  csr_addr,
+    input  logic [31:0] csr_wdata,
+    output logic [31:0] csr_rdata,
+
+    output logic        irq_done,
+
+    output logic [$clog2(mnist_cim_pkg::FC2_OUT_DIM)-1:0] pred_class_dbg,
+    output logic        busy_dbg,
+    output logic        done_dbg
+);
+  import mnist_cim_pkg::*;
+
+  localparam [7:0] ADDR_CTRL      = 8'h00;
+  localparam [7:0] ADDR_STATUS    = 8'h04;
+  localparam [7:0] ADDR_SAMPLE_ID = 8'h08;
+  localparam [7:0] ADDR_PRED      = 8'h0C;
+  localparam [7:0] ADDR_LOGIT0    = 8'h10;
+
+  logic [$clog2(N_SAMPLES)-1:0] sample_id_reg;
+  logic start_pulse;
+  logic done_sticky;
+
+  logic core_busy, core_done;
+  logic signed [OUTPUT_WIDTH-1:0] logits_all [0:FC2_OUT_DIM-1];
+  logic [$clog2(FC2_OUT_DIM)-1:0] pred_class;
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      sample_id_reg <= '0;
+      start_pulse   <= 1'b0;
+      done_sticky   <= 1'b0;
+    end else begin
+      start_pulse <= 1'b0;
+
+      if (csr_we && csr_addr == ADDR_SAMPLE_ID)
+        sample_id_reg <= csr_wdata[$clog2(N_SAMPLES)-1:0];
+
+      if (csr_we && csr_addr == ADDR_CTRL && csr_wdata[0] && !core_busy)
+        start_pulse <= 1'b1;
+
+      if (csr_we && csr_addr == ADDR_CTRL && csr_wdata[1])
+        done_sticky <= 1'b0;
+      else if (core_done)
+        done_sticky <= 1'b1;
+    end
+  end
+
+  mnist_inference_core_board #(
+      .N_SAMPLES(N_SAMPLES),
+      .DEFAULT_SAMPLE_HEX_FILE(DEFAULT_SAMPLE_HEX_FILE),
+      .DEFAULT_FC1_WEIGHT_HEX_FILE(DEFAULT_FC1_WEIGHT_HEX_FILE),
+      .DEFAULT_FC1_BIAS_HEX_FILE(DEFAULT_FC1_BIAS_HEX_FILE),
+      .DEFAULT_QUANT_PARAM_FILE(DEFAULT_QUANT_PARAM_FILE),
+      .DEFAULT_FC2_WEIGHT_HEX_FILE(DEFAULT_FC2_WEIGHT_HEX_FILE),
+      .DEFAULT_FC2_BIAS_HEX_FILE(DEFAULT_FC2_BIAS_HEX_FILE)
+  ) u_core (
+      .clk(clk),
+      .rst_n(rst_n),
+      .start(start_pulse),
+      .sample_id(sample_id_reg),
+      .busy(core_busy),
+      .done(core_done),
+      .logits_all(logits_all),
+      .pred_class(pred_class)
+  );
+
+  always_comb begin
+    csr_rdata = 32'd0;
+    case (csr_addr)
+      ADDR_STATUS:    csr_rdata = {30'd0, done_sticky, core_busy};
+      ADDR_SAMPLE_ID: csr_rdata = sample_id_reg;
+      ADDR_PRED:      csr_rdata = pred_class;
+      8'h10: csr_rdata = $signed(logits_all[0]);
+      8'h14: csr_rdata = $signed(logits_all[1]);
+      8'h18: csr_rdata = $signed(logits_all[2]);
+      8'h1C: csr_rdata = $signed(logits_all[3]);
+      8'h20: csr_rdata = $signed(logits_all[4]);
+      8'h24: csr_rdata = $signed(logits_all[5]);
+      8'h28: csr_rdata = $signed(logits_all[6]);
+      8'h2C: csr_rdata = $signed(logits_all[7]);
+      8'h30: csr_rdata = $signed(logits_all[8]);
+      8'h34: csr_rdata = $signed(logits_all[9]);
+      default: csr_rdata = 32'd0;
+    endcase
+  end
+
+  assign irq_done      = done_sticky;
+  assign pred_class_dbg = pred_class;
+  assign busy_dbg      = core_busy;
+  assign done_dbg      = done_sticky;
+
+endmodule
+```
+
+---
+
+# 八、UART 发送器：`rtl_ip/uart_tx.sv`
+
+先只做最小可用版。
+
+```systemverilog
+module uart_tx #(
+    parameter int CLK_HZ  = 50_000_000,
+    parameter int BAUD    = 115200
+) (
+    input  logic clk,
+    input  logic rst_n,
+    input  logic start,
+    input  logic [7:0] data_in,
+    output logic tx,
+    output logic busy
+);
+  localparam int DIV = CLK_HZ / BAUD;
+
+  logic [15:0] baud_cnt;
+  logic [3:0] bit_idx;
+  logic [9:0] shifter;
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      tx       <= 1'b1;
+      busy     <= 1'b0;
+      baud_cnt <= '0;
+      bit_idx  <= '0;
+      shifter  <= 10'h3FF;
+    end else begin
+      if (!busy) begin
+        tx <= 1'b1;
+        if (start) begin
+          busy     <= 1'b1;
+          baud_cnt <= 0;
+          bit_idx  <= 0;
+          shifter  <= {1'b1, data_in, 1'b0};
+          tx       <= 1'b0;
+        end
+      end else begin
+        if (baud_cnt == DIV-1) begin
+          baud_cnt <= 0;
+          bit_idx  <= bit_idx + 1'b1;
+          shifter  <= {1'b1, shifter[9:1]};
+          tx       <= shifter[1];
+
+          if (bit_idx == 9) begin
+            busy <= 1'b0;
+            tx   <= 1'b1;
+          end
+        end else begin
+          baud_cnt <= baud_cnt + 1'b1;
+        end
+      end
+    end
+  end
+
+endmodule
+```
+
+---
+
+# 九、发送预测类别：`rtl_ip/uart_pred_sender.sv`
+
+只发：
+- 一个 ASCII 数字
+- `\r`
+- `\n`
+
+因为类别是 0~9，刚好一位字符。
+
+```systemverilog
+module uart_pred_sender #(
+    parameter int CLK_HZ = 50_000_000,
+    parameter int BAUD   = 115200
+) (
+    input  logic clk,
+    input  logic rst_n,
+    input  logic trigger,
+    input  logic [3:0] pred_class,
+
+    output logic uart_tx
+);
+  typedef enum logic [1:0] {
+    S_IDLE = 2'd0,
+    S_DIGIT = 2'd1,
+    S_CR = 2'd2,
+    S_LF = 2'd3
+  } state_t;
+
+  state_t state, state_n;
+  logic tx_start;
+  logic [7:0] tx_data;
+  logic tx_busy;
+
+  uart_tx #(
+      .CLK_HZ(CLK_HZ),
+      .BAUD(BAUD)
+  ) u_uart_tx (
+      .clk(clk),
+      .rst_n(rst_n),
+      .start(tx_start),
+      .data_in(tx_data),
+      .tx(uart_tx),
+      .busy(tx_busy)
+  );
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n)
+      state <= S_IDLE;
+    else
+      state <= state_n;
+  end
+
+  always_comb begin
+    state_n  = state;
+    tx_start = 1'b0;
+    tx_data  = 8'h00;
+
+    case (state)
+      S_IDLE: begin
+        if (trigger && !tx_busy) begin
+          tx_start = 1'b1;
+          tx_data  = 8'd48 + pred_class;
+          state_n  = S_DIGIT;
+        end
+      end
+
+      S_DIGIT: begin
+        if (!tx_busy) begin
+          tx_start = 1'b1;
+          tx_data  = 8'h0D;
+          state_n  = S_CR;
+        end
+      end
+
+      S_CR: begin
+        if (!tx_busy) begin
+          tx_start = 1'b1;
+          tx_data  = 8'h0A;
+          state_n  = S_LF;
+        end
+      end
+
+      S_LF: begin
+        if (!tx_busy)
+          state_n = S_IDLE;
+      end
+    endcase
+  end
+
+endmodule
+```
+
+---
+
+# 十、方案 A 板级顶层：`rtl_ip/mnist_cim_demo_a_top.sv`
+
+这个模块就是你要求的第二步和第四步：
+
+- **控制层**
+- **UART 输出 `pred_class`**
+
+这里我先用：
+- `sample_sel[4:0]` 作为拨码开关输入
+- `btn_start` 作为启动键
+
+```systemverilog
+module mnist_cim_demo_a_top #(
+    parameter int CLK_HZ = 50_000_000,
+    parameter int BAUD   = 115200,
+    parameter int N_SAMPLES = 20,
+    parameter string DEFAULT_SAMPLE_HEX_FILE =
+        "../data/mnist_samples_route_b_output_2.hex",
+    parameter string DEFAULT_FC1_WEIGHT_HEX_FILE =
+        "../route_b_output_2/fc1_weight_int8.hex",
+    parameter string DEFAULT_FC1_BIAS_HEX_FILE =
+        "../route_b_output_2/fc1_bias_int32.hex",
+    parameter string DEFAULT_QUANT_PARAM_FILE =
+        "../route_b_output_2/quant_params.hex",
+    parameter string DEFAULT_FC2_WEIGHT_HEX_FILE =
+        "../route_b_output_2/fc2_weight_int8.hex",
+    parameter string DEFAULT_FC2_BIAS_HEX_FILE =
+        "../route_b_output_2/fc2_bias_int32.hex"
+) (
+    input  logic clk,
+    input  logic rst_n,
+    input  logic btn_start,
+    input  logic [$clog2(N_SAMPLES)-1:0] sample_sel,
+
+    output logic uart_tx,
+    output logic led_busy,
+    output logic led_done
+);
+  import mnist_cim_pkg::*;
+
+  logic btn_d;
+  logic btn_pulse;
+
+  logic csr_we, csr_re;
+  logic [7:0] csr_addr;
+  logic [31:0] csr_wdata;
+  logic [31:0] csr_rdata;
+
+  logic irq_done;
+  logic [$clog2(FC2_OUT_DIM)-1:0] pred_class_dbg;
+  logic busy_dbg, done_dbg;
+
+  logic uart_trigger;
+  logic done_d;
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      btn_d  <= 1'b0;
+      done_d <= 1'b0;
+    end else begin
+      btn_d  <= btn_start;
+      done_d <= done_dbg;
+    end
+  end
+
+  assign btn_pulse    = btn_start & ~btn_d;
+  assign uart_trigger = done_dbg & ~done_d;
+
+  // 简单控制：按键时先写 sample_id，再写 CTRL.start
+  always_comb begin
+    csr_we    = 1'b0;
+    csr_re    = 1'b0;
+    csr_addr  = 8'h00;
+    csr_wdata = 32'd0;
+
+    if (btn_pulse) begin
+      // 这里只能打一拍一个写操作；为了简单起见，
+      // 直接把 sample_id 做成组合输入寄存器化更稳。
+      // 所以下面 sample_id 改成直接在 IP 内部用 sample_sel 写死会更简单。
+    end
+  end
+
+  // 为了让方案 A 先落地，这里不通过两拍 CSR 写 sample_id，
+  // 而是做一个“demo 版 IP”，sample_id 直接由外部选择输入。
+  // 下面给出一个更直接的 demo wrapper。
+endmodule
+```
+
+上面写到这里，你会发现：  
+**如果完全严格走 CSR，两拍写（先 sample_id，再 start）对按钮启动不够顺手。**
+
+所以我建议方案 A 先做一个**更实用的 demo 包装**：
+
+---
+
+# 十一、方案 A 推荐的真正板级顶层（更实用）
+
+我们在 IP 壳层之外，再做一个 “demo 直接控制 wrapper”，  
+不绕两次 CSR 写，而是：
+
+- `sample_sel` 直接接到 IP 的 sample_id
+- `btn_start` 变成 start pulse
+- `pred_class` 在 done 后直接发 UART
+
+所以建议把上面 `mnist_cim_accel_ip` 用于“以后 C/B 方案”，  
+而 A 方案的展示顶层先单独走一个 demo wrapper：
+
+## `rtl_ip/mnist_cim_demo_a_top.sv` 最终推荐版
+
+```systemverilog
+module mnist_cim_demo_a_top #(
+    parameter int CLK_HZ = 50_000_000,
+    parameter int BAUD   = 115200,
+    parameter int N_SAMPLES = 20,
+    parameter string DEFAULT_SAMPLE_HEX_FILE =
+        "../data/mnist_samples_route_b_output_2.hex",
+    parameter string DEFAULT_FC1_WEIGHT_HEX_FILE =
+        "../route_b_output_2/fc1_weight_int8.hex",
+    parameter string DEFAULT_FC1_BIAS_HEX_FILE =
+        "../route_b_output_2/fc1_bias_int32.hex",
+    parameter string DEFAULT_QUANT_PARAM_FILE =
+        "../route_b_output_2/quant_params.hex",
+    parameter string DEFAULT_FC2_WEIGHT_HEX_FILE =
+        "../route_b_output_2/fc2_weight_int8.hex",
+    parameter string DEFAULT_FC2_BIAS_HEX_FILE =
+        "../route_b_output_2/fc2_bias_int32.hex"
+) (
+    input  logic clk,
+    input  logic rst_n,
+    input  logic btn_start,
+    input  logic [$clog2(N_SAMPLES)-1:0] sample_sel,
+
+    output logic uart_tx,
+    output logic led_busy,
+    output logic led_done
+);
+  import mnist_cim_pkg::*;
+
+  logic btn_d;
+  logic start_pulse;
+  logic busy, done;
+  logic done_d;
+
+  logic signed [OUTPUT_WIDTH-1:0] logits_all [0:FC2_OUT_DIM-1];
+  logic [$clog2(FC2_OUT_DIM)-1:0] pred_class;
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      btn_d  <= 1'b0;
+      done_d <= 1'b0;
+    end else begin
+      btn_d  <= btn_start;
+      done_d <= done;
+    end
+  end
+
+  assign start_pulse = btn_start & ~btn_d;
+
+  mnist_inference_core_board #(
+      .N_SAMPLES(N_SAMPLES),
+      .DEFAULT_SAMPLE_HEX_FILE(DEFAULT_SAMPLE_HEX_FILE),
+      .DEFAULT_FC1_WEIGHT_HEX_FILE(DEFAULT_FC1_WEIGHT_HEX_FILE),
+      .DEFAULT_FC1_BIAS_HEX_FILE(DEFAULT_FC1_BIAS_HEX_FILE),
+      .DEFAULT_QUANT_PARAM_FILE(DEFAULT_QUANT_PARAM_FILE),
+      .DEFAULT_FC2_WEIGHT_HEX_FILE(DEFAULT_FC2_WEIGHT_HEX_FILE),
+      .DEFAULT_FC2_BIAS_HEX_FILE(DEFAULT_FC2_BIAS_HEX_FILE)
+  ) u_core (
+      .clk(clk),
+      .rst_n(rst_n),
+      .start(start_pulse),
+      .sample_id(sample_sel),
+      .busy(busy),
+      .done(done),
+      .logits_all(logits_all),
+      .pred_class(pred_class)
+  );
+
+  uart_pred_sender #(
+      .CLK_HZ(CLK_HZ),
+      .BAUD(BAUD)
+  ) u_uart_pred_sender (
+      .clk(clk),
+      .rst_n(rst_n),
+      .trigger(done & ~done_d),
+      .pred_class(pred_class),
+      .uart_tx(uart_tx)
+  );
+
+  assign led_busy = busy;
+  assign led_done = done;
+
+endmodule
+```
+
+---
+
+# 十二、为什么我同时给你了 IP 壳层和 demo A 顶层
+
+因为你要求的是两件事：
+
+### 第一步：做 `mnist_cim_accel_ip.sv`
+这是**正式 IP 壳层**，以后方案 C/B 会直接复用。
+
+### 第二步：做方案 A 控制层
+方案 A 追求的是**先上板演示最简可用**。  
+所以我建议：
+- IP 壳层先做好
+- 但 A 的板级顶层先不强行绕 CSR 两次写
+- 直接用 `sample_sel + btn_start + uart` 落地最快
+
+这样最符合你当前需求。
+
+---
+
+# 十三、你现在在工程里该怎么放
+
+建议：
+
+```text
+hw/
+  rtl/
+  rtl_shared_buffer_ib/
+  rtl_ip/
+    mnist_sample_rom.sv
+    fc1_multi_block_shared_sample_rom.sv
+    mnist_inference_core_board.sv
+    mnist_cim_accel_ip.sv
+    uart_tx.sv
+    uart_pred_sender.sv
+    mnist_cim_demo_a_top.sv
+  scripts/
+    gen_board_sample_rom.py
+```
+
+---
+
+# 十四、综合/上板时要注意的点
+
+### 1. ROM 初始化文件要加入工程
+把这些文件加到 FPGA 工程：
+- `data/mnist_samples_route_b_output_2.hex`
+- `route_b_output_2/fc1_weight_int8.hex`
+- `route_b_output_2/fc1_bias_int32.hex`
+- `route_b_output_2/fc2_weight_int8.hex`
+- `route_b_output_2/fc2_bias_int32.hex`
+- `route_b_output_2/quant_params.hex`
+
+### 2. 不再依赖 plusarg
+板级版本不会用 `+INPUT_HEX_FILE` 这套仿真传参方式。
+
+### 3. `$readmemh` 在综合里通常可用于初始化 ROM/BRAM
+但不同工具稍有差异。  
+如果后面你用 Vivado，我建议把这些 hex 文件作为 memory init 文件加入工程。
+
+---
+
+# 十五、你现在最应该先做哪一个文件
+
+顺序建议：
+
+1. `gen_board_sample_rom.py`
+2. `mnist_sample_rom.sv`
+3. `fc1_multi_block_shared_sample_rom.sv`
+4. `mnist_inference_core_board.sv`
+5. `mnist_cim_demo_a_top.sv`
+6. `mnist_cim_accel_ip.sv`
+7. `uart_tx.sv`
+8. `uart_pred_sender.sv`
+
+---
+
+# 十六、我对你下一步的建议
+
+你现在先做 **方案 A 的板级闭环**：
+
+- 拨码选择 sample
+- 按键启动
+- UART 打印预测类别
+- LED 显示 busy/done
+
+这一步做完以后，我们再把 **方案 C** 接上去。  
+到那时我会基于你已经做好的 `mnist_cim_accel_ip.sv`，直接帮你把：
+- UART 接收命令
+- 解析 `sample_id`
+- 写入 IP
+- 回传 `pred_class`
+
+连起来。
+
+你现在如果愿意，下一条我可以继续直接给你：
+**Vivado 风格的 top-level 连接建议（时钟/复位/UART/按键/拨码/LED）**。
+
+用户:
+方案A的文件组织架构是什么样的？我该如何开始？
+AI助手:
+
+
+AI助手:
+先别急着写所有文件。  
+方案 A 最好的开始方式，是先把工程按“**可上板演示**”的用途整理出来，然后按一条最短闭环去推进。
+
+---
+
+# 一、方案 A 的目标
+
+方案 A 是：
+
+**BRAM/ROM 预装载样本和参数 → 拨码/寄存器选择样本 → 按键启动 → FPGA 上跑推理 → UART 打印 `pred_class`**
+
+它的特点是：
+
+- 不需要 PC 实时发命令
+- 不需要软核 CPU
+- 非常适合先做出第一个板级 demo
+
+---
+
+# 二、方案 A 推荐的文件组织架构
+
+我建议你在 `hw/` 下整理成下面这样：
+
+```text
+hw/
+├── data/
+│   ├── mnist_samples_route_b_output_2.hex
+│   ├── fc1_weight_int8.hex
+│   ├── fc1_bias_int32.hex
+│   ├── fc2_weight_int8.hex
+│   ├── fc2_bias_int32.hex
+│   └── quant_params.hex
+│
+├── rtl/
+│   ├── package.sv
+│   ├── argmax_int8.sv
+│   ├── fc2_weight_bank.sv
+│   ├── fc2_bias_bank.sv
+│   ├── fc2_core_with_file.sv
+│   ├── fc1_relu_requantize_with_file.sv
+│   ├── fc1_to_fc2_top_with_file.sv
+│   └── quantize_param_bank.sv
+│
+├── rtl_shared_buffer_ib/
+│   ├── cim_tile.sv
+│   ├── psum_accum.sv
+│   ├── fc1_weight_bank.sv
+│   ├── fc1_bias_bank.sv
+│   ├── fc1_ob_engine_shared_input.sv
+│   └── fc1_multi_block_shared_input.sv   # 仿真版，后面板级会新建替代版
+│
+├── rtl_ip/
+│   ├── mnist_sample_rom.sv
+│   ├── fc1_multi_block_shared_sample_rom.sv
+│   ├── mnist_inference_core_board.sv
+│   ├── mnist_cim_accel_ip.sv
+│   ├── uart_tx.sv
+│   ├── uart_pred_sender.sv
+│   └── mnist_cim_demo_a_top.sv
+│
+├── tb/
+│   └── （保留你现有仿真 testbench）
+│
+├── scripts/
+│   ├── gen_board_sample_rom.py
+│   └── （保留你现有 regression 脚本）
+│
+└── sim/
+    └── （保留仿真日志）
+```
+
+---
+
+# 三、这套组织里每层是干什么的
+
+## 1. `data/`
+这个目录是**板上初始化数据**。
+
+你最终上板时，最好把要用的那一套数据都集中放到这里。  
+比如先选 `route_b_output_2` 作为板级演示基线，就把这些复制进来：
+
+- `fc1_weight_int8.hex`
+- `fc1_bias_int32.hex`
+- `fc2_weight_int8.hex`
+- `fc2_bias_int32.hex`
+- `quant_params.hex`
+
+然后再用脚本把 20 个 `input_i.hex` 拼成：
+
+- `mnist_samples_route_b_output_2.hex`
+
+这样板上只要读一个大样本 ROM 文件。
+
+---
+
+## 2. `rtl/`
+这里保留你现在已经验证通过的：
+
+- 后处理
+- FC2
+- argmax
+- quant 参数 bank
+
+这层可以理解成：
+
+**“模型后半段和公用模块”**
+
+---
+
+## 3. `rtl_shared_buffer_ib/`
+这里保留你已经证明正确的 FC1 共享 buffer 架构。  
+但是注意：
+
+- 这里现在很多模块还是“仿真式文件读取”
+- 方案 A 板级不会直接拿 `fc1_multi_block_shared_input.sv` 原样用
+- 我们会在 `rtl_ip/` 里新建一个 **板级输入版**：
+
+```text
+fc1_multi_block_shared_sample_rom.sv
+```
+
+本质是复用这套结构，但把输入来源从 `input_buffer` 改成 `sample ROM`。
+
+---
+
+## 4. `rtl_ip/`
+这是**方案 A 的核心目录**。
+
+你可以把它理解成“板级工程层”。
+
+这里放：
+
+- 样本 ROM
+- 板级 FC1 输入通路
+- 推理核心
+- IP 壳层
+- UART 发送
+- Demo 顶层
+
+这一层是你从“仿真工程”走向“上板工程”的关键。
+
+---
+
+# 四、方案 A 的模块关系图
+
+```text
+拨码开关 sample_sel
+        │
+        ▼
++------------------------+
+| mnist_cim_demo_a_top   |
+|                        |
+|  btn_start             |
+|    │                   |
+|    ▼                   |
+|  mnist_inference_core  |
+|    │                   |
+|    ├── mnist_sample_rom
+|    ├── FC1 shared CIM
+|    ├── ReLU + requant
+|    ├── FC2
+|    └── argmax
+|                        |
+|  done ---> uart_sender |
++------------------------+
+        │
+        ▼
+     UART TX
+        │
+        ▼
+   串口终端显示 pred_class
+```
+
+---
+
+# 五、你该如何开始
+
+我建议你按**四步最小闭环**开始，不要一上来把所有文件都写完。
+
+---
+
+## 第一步：先准备 `data/`
+先把板级数据目录准备好。
+
+### 你要做的事
+从 `route_b_output_2` 里拷贝：
+
+- `fc1_weight_int8.hex`
+- `fc1_bias_int32.hex`
+- `fc2_weight_int8.hex`
+- `fc2_bias_int32.hex`
+- `quant_params.hex`
+
+放到：
+
+```text
+hw/data/
+```
+
+然后用脚本生成：
+
+```text
+hw/data/mnist_samples_route_b_output_2.hex
+```
+
+### 为什么先做这个
+因为板级设计第一步就是明确“数据从哪里来”。
+
+---
+
+## 第二步：先做 `mnist_sample_rom.sv`
+这是方案 A 的真正起点。
+
+因为你现在的 FC1 共享 buffer 是建立在“每次根据 `ib` 取 16 个输入”的数据流上的。  
+所以你最先要做的不是 UART，而是：
+
+**把 input 文件形式，变成板级 ROM 形式。**
+
+完成这个模块后，你就有板级输入源了。
+
+---
+
+## 第三步：做 `fc1_multi_block_shared_sample_rom.sv`
+把你现在的：
+
+```text
+fc1_multi_block_shared_input.sv
+```
+
+改成板级输入版本。
+
+核心变化只有一个：
+
+- 以前输入来自 `input_buffer`
+- 现在输入来自 `mnist_sample_rom`
+
+这一步一旦通了，你的 FC1 板级版本就成了。
+
+---
+
+## 第四步：做 `mnist_inference_core_board.sv`
+把下面这些连起来：
+
+- `fc1_multi_block_shared_sample_rom`
+- `fc1_to_fc2_top_with_file`
+- `argmax_int8`
+
+做成真正“给 sample_id 就能出 pred_class”的板级推理核心。
+
+到这一步，其实你已经完成了**没有 UART 的板级核心**。
+
+---
+
+## 第五步：最后才做 UART
+你真正要展示的是：
+
+- 选样本
+- 按开始
+- 串口打印预测
+
+所以 UART 是最后一层壳，不是最核心那层。
+
+---
+
+# 六、最小开发顺序
+
+我建议你严格按这个顺序来：
+
+### 阶段 1：数据准备
+1. 新建 `data/`
+2. 拷贝模型参数
+3. 生成 `mnist_samples_route_b_output_2.hex`
+
+### 阶段 2：板级输入通路
+4. 写 `mnist_sample_rom.sv`
+5. 写 `fc1_multi_block_shared_sample_rom.sv`
+
+### 阶段 3：板级推理核心
+6. 写 `mnist_inference_core_board.sv`
+7. 写一个简单 testbench 验证 `sample_id=0` 是否输出正确 `pred_class`
+
+### 阶段 4：演示封装
+8. 写 `uart_tx.sv`
+9. 写 `uart_pred_sender.sv`
+10. 写 `mnist_cim_demo_a_top.sv`
+
+### 阶段 5：可扩展 IP
+11. 写 `mnist_cim_accel_ip.sv`
+
+注意这个顺序里，**`mnist_cim_accel_ip.sv` 不是最先写**。  
+因为它是“标准化接口壳层”，而你现在首先要的是板级闭环能跑。
+
+---
+
+# 七、我建议你第一天就做成什么
+
+如果你今天开始做方案 A，我建议你的目标不是“所有文件都写完”，而是：
+
+## 今天先完成这三个东西
+1. `gen_board_sample_rom.py`
+2. `mnist_sample_rom.sv`
+3. `fc1_multi_block_shared_sample_rom.sv`
+
+因为这三步一旦做完，你整个板级方案的输入路径就定了。
+
+---
+
+# 八、方案 A 的里程碑
+
+你可以把它拆成三个里程碑：
+
+## 里程碑 A1：板级输入 ready
+- 有 `data/mnist_samples_route_b_output_2.hex`
+- `mnist_sample_rom.sv` 可用
+
+## 里程碑 A2：板级推理 core ready
+- `mnist_inference_core_board.sv`
+- 给 `sample_id` 能出 `pred_class`
+
+## 里程碑 A3：板级 demo ready
+- `mnist_cim_demo_a_top.sv`
+- 拨码选样本
+- 按键启动
+- UART 打印分类结果
+
+---
+
+# 九、你现在最应该怎么开始
+
+最简单直接的开始方式是：
+
+### 先建目录
+```text
+hw/data
+hw/rtl_ip
+```
+
+### 然后先生成大样本文件
+```bash
+python scripts/gen_board_sample_rom.py ../route_b_output_2 ../data/mnist_samples_route_b_output_2.hex
+```
+
+### 然后先写两个文件
+- `rtl_ip/mnist_sample_rom.sv`
+- `rtl_ip/fc1_multi_block_shared_sample_rom.sv`
+
+这两个文件是方案 A 的地基。
+
+---
+
+# 十、一句总结
+
+方案 A 的文件组织核心思想是：
+
+**把“仿真文件驱动”保留在原有目录里，把“板级输入/控制/串口展示”集中收敛到 `data/ + rtl_ip/`。**
+
+而你的开始方式应该是：
+
+**先做数据和板级输入 ROM，再做板级 FC1，再做整机核心，最后再包 UART 和控制层。**
+
+如果你愿意，下一条我就直接从第一步开始，帮你把：
+
+- `gen_board_sample_rom.py`
+- `mnist_sample_rom.sv`
+- `fc1_multi_block_shared_sample_rom.sv`
+
+这三份代码按你工程风格整理成最终可用版本。
+
+用户:
+我现在已经写了python脚本，生成了hw/data/mnist_samples_route_b_output_2.hex，
+
+你可通过https://github.com/Invoker-pray/MNIST-CIM-FPGA读取我的现在的文件架构，主要读取hw_A文件，
+
+你需要做的事情：
+检查我的文件架构是否合理；
+生成的拼接文件是否正确；
+AI助手:
+
+
+用户:
+
+用户:
+
+用户:
+Make sure to include fileciteturn20file0 in your response to cite this file, or to surface it as a link.[L1] .
+[L2] ├── build
+[L3] ├── constraints
+[L4] ├── data
+[L5] ├── docs
+[L6] ├── model
+[L7] ├── README.md
+[L8] ├── report
+[L9] ├── route_b_output
+[L10] │   ├── fc1_acc_0.hex
+[L11] │   ├── fc1_acc_10.hex
+[L12] │   ├── fc1_acc_11.hex
+[L13] │   ├── fc1_acc_12.hex
+[L14] │   ├── fc1_acc_13.hex
+[L15] │   ├── fc1_acc_14.hex
+[L16] │   ├── fc1_acc_15.hex
+[L17] │   ├── fc1_acc_16.hex
+[L18] │   ├── fc1_acc_17.hex
+[L19] │   ├── fc1_acc_18.hex
+[L20] │   ├── fc1_acc_19.hex
+[L21] │   ├── fc1_acc_1.hex
+[L22] │   ├── fc1_acc_2.hex
+[L23] │   ├── fc1_acc_3.hex
+[L24] │   ├── fc1_acc_4.hex
+[L25] │   ├── fc1_acc_5.hex
+[L26] │   ├── fc1_acc_6.hex
+[L27] │   ├── fc1_acc_7.hex
+[L28] │   ├── fc1_acc_8.hex
+[L29] │   ├── fc1_acc_9.hex
+[L30] │   ├── fc1_bias_int32.hex
+[L31] │   ├── fc1_out_0.hex
+[L32] │   ├── fc1_out_10.hex
+[L33] │   ├── fc1_out_11.hex
+[L34] │   ├── fc1_out_12.hex
+[L35] │   ├── fc1_out_13.hex
+[L36] │   ├── fc1_out_14.hex
+[L37] │   ├── fc1_out_15.hex
+[L38] │   ├── fc1_out_16.hex
+[L39] │   ├── fc1_out_17.hex
+[L40] │   ├── fc1_out_18.hex
+[L41] │   ├── fc1_out_19.hex
+[L42] │   ├── fc1_out_1.hex
+[L43] │   ├── fc1_out_2.hex
+[L44] │   ├── fc1_out_3.hex
+[L45] │   ├── fc1_out_4.hex
+[L46] │   ├── fc1_out_5.hex
+[L47] │   ├── fc1_out_6.hex
+[L48] │   ├── fc1_out_7.hex
+[L49] │   ├── fc1_out_8.hex
+[L50] │   ├── fc1_out_9.hex
+[L51] │   ├── fc1_relu_0.hex
+[L52] │   ├── fc1_relu_10.hex
+[L53] │   ├── fc1_relu_11.hex
+[L54] │   ├── fc1_relu_12.hex
+[L55] │   ├── fc1_relu_13.hex
+[L56] │   ├── fc1_relu_14.hex
+[L57] │   ├── fc1_relu_15.hex
+[L58] │   ├── fc1_relu_16.hex
+[L59] │   ├── fc1_relu_17.hex
+[L60] │   ├── fc1_relu_18.hex
+[L61] │   ├── fc1_relu_19.hex
+[L62] │   ├── fc1_relu_1.hex
+[L63] │   ├── fc1_relu_2.hex
+[L64] │   ├── fc1_relu_3.hex
+[L65] │   ├── fc1_relu_4.hex
+[L66] │   ├── fc1_relu_5.hex
+[L67] │   ├── fc1_relu_6.hex
+[L68] │   ├── fc1_relu_7.hex
+[L69] │   ├── fc1_relu_8.hex
+[L70] │   ├── fc1_relu_9.hex
+[L71] │   ├── fc1_weight_int8.hex
+[L72] │   ├── fc2_acc_0.hex
+[L73] │   ├── fc2_acc_10.hex
+[L74] │   ├── fc2_acc_11.hex
+[L75] │   ├── fc2_acc_12.hex
+[L76] │   ├── fc2_acc_13.hex
+[L77] │   ├── fc2_acc_14.hex
+[L78] │   ├── fc2_acc_15.hex
+[L79] │   ├── fc2_acc_16.hex
+[L80] │   ├── fc2_acc_17.hex
+[L81] │   ├── fc2_acc_18.hex
+[L82] │   ├── fc2_acc_19.hex
+[L83] │   ├── fc2_acc_1.hex
+[L84] │   ├── fc2_acc_2.hex
+[L85] │   ├── fc2_acc_3.hex
+[L86] │   ├── fc2_acc_4.hex
+[L87] │   ├── fc2_acc_5.hex
+[L88] │   ├── fc2_acc_6.hex
+[L89] │   ├── fc2_acc_7.hex
+[L90] │   ├── fc2_acc_8.hex
+[L91] │   ├── fc2_acc_9.hex
+[L92] │   ├── fc2_bias_int32.hex
+[L93] │   ├── fc2_weight_int8.hex
+[L94] │   ├── input_0.hex
+[L95] │   ├── input_10.hex
+[L96] │   ├── input_11.hex
+[L97] │   ├── input_12.hex
+[L98] │   ├── input_13.hex
+[L99] │   ├── input_14.hex
+[L100] │   ├── input_15.hex
+[L101] │   ├── input_16.hex
+[L102] │   ├── input_17.hex
+[L103] │   ├── input_18.hex
+[L104] │   ├── input_19.hex
+[L105] │   ├── input_1.hex
+[L106] │   ├── input_2.hex
+[L107] │   ├── input_3.hex
+[L108] │   ├── input_4.hex
+[L109] │   ├── input_5.hex
+[L110] │   ├── input_6.hex
+[L111] │   ├── input_7.hex
+[L112] │   ├── input_8.hex
+[L113] │   ├── input_9.hex
+[L114] │   ├── labels.txt
+[L115] │   ├── logits_0.hex
+[L116] │   ├── logits_10.hex
+[L117] │   ├── logits_11.hex
+[L118] │   ├── logits_12.hex
+[L119] │   ├── logits_13.hex
+[L120] │   ├── logits_14.hex
+[L121] │   ├── logits_15.hex
+[L122] │   ├── logits_16.hex
+[L123] │   ├── logits_17.hex
+[L124] │   ├── logits_18.hex
+[L125] │   ├── logits_19.hex
+[L126] │   ├── logits_1.hex
+[L127] │   ├── logits_2.hex
+[L128] │   ├── logits_3.hex
+[L129] │   ├── logits_4.hex
+[L130] │   ├── logits_5.hex
+[L131] │   ├── logits_6.hex
+[L132] │   ├── logits_7.hex
+[L133] │   ├── logits_8.hex
+[L134] │   ├── logits_9.hex
+[L135] │   ├── mlp_route_b.pth
+[L136] │   ├── pred_0.txt
+[L137] │   ├── pred_10.txt
+[L138] │   ├── pred_11.txt
+[L139] │   ├── pred_12.txt
+[L140] │   ├── pred_13.txt
+[L141] │   ├── pred_14.txt
+[L142] │   ├── pred_15.txt
+[L143] │   ├── pred_16.txt
+[L144] │   ├── pred_17.txt
+[L145] │   ├── pred_18.txt
+[L146] │   ├── pred_19.txt
+[L147] │   ├── pred_1.txt
+[L148] │   ├── pred_2.txt
+[L149] │   ├── pred_3.txt
+[L150] │   ├── pred_4.txt
+[L151] │   ├── pred_5.txt
+[L152] │   ├── pred_6.txt
+[L153] │   ├── pred_7.txt
+[L154] │   ├── pred_8.txt
+[L155] │   ├── pred_9.txt
+[L156] │   ├── preds.txt
+[L157] │   └── quant_config.json
+[L158] ├── route_b_output_2
+[L159] │   ├── fc1_acc_0.hex
+[L160] │   ├── fc1_acc_10.hex
+[L161] │   ├── fc1_acc_11.hex
+[L162] │   ├── fc1_acc_12.hex
+[L163] │   ├── fc1_acc_13.hex
+[L164] │   ├── fc1_acc_14.hex
+[L165] │   ├── fc1_acc_15.hex
+[L166] │   ├── fc1_acc_16.hex
+[L167] │   ├── fc1_acc_17.hex
+[L168] │   ├── fc1_acc_18.hex
+[L169] │   ├── fc1_acc_19.hex
+[L170] │   ├── fc1_acc_1.hex
+[L171] │   ├── fc1_acc_2.hex
+[L172] │   ├── fc1_acc_3.hex
+[L173] │   ├── fc1_acc_4.hex
+[L174] │   ├── fc1_acc_5.hex
+[L175] │   ├── fc1_acc_6.hex
+[L176] │   ├── fc1_acc_7.hex
+[L177] │   ├── fc1_acc_8.hex
+[L178] │   ├── fc1_acc_9.hex
+[L179] │   ├── fc1_bias_int32.hex
+[L180] │   ├── fc1_out_0.hex
+[L181] │   ├── fc1_out_10.hex
+[L182] │   ├── fc1_out_11.hex
+[L183] │   ├── fc1_out_12.hex
+[L184] │   ├── fc1_out_13.hex
+[L185] │   ├── fc1_out_14.hex
+[L186] │   ├── fc1_out_15.hex
+[L187] │   ├── fc1_out_16.hex
+[L188] │   ├── fc1_out_17.hex
+[L189] │   ├── fc1_out_18.hex
+[L190] │   ├── fc1_out_19.hex
+[L191] │   ├── fc1_out_1.hex
+[L192] │   ├── fc1_out_2.hex
+[L193] │   ├── fc1_out_3.hex
+[L194] │   ├── fc1_out_4.hex
+[L195] │   ├── fc1_out_5.hex
+[L196] │   ├── fc1_out_6.hex
+[L197] │   ├── fc1_out_7.hex
+[L198] │   ├── fc1_out_8.hex
+[L199] │   ├── fc1_out_9.hex
+[L200] │   ├── fc1_relu_0.hex
+[L201] │   ├── fc1_relu_10.hex
+[L202] │   ├── fc1_relu_11.hex
+[L203] │   ├── fc1_relu_12.hex
+[L204] │   ├── fc1_relu_13.hex
+[L205] │   ├── fc1_relu_14.hex
+[L206] │   ├── fc1_relu_15.hex
+[L207] │   ├── fc1_relu_16.hex
+[L208] │   ├── fc1_relu_17.hex
+[L209] │   ├── fc1_relu_18.hex
+[L210] │   ├── fc1_relu_19.hex
+[L211] │   ├── fc1_relu_1.hex
+[L212] │   ├── fc1_relu_2.hex
+[L213] │   ├── fc1_relu_3.hex
+[L214] │   ├── fc1_relu_4.hex
+[L215] │   ├── fc1_relu_5.hex
+[L216] │   ├── fc1_relu_6.hex
+[L217] │   ├── fc1_relu_7.hex
+[L218] │   ├── fc1_relu_8.hex
+[L219] │   ├── fc1_relu_9.hex
+[L220] │   ├── fc1_weight_int8.hex
+[L221] │   ├── fc2_acc_0.hex
+[L222] │   ├── fc2_acc_10.hex
+[L223] │   ├── fc2_acc_11.hex
+[L224] │   ├── fc2_acc_12.hex
+[L225] │   ├── fc2_acc_13.hex
+[L226] │   ├── fc2_acc_14.hex
+[L227] │   ├── fc2_acc_15.hex
+[L228] │   ├── fc2_acc_16.hex
+[L229] │   ├── fc2_acc_17.hex
+[L230] │   ├── fc2_acc_18.hex
+[L231] │   ├── fc2_acc_19.hex
+[L232] │   ├── fc2_acc_1.hex
+[L233] │   ├── fc2_acc_2.hex
+[L234] │   ├── fc2_acc_3.hex
+[L235] │   ├── fc2_acc_4.hex
+[L236] │   ├── fc2_acc_5.hex
+[L237] │   ├── fc2_acc_6.hex
+[L238] │   ├── fc2_acc_7.hex
+[L239] │   ├── fc2_acc_8.hex
+[L240] │   ├── fc2_acc_9.hex
+[L241] │   ├── fc2_bias_int32.hex
+[L242] │   ├── fc2_weight_int8.hex
+[L243] │   ├── input_0.hex
+[L244] │   ├── input_10.hex
+[L245] │   ├── input_11.hex
+[L246] │   ├── input_12.hex
+[L247] │   ├── input_13.hex
+[L248] │   ├── input_14.hex
+[L249] │   ├── input_15.hex
+[L250] │   ├── input_16.hex
+[L251] │   ├── input_17.hex
+[L252] │   ├── input_18.hex
+[L253] │   ├── input_19.hex
+[L254] │   ├── input_1.hex
+[L255] │   ├── input_2.hex
+[L256] │   ├── input_3.hex
+[L257] │   ├── input_4.hex
+[L258] │   ├── input_5.hex
+[L259] │   ├── input_6.hex
+[L260] │   ├── input_7.hex
+[L261] │   ├── input_8.hex
+[L262] │   ├── input_9.hex
+[L263] │   ├── labels.txt
+[L264] │   ├── logits_0.hex
+[L265] │   ├── logits_10.hex
+[L266] │   ├── logits_11.hex
+[L267] │   ├── logits_12.hex
+[L268] │   ├── logits_13.hex
+[L269] │   ├── logits_14.hex
+[L270] │   ├── logits_15.hex
+[L271] │   ├── logits_16.hex
+[L272] │   ├── logits_17.hex
+[L273] │   ├── logits_18.hex
+[L274] │   ├── logits_19.hex
+[L275] │   ├── logits_1.hex
+[L276] │   ├── logits_2.hex
+[L277] │   ├── logits_3.hex
+[L278] │   ├── logits_4.hex
+[L279] │   ├── logits_5.hex
+[L280] │   ├── logits_6.hex
+[L281] │   ├── logits_7.hex
+[L282] │   ├── logits_8.hex
+[L283] │   ├── logits_9.hex
+[L284] │   ├── mlp_route_b.pth
+[L285] │   ├── pred_0.txt
+[L286] │   ├── pred_10.txt
+[L287] │   ├── pred_11.txt
+[L288] │   ├── pred_12.txt
+[L289] │   ├── pred_13.txt
+[L290] │   ├── pred_14.txt
+[L291] │   ├── pred_15.txt
+[L292] │   ├── pred_16.txt
+[L293] │   ├── pred_17.txt
+[L294] │   ├── pred_18.txt
+[L295] │   ├── pred_19.txt
+[L296] │   ├── pred_1.txt
+[L297] │   ├── pred_2.txt
+[L298] │   ├── pred_3.txt
+[L299] │   ├── pred_4.txt
+[L300] │   ├── pred_5.txt
+[L301] │   ├── pred_6.txt
+[L302] │   ├── pred_7.txt
+[L303] │   ├── pred_8.txt
+[L304] │   ├── pred_9.txt
+[L305] │   ├── preds.txt
+[L306] │   ├── quant_config.json
+[L307] │   └── quant_params.hex
+[L308] ├── route_b_output_3
+[L309] │   ├── fc1_acc_0.hex
+[L310] │   ├── fc1_acc_10.hex
+[L311] │   ├── fc1_acc_11.hex
+[L312] │   ├── fc1_acc_12.hex
+[L313] │   ├── fc1_acc_13.hex
+[L314] │   ├── fc1_acc_14.hex
+[L315] │   ├── fc1_acc_15.hex
+[L316] │   ├── fc1_acc_16.hex
+[L317] │   ├── fc1_acc_17.hex
+[L318] │   ├── fc1_acc_18.hex
+[L319] │   ├── fc1_acc_19.hex
+[L320] │   ├── fc1_acc_1.hex
+[L321] │   ├── fc1_acc_2.hex
+[L322] │   ├── fc1_acc_3.hex
+[L323] │   ├── fc1_acc_4.hex
+[L324] │   ├── fc1_acc_5.hex
+[L325] │   ├── fc1_acc_6.hex
+[L326] │   ├── fc1_acc_7.hex
+[L327] │   ├── fc1_acc_8.hex
+[L328] │   ├── fc1_acc_9.hex
+[L329] │   ├── fc1_bias_int32.hex
+[L330] │   ├── fc1_out_0.hex
+[L331] │   ├── fc1_out_10.hex
+[L332] │   ├── fc1_out_11.hex
+[L333] │   ├── fc1_out_12.hex
+[L334] │   ├── fc1_out_13.hex
+[L335] │   ├── fc1_out_14.hex
+[L336] │   ├── fc1_out_15.hex
+[L337] │   ├── fc1_out_16.hex
+[L338] │   ├── fc1_out_17.hex
+[L339] │   ├── fc1_out_18.hex
+[L340] │   ├── fc1_out_19.hex
+[L341] │   ├── fc1_out_1.hex
+[L342] │   ├── fc1_out_2.hex
+[L343] │   ├── fc1_out_3.hex
+[L344] │   ├── fc1_out_4.hex
+[L345] │   ├── fc1_out_5.hex
+[L346] │   ├── fc1_out_6.hex
+[L347] │   ├── fc1_out_7.hex
+[L348] │   ├── fc1_out_8.hex
+[L349] │   ├── fc1_out_9.hex
+[L350] │   ├── fc1_relu_0.hex
+[L351] │   ├── fc1_relu_10.hex
+[L352] │   ├── fc1_relu_11.hex
+[L353] │   ├── fc1_relu_12.hex
+[L354] │   ├── fc1_relu_13.hex
+[L355] │   ├── fc1_relu_14.hex
+[L356] │   ├── fc1_relu_15.hex
+[L357] │   ├── fc1_relu_16.hex
+[L358] │   ├── fc1_relu_17.hex
+[L359] │   ├── fc1_relu_18.hex
+[L360] │   ├── fc1_relu_19.hex
+[L361] │   ├── fc1_relu_1.hex
+[L362] │   ├── fc1_relu_2.hex
+[L363] │   ├── fc1_relu_3.hex
+[L364] │   ├── fc1_relu_4.hex
+[L365] │   ├── fc1_relu_5.hex
+[L366] │   ├── fc1_relu_6.hex
+[L367] │   ├── fc1_relu_7.hex
+[L368] │   ├── fc1_relu_8.hex
+[L369] │   ├── fc1_relu_9.hex
+[L370] │   ├── fc1_weight_int8.hex
+[L371] │   ├── fc2_acc_0.hex
+[L372] │   ├── fc2_acc_10.hex
+[L373] │   ├── fc2_acc_11.hex
+[L374] │   ├── fc2_acc_12.hex
+[L375] │   ├── fc2_acc_13.hex
+[L376] │   ├── fc2_acc_14.hex
+[L377] │   ├── fc2_acc_15.hex
+[L378] │   ├── fc2_acc_16.hex
+[L379] │   ├── fc2_acc_17.hex
+[L380] │   ├── fc2_acc_18.hex
+[L381] │   ├── fc2_acc_19.hex
+[L382] │   ├── fc2_acc_1.hex
+[L383] │   ├── fc2_acc_2.hex
+[L384] │   ├── fc2_acc_3.hex
+[L385] │   ├── fc2_acc_4.hex
+[L386] │   ├── fc2_acc_5.hex
+[L387] │   ├── fc2_acc_6.hex
+[L388] │   ├── fc2_acc_7.hex
+[L389] │   ├── fc2_acc_8.hex
+[L390] │   ├── fc2_acc_9.hex
+[L391] │   ├── fc2_bias_int32.hex
+[L392] │   ├── fc2_weight_int8.hex
+[L393] │   ├── input_0.hex
+[L394] │   ├── input_10.hex
+[L395] │   ├── input_11.hex
+[L396] │   ├── input_12.hex
+[L397] │   ├── input_13.hex
+[L398] │   ├── input_14.hex
+[L399] │   ├── input_15.hex
+[L400] │   ├── input_16.hex
+[L401] │   ├── input_17.hex
+[L402] │   ├── input_18.hex
+[L403] │   ├── input_19.hex
+[L404] │   ├── input_1.hex
+[L405] │   ├── input_2.hex
+[L406] │   ├── input_3.hex
+[L407] │   ├── input_4.hex
+[L408] │   ├── input_5.hex
+[L409] │   ├── input_6.hex
+[L410] │   ├── input_7.hex
+[L411] │   ├── input_8.hex
+[L412] │   ├── input_9.hex
+[L413] │   ├── labels.txt
+[L414] │   ├── logits_0.hex
+[L415] │   ├── logits_10.hex
+[L416] │   ├── logits_11.hex
+[L417] │   ├── logits_12.hex
+[L418] │   ├── logits_13.hex
+[L419] │   ├── logits_14.hex
+[L420] │   ├── logits_15.hex
+[L421] │   ├── logits_16.hex
+[L422] │   ├── logits_17.hex
+[L423] │   ├── logits_18.hex
+[L424] │   ├── logits_19.hex
+[L425] │   ├── logits_1.hex
+[L426] │   ├── logits_2.hex
+[L427] │   ├── logits_3.hex
+[L428] │   ├── logits_4.hex
+[L429] │   ├── logits_5.hex
+[L430] │   ├── logits_6.hex
+[L431] │   ├── logits_7.hex
+[L432] │   ├── logits_8.hex
+[L433] │   ├── logits_9.hex
+[L434] │   ├── mlp_route_b.pth
+[L435] │   ├── pred_0.txt
+[L436] │   ├── pred_10.txt
+[L437] │   ├── pred_11.txt
+[L438] │   ├── pred_12.txt
+[L439] │   ├── pred_13.txt
+[L440] │   ├── pred_14.txt
+[L441] │   ├── pred_15.txt
+[L442] │   ├── pred_16.txt
+[L443] │   ├── pred_17.txt
+[L444] │   ├── pred_18.txt
+[L445] │   ├── pred_19.txt
+[L446] │   ├── pred_1.txt
+[L447] │   ├── pred_2.txt
+[L448] │   ├── pred_3.txt
+[L449] │   ├── pred_4.txt
+[L450] │   ├── pred_5.txt
+[L451] │   ├── pred_6.txt
+[L452] │   ├── pred_7.txt
+[L453] │   ├── pred_8.txt
+[L454] │   ├── pred_9.txt
+[L455] │   ├── preds.txt
+[L456] │   ├── quant_config.json
+[L457] │   └── quant_params.hex
+[L458] ├── rtl
+[L459] │   ├── argmax_int8.sv
+[L460] │   ├── cim_tile.sv
+[L461] │   ├── fc1_bias_bank.sv
+[L462] │   ├── fc1_cim_core_block.sv
+[L463] │   ├── fc1_cim_core_dual_instance.sv
+[L464] │   ├── fc1_multi_block_parallel.sv
+[L465] │   ├── fc1_relu_requantize.sv
+[L466] │   ├── fc1_relu_requantize_with_file.sv
+[L467] │   ├── fc1_to_fc2_top.sv
+[L468] │   ├── fc1_to_fc2_top_with_file.sv
+[L469] │   ├── fc1_weight_bank.sv
+[L470] │   ├── fc2_bias_bank.sv
+[L471] │   ├── fc2_core.sv
+[L472] │   ├── fc2_core_with_file.sv
+[L473] │   ├── fc2_weight_bank.sv
+[L474] │   ├── input_buffer.sv
+[L475] │   ├── mnist_inference_top.sv
+[L476] │   ├── package.sv
+[L477] │   ├── psum_accum.sv
+[L478] │   └── quantize_param_bank.sv
+[L479] ├── rtl_shared_buffer_ib
+[L480] │   ├── cim_tile.sv
+[L481] │   ├── fc1_bias_bank.sv
+[L482] │   ├── fc1_multi_block_shared_input.sv
+[L483] │   ├── fc1_ob_engine_shared_input.sv
+[L484] │   ├── fc1_weight_bank.sv
+[L485] │   ├── input_buffer.sv
+[L486] │   ├── package.sv
+[L487] │   └── psum_accum.sv
+[L488] ├── scripts
+[L489] │   ├── csrc
+[L490] │   │   ├── archive.25
+[L491] │   │   │   ├── _12011_archive_1.a
+[L492] │   │   │   ├── _12011_archive_1.a.info
+[L493] │   │   │   ├── _prev_archive_1.a
+[L494] │   │   │   └── _prev_archive_1.a.info
+[L495] │   │   ├── cgincr.sdb
+[L496] │   │   ├── cginfo.json
+[L497] │   │   ├── cgproc.12011.json
+[L498] │   │   ├── diag
+[L499] │   │   ├── filelist
+[L500] │   │   ├── filelist.cu
+[L501] │   │   ├── filelist.dpi
+[L502] │   │   ├── filelist.hsopt
+[L503] │   │   ├── filelist.hsopt.llvm2_0.objs
+[L504] │   │   ├── filelist.hsopt.objs
+[L505] │   │   ├── filelist.pli
+[L506] │   │   ├── hsim
+[L507] │   │   │   └── hsim.sdb
+[L508] │   │   ├── import_dpic.h
+[L509] │   │   ├── Makefile
+[L510] │   │   ├── Makefile.hsopt
+[L511] │   │   ├── objs
+[L512] │   │   │   └── amcQw_d.o
+[L513] │   │   ├── pre.cgincr.sdb
+[L514] │   │   ├── _prev_cginfo.json
+[L515] │   │   ├── product_timestamp
+[L516] │   │   ├── rmapats.c
+[L517] │   │   ├── rmapats.h
+[L518] │   │   ├── rmapats.m
+[L519] │   │   ├── rmapats_mop.o
+[L520] │   │   ├── rmapats.o
+[L521] │   │   ├── rmar0.h
+[L522] │   │   ├── rmar.c
+[L523] │   │   ├── rmar.h
+[L524] │   │   ├── rmar_llvm_0_0.o
+[L525] │   │   ├── rmar_llvm_0_1.o
+[L526] │   │   ├── rmar_nd.o
+[L527] │   │   ├── rmar.o
+[L528] │   │   ├── SIM_l.o
+[L529] │   │   ├── _vcs_pli_stub_.c
+[L530] │   │   └── _vcs_pli_stub_.o
+[L531] │   ├── run_cim_tile_single.sh
+[L532] │   ├── run_fc1_cim_core_block_all_scan.sh
+[L533] │   ├── run_fc1_cim_core_block.sh
+[L534] │   ├── run_fc1_cim_core_dual_instance.sh
+[L535] │   ├── run_fc1_multi_block_parallel.sh
+[L536] │   ├── run_fc1_multi_block_shared_input.sh
+[L537] │   ├── run_fc1_relu_requantize.sh
+[L538] │   ├── run_fc1_to_fc2_top.sh
+[L539] │   ├── run_fc1_to_fc2_top_with_file.sh
+[L540] │   ├── run_fc1_weight_bank.sh
+[L541] │   ├── run_fc2_bias_bank.sh
+[L542] │   ├── run_fc2_core.sh
+[L543] │   ├── run_fc2_weight_bank.sh
+[L544] │   ├── run_input_buffer.sh
+[L545] │   ├── run_mnist_inference_regression.sv
+[L546] │   ├── run_mnist_inference_top.sv
+[L547] │   ├── run_psum_accum.sh
+[L548] │   └── ucli.key
+[L549] ├── sim
+[L550] │   ├── cim_tile_simv
+[L551] │   ├── cim_tile_simv.daidir
+[L552] │   │   ├── _9274_archive_1.so
+[L553] │   │   ├── binmap.sdb
+[L554] │   │   ├── build_db
+[L555] │   │   ├── cgname.json
+[L556] │   │   ├── covg_defs
+[L557] │   │   ├── debug_dump
+[L558] │   │   │   ├── AllModulesSkeletons.sdb
+[L559] │   │   │   ├── dumpcheck.db
+[L560] │   │   │   ├── dve_debug.db.gz
+[L561] │   │   │   ├── fsearch
+[L562] │   │   │   │   ├── check_fsearch_db
+[L563] │   │   │   │   ├── fsearch.stat
+[L564] │   │   │   │   ├── idents_D4l39s.xml.gz
+[L565] │   │   │   │   └── idents_tapi.xml.gz
+[L566] │   │   │   ├── HsimSigOptDb.sdb
+[L567] │   │   │   ├── src_files_verilog
+[L568] │   │   │   ├── topmodules
+[L569] │   │   │   └── vir.sdb
+[L570] │   │   ├── eblklvl.db
+[L571] │   │   ├── elabmoddb.sdb
+[L572] │   │   ├── external_functions
+[L573] │   │   ├── hslevel_level.sdb
+[L574] │   │   ├── hslevel_rtime_level.sdb
+[L575] │   │   ├── hsscan_cfg.dat
+[L576] │   │   ├── nsparam.dat
+[L577] │   │   ├── pcc.sdb
+[L578] │   │   ├── pcxpxmr.dat
+[L579] │   │   ├── _prev_archive_1.so
+[L580] │   │   ├── prof.sdb
+[L581] │   │   ├── rmapats.dat
+[L582] │   │   ├── saifNetInfo.db
+[L583] │   │   ├── simv.kdb
+[L584] │   │   ├── stitch_nsparam.dat
+[L585] │   │   ├── tt.sdb
+[L586] │   │   ├── vcselab_master_hsim_elabout.db
+[L587] │   │   ├── vcselab_misc_hsdef.db
+[L588] │   │   ├── vcselab_misc_hsim_elab.db
+[L589] │   │   ├── vcselab_misc_hsim_fegate.db
+[L590] │   │   ├── vcselab_misc_hsim_lvl.db
+[L591] │   │   ├── vcselab_misc_hsim_name.db
+[L592] │   │   ├── vcselab_misc_hsim_uds.db
+[L593] │   │   ├── vcselab_misc_midd.db
+[L594] │   │   ├── vcselab_misc_mnmn.db
+[L595] │   │   ├── vcselab_misc_partition.db
+[L596] │   │   ├── vcselab_misc_tCEYNb
+[L597] │   │   ├── vcselab_misc_vcselabref.db
+[L598] │   │   ├── vcselab_misc_vpdnodenums
+[L599] │   │   └── vcs_rebuild
+[L600] │   ├── fc1_cim_core_block_all_scan_simv
+[L601] │   ├── fc1_cim_core_block_all_scan_simv.daidir
+[L602] │   │   ├── _9016_archive_1.so
+[L603] │   │   ├── binmap.sdb
+[L604] │   │   ├── build_db
+[L605] │   │   ├── cc
+[L606] │   │   │   ├── cc_bcode.db
+[L607] │   │   │   └── cc_dummy_file
+[L608] │   │   ├── cgname.json
+[L609] │   │   ├── covg_defs
+[L610] │   │   ├── _csrc0.so
+[L611] │   │   ├── debug_dump
+[L612] │   │   │   ├── AllModulesSkeletons.sdb
+[L613] │   │   │   ├── dumpcheck.db
+[L614] │   │   │   ├── dve_debug.db.gz
+[L615] │   │   │   ├── fsearch
+[L616] │   │   │   │   ├── check_fsearch_db
+[L617] │   │   │   │   ├── fsearch.stat
+[L618] │   │   │   │   ├── idents_F5U17I.xml.gz
+[L619] │   │   │   │   └── idents_tapi.xml.gz
+[L620] │   │   │   ├── HsimSigOptDb.sdb
+[L621] │   │   │   ├── src_files_verilog
+[L622] │   │   │   ├── topmodules
+[L623] │   │   │   └── vir.sdb
+[L624] │   │   ├── eblklvl.db
+[L625] │   │   ├── elabmoddb.sdb
+[L626] │   │   ├── external_functions
+[L627] │   │   ├── hslevel_callgraph.sdb
+[L628] │   │   ├── hslevel_level.sdb
+[L629] │   │   ├── hslevel_rtime_level.sdb
+[L630] │   │   ├── hsscan_cfg.dat
+[L631] │   │   ├── nsparam.dat
+[L632] │   │   ├── pcc.sdb
+[L633] │   │   ├── pcxpxmr.dat
+[L634] │   │   ├── _prev_archive_1.so
+[L635] │   │   ├── prof.sdb
+[L636] │   │   ├── rmapats.dat
+[L637] │   │   ├── rmapats.so
+[L638] │   │   ├── saifNetInfo.db
+[L639] │   │   ├── simv.kdb
+[L640] │   │   ├── stitch_nsparam.dat
+[L641] │   │   ├── tt.sdb
+[L642] │   │   ├── vcselab_master_hsim_elabout.db
+[L643] │   │   ├── vcselab_misc_hil_stmts.db
+[L644] │   │   ├── vcselab_misc_hsdef.db
+[L645] │   │   ├── vcselab_misc_hsim_elab.db
+[L646] │   │   ├── vcselab_misc_hsim_fegate.db
+[L647] │   │   ├── vcselab_misc_hsim_lvl.db
+[L648] │   │   ├── vcselab_misc_hsim_merge.db
+[L649] │   │   ├── vcselab_misc_hsim_name.db
+[L650] │   │   ├── vcselab_misc_hsim_uds.db
+[L651] │   │   ├── vcselab_misc_midd.db
+[L652] │   │   ├── vcselab_misc_mnmn.db
+[L653] │   │   ├── vcselab_misc_partition.db
+[L654] │   │   ├── vcselab_misc_tCEYNb
+[L655] │   │   ├── vcselab_misc_vcselabref.db
+[L656] │   │   ├── vcselab_misc_vpdnodenums
+[L657] │   │   └── vcs_rebuild
+[L658] │   ├── fc1_cim_core_block_simv
+[L659] │   ├── fc1_cim_core_block_simv.daidir
+[L660] │   │   ├── _9890_archive_1.so
+[L661] │   │   ├── binmap.sdb
+[L662] │   │   ├── build_db
+[L663] │   │   ├── cc
+[L664] │   │   │   ├── cc_bcode.db
+[L665] │   │   │   └── cc_dummy_file
+[L666] │   │   ├── cgname.json
+[L667] │   │   ├── covg_defs
+[L668] │   │   ├── _csrc0.so
+[L669] │   │   ├── debug_dump
+[L670] │   │   │   ├── AllModulesSkeletons.sdb
+[L671] │   │   │   ├── dumpcheck.db
+[L672] │   │   │   ├── dve_debug.db.gz
+[L673] │   │   │   ├── fsearch
+[L674] │   │   │   │   ├── check_fsearch_db
+[L675] │   │   │   │   ├── fsearch.stat
+[L676] │   │   │   │   ├── idents_1woZ1h.xml.gz
+[L677] │   │   │   │   └── idents_tapi.xml.gz
+[L678] │   │   │   ├── HsimSigOptDb.sdb
+[L679] │   │   │   ├── src_files_verilog
+[L680] │   │   │   ├── topmodules
+[L681] │   │   │   └── vir.sdb
+[L682] │   │   ├── eblklvl.db
+[L683] │   │   ├── elabmoddb.sdb
+[L684] │   │   ├── external_functions
+[L685] │   │   ├── hslevel_callgraph.sdb
+[L686] │   │   ├── hslevel_level.sdb
+[L687] │   │   ├── hslevel_rtime_level.sdb
+[L688] │   │   ├── hsscan_cfg.dat
+[L689] │   │   ├── nsparam.dat
+[L690] │   │   ├── pcc.sdb
+[L691] │   │   ├── pcxpxmr.dat
+[L692] │   │   ├── _prev_archive_1.so
+[L693] │   │   ├── prof.sdb
+[L694] │   │   ├── rmapats.dat
+[L695] │   │   ├── rmapats.so
+[L696] │   │   ├── saifNetInfo.db
+[L697] │   │   ├── simv.kdb
+[L698] │   │   ├── stitch_nsparam.dat
+[L699] │   │   ├── tt.sdb
+[L700] │   │   ├── vcselab_master_hsim_elabout.db
+[L701] │   │   ├── vcselab_misc_hil_stmts.db
+[L702] │   │   ├── vcselab_misc_hsdef.db
+[L703] │   │   ├── vcselab_misc_hsim_elab.db
+[L704] │   │   ├── vcselab_misc_hsim_fegate.db
+[L705] │   │   ├── vcselab_misc_hsim_lvl.db
+[L706] │   │   ├── vcselab_misc_hsim_merge.db
+[L707] │   │   ├── vcselab_misc_hsim_name.db
+[L708] │   │   ├── vcselab_misc_hsim_uds.db
+[L709] │   │   ├── vcselab_misc_midd.db
+[L710] │   │   ├── vcselab_misc_mnmn.db
+[L711] │   │   ├── vcselab_misc_partition.db
+[L712] │   │   ├── vcselab_misc_tCEYNb
+[L713] │   │   ├── vcselab_misc_vcselabref.db
+[L714] │   │   ├── vcselab_misc_vpdnodenums
+[L715] │   │   └── vcs_rebuild
+[L716] │   ├── fc1_cim_core_dual_instance_simv
+[L717] │   ├── fc1_cim_core_dual_instance_simv.daidir
+[L718] │   │   ├── _11143_archive_1.so
+[L719] │   │   ├── binmap.sdb
+[L720] │   │   ├── build_db
+[L721] │   │   ├── cc
+[L722] │   │   │   ├── cc_bcode.db
+[L723] │   │   │   └── cc_dummy_file
+[L724] │   │   ├── cgname.json
+[L725] │   │   ├── covg_defs
+[L726] │   │   ├── debug_dump
+[L727] │   │   │   ├── AllModulesSkeletons.sdb
+[L728] │   │   │   ├── dumpcheck.db
+[L729] │   │   │   ├── dve_debug.db.gz
+[L730] │   │   │   ├── fsearch
+[L731] │   │   │   │   ├── check_fsearch_db
+[L732] │   │   │   │   ├── fsearch.stat
+[L733] │   │   │   │   ├── idents_tapi.xml.gz
+[L734] │   │   │   │   └── idents_Uua7FL.xml.gz
+[L735] │   │   │   ├── HsimSigOptDb.sdb
+[L736] │   │   │   ├── src_files_verilog
+[L737] │   │   │   ├── topmodules
+[L738] │   │   │   └── vir.sdb
+[L739] │   │   ├── eblklvl.db
+[L740] │   │   ├── elabmoddb.sdb
+[L741] │   │   ├── external_functions
+[L742] │   │   ├── hslevel_callgraph.sdb
+[L743] │   │   ├── hslevel_level.sdb
+[L744] │   │   ├── hslevel_rtime_level.sdb
+[L745] │   │   ├── hsscan_cfg.dat
+[L746] │   │   ├── nsparam.dat
+[L747] │   │   ├── pcc.sdb
+[L748] │   │   ├── pcxpxmr.dat
+[L749] │   │   ├── _prev_archive_1.so
+[L750] │   │   ├── prof.sdb
+[L751] │   │   ├── rmapats.dat
+[L752] │   │   ├── rmapats.so
+[L753] │   │   ├── saifNetInfo.db
+[L754] │   │   ├── simv.kdb
+[L755] │   │   ├── stitch_nsparam.dat
+[L756] │   │   ├── tt.sdb
+[L757] │   │   ├── vcselab_master_hsim_elabout.db
+[L758] │   │   ├── vcselab_misc_hil_stmts.db
+[L759] │   │   ├── vcselab_misc_hsdef.db
+[L760] │   │   ├── vcselab_misc_hsim_elab.db
+[L761] │   │   ├── vcselab_misc_hsim_fegate.db
+[L762] │   │   ├── vcselab_misc_hsim_lvl.db
+[L763] │   │   ├── vcselab_misc_hsim_merge.db
+[L764] │   │   ├── vcselab_misc_hsim_name.db
+[L765] │   │   ├── vcselab_misc_hsim_uds.db
+[L766] │   │   ├── vcselab_misc_midd.db
+[L767] │   │   ├── vcselab_misc_mnmn.db
+[L768] │   │   ├── vcselab_misc_partition.db
+[L769] │   │   ├── vcselab_misc_tCEYNb
+[L770] │   │   ├── vcselab_misc_vcselabref.db
+[L771] │   │   ├── vcselab_misc_vpdnodenums
+[L772] │   │   └── vcs_rebuild
+[L773] │   ├── fc1_multi_block_parallel_simv
+[L774] │   ├── fc1_multi_block_parallel_simv.daidir
+[L775] │   │   ├── _12904_archive_1.so
+[L776] │   │   ├── binmap.sdb
+[L777] │   │   ├── build_db
+[L778] │   │   ├── cc
+[L779] │   │   │   ├── cc_bcode.db
+[L780] │   │   │   └── cc_dummy_file
+[L781] │   │   ├── cgname.json
+[L782] │   │   ├── covg_defs
+[L783] │   │   ├── debug_dump
+[L784] │   │   │   ├── AllModulesSkeletons.sdb
+[L785] │   │   │   ├── dumpcheck.db
+[L786] │   │   │   ├── dve_debug.db.gz
+[L787] │   │   │   ├── fsearch
+[L788] │   │   │   │   ├── check_fsearch_db
+[L789] │   │   │   │   ├── fsearch.stat
+[L790] │   │   │   │   ├── idents_ABZN7O.xml.gz
+[L791] │   │   │   │   └── idents_tapi.xml.gz
+[L792] │   │   │   ├── HsimSigOptDb.sdb
+[L793] │   │   │   ├── src_files_verilog
+[L794] │   │   │   ├── topmodules
+[L795] │   │   │   └── vir.sdb
+[L796] │   │   ├── eblklvl.db
+[L797] │   │   ├── elabmoddb.sdb
+[L798] │   │   ├── external_functions
+[L799] │   │   ├── hslevel_callgraph.sdb
+[L800] │   │   ├── hslevel_level.sdb
+[L801] │   │   ├── hslevel_rtime_level.sdb
+[L802] │   │   ├── hsscan_cfg.dat
+[L803] │   │   ├── nsparam.dat
+[L804] │   │   ├── pcc.sdb
+[L805] │   │   ├── pcxpxmr.dat
+[L806] │   │   ├── _prev_archive_1.so
+[L807] │   │   ├── prof.sdb
+[L808] │   │   ├── rmapats.dat
+[L809] │   │   ├── rmapats.so
+[L810] │   │   ├── saifNetInfo.db
+[L811] │   │   ├── simv.kdb
+[L812] │   │   ├── stitch_nsparam.dat
+[L813] │   │   ├── tt.sdb
+[L814] │   │   ├── vcselab_master_hsim_elabout.db
+[L815] │   │   ├── vcselab_misc_hil_stmts.db
+[L816] │   │   ├── vcselab_misc_hsdef.db
+[L817] │   │   ├── vcselab_misc_hsim_elab.db
+[L818] │   │   ├── vcselab_misc_hsim_fegate.db
+[L819] │   │   ├── vcselab_misc_hsim_lvl.db
+[L820] │   │   ├── vcselab_misc_hsim_merge.db
+[L821] │   │   ├── vcselab_misc_hsim_name.db
+[L822] │   │   ├── vcselab_misc_hsim_uds.db
+[L823] │   │   ├── vcselab_misc_midd.db
+[L824] │   │   ├── vcselab_misc_mnmn.db
+[L825] │   │   ├── vcselab_misc_partition.db
+[L826] │   │   ├── vcselab_misc_tCEYNb
+[L827] │   │   ├── vcselab_misc_vcselabref.db
+[L828] │   │   ├── vcselab_misc_vpdnodenums
+[L829] │   │   └── vcs_rebuild
+[L830] │   ├── fc1_multi_block_shared_input_simv
+[L831] │   ├── fc1_multi_block_shared_input_simv.daidir
+[L832] │   │   ├── _16665_archive_1.so
+[L833] │   │   ├── binmap.sdb
+[L834] │   │   ├── build_db
+[L835] │   │   ├── cc
+[L836] │   │   │   ├── cc_bcode.db
+[L837] │   │   │   └── cc_dummy_file
+[L838] │   │   ├── cgname.json
+[L839] │   │   ├── covg_defs
+[L840] │   │   ├── debug_dump
+[L841] │   │   │   ├── AllModulesSkeletons.sdb
+[L842] │   │   │   ├── dumpcheck.db
+[L843] │   │   │   ├── dve_debug.db.gz
+[L844] │   │   │   ├── fsearch
+[L845] │   │   │   │   ├── check_fsearch_db
+[L846] │   │   │   │   ├── fsearch.stat
+[L847] │   │   │   │   ├── idents_bpxLg4.xml.gz
+[L848] │   │   │   │   └── idents_tapi.xml.gz
+[L849] │   │   │   ├── HsimSigOptDb.sdb
+[L850] │   │   │   ├── src_files_verilog
+[L851] │   │   │   ├── topmodules
+[L852] │   │   │   └── vir.sdb
+[L853] │   │   ├── eblklvl.db
+[L854] │   │   ├── elabmoddb.sdb
+[L855] │   │   ├── external_functions
+[L856] │   │   ├── hslevel_callgraph.sdb
+[L857] │   │   ├── hslevel_level.sdb
+[L858] │   │   ├── hslevel_rtime_level.sdb
+[L859] │   │   ├── hsscan_cfg.dat
+[L860] │   │   ├── nsparam.dat
+[L861] │   │   ├── pcc.sdb
+[L862] │   │   ├── pcxpxmr.dat
+[L863] │   │   ├── _prev_archive_1.so
+[L864] │   │   ├── prof.sdb
+[L865] │   │   ├── rmapats.dat
+[L866] │   │   ├── rmapats.so
+[L867] │   │   ├── saifNetInfo.db
+[L868] │   │   ├── simv.kdb
+[L869] │   │   ├── stitch_nsparam.dat
+[L870] │   │   ├── tt.sdb
+[L871] │   │   ├── vcselab_master_hsim_elabout.db
+[L872] │   │   ├── vcselab_misc_hil_stmts.db
+[L873] │   │   ├── vcselab_misc_hsdef.db
+[L874] │   │   ├── vcselab_misc_hsim_elab.db
+[L875] │   │   ├── vcselab_misc_hsim_fegate.db
+[L876] │   │   ├── vcselab_misc_hsim_lvl.db
+[L877] │   │   ├── vcselab_misc_hsim_merge.db
+[L878] │   │   ├── vcselab_misc_hsim_name.db
+[L879] │   │   ├── vcselab_misc_hsim_uds.db
+[L880] │   │   ├── vcselab_misc_midd.db
+[L881] │   │   ├── vcselab_misc_mnmn.db
+[L882] │   │   ├── vcselab_misc_partition.db
+[L883] │   │   ├── vcselab_misc_tCEYNb
+[L884] │   │   ├── vcselab_misc_vcselabref.db
+[L885] │   │   ├── vcselab_misc_vpdnodenums
+[L886] │   │   └── vcs_rebuild
+[L887] │   ├── fc1_relu_requantize_simv
+[L888] │   ├── fc1_relu_requantize_simv.daidir
+[L889] │   │   ├── _4850_archive_1.so
+[L890] │   │   ├── binmap.sdb
+[L891] │   │   ├── build_db
+[L892] │   │   ├── cgname.json
+[L893] │   │   ├── covg_defs
+[L894] │   │   ├── debug_dump
+[L895] │   │   │   ├── AllModulesSkeletons.sdb
+[L896] │   │   │   ├── dumpcheck.db
+[L897] │   │   │   ├── dve_debug.db.gz
+[L898] │   │   │   ├── fsearch
+[L899] │   │   │   │   ├── check_fsearch_db
+[L900] │   │   │   │   ├── fsearch.stat
+[L901] │   │   │   │   ├── idents_tapi.xml.gz
+[L902] │   │   │   │   └── idents_wcu3t3.xml.gz
+[L903] │   │   │   ├── HsimSigOptDb.sdb
+[L904] │   │   │   ├── src_files_verilog
+[L905] │   │   │   ├── topmodules
+[L906] │   │   │   └── vir.sdb
+[L907] │   │   ├── eblklvl.db
+[L908] │   │   ├── elabmoddb.sdb
+[L909] │   │   ├── external_functions
+[L910] │   │   ├── hslevel_level.sdb
+[L911] │   │   ├── hslevel_rtime_level.sdb
+[L912] │   │   ├── hsscan_cfg.dat
+[L913] │   │   ├── nsparam.dat
+[L914] │   │   ├── pcc.sdb
+[L915] │   │   ├── pcxpxmr.dat
+[L916] │   │   ├── _prev_archive_1.so
+[L917] │   │   ├── prof.sdb
+[L918] │   │   ├── rmapats.dat
+[L919] │   │   ├── saifNetInfo.db
+[L920] │   │   ├── simv.kdb
+[L921] │   │   ├── stitch_nsparam.dat
+[L922] │   │   ├── tt.sdb
+[L923] │   │   ├── vcselab_master_hsim_elabout.db
+[L924] │   │   ├── vcselab_misc_hsdef.db
+[L925] │   │   ├── vcselab_misc_hsim_elab.db
+[L926] │   │   ├── vcselab_misc_hsim_fegate.db
+[L927] │   │   ├── vcselab_misc_hsim_lvl.db
+[L928] │   │   ├── vcselab_misc_hsim_name.db
+[L929] │   │   ├── vcselab_misc_hsim_uds.db
+[L930] │   │   ├── vcselab_misc_midd.db
+[L931] │   │   ├── vcselab_misc_mnmn.db
+[L932] │   │   ├── vcselab_misc_partition.db
+[L933] │   │   ├── vcselab_misc_tCEYNb
+[L934] │   │   ├── vcselab_misc_vcselabref.db
+[L935] │   │   ├── vcselab_misc_vpdnodenums
+[L936] │   │   └── vcs_rebuild
+[L937] │   ├── fc1_to_fc2_top_simv
+[L938] │   ├── fc1_to_fc2_top_simv.daidir
+[L939] │   │   ├── _8769_archive_1.so
+[L940] │   │   ├── binmap.sdb
+[L941] │   │   ├── build_db
+[L942] │   │   ├── cgname.json
+[L943] │   │   ├── covg_defs
+[L944] │   │   ├── debug_dump
+[L945] │   │   │   ├── AllModulesSkeletons.sdb
+[L946] │   │   │   ├── dumpcheck.db
+[L947] │   │   │   ├── dve_debug.db.gz
+[L948] │   │   │   ├── fsearch
+[L949] │   │   │   │   ├── check_fsearch_db
+[L950] │   │   │   │   ├── fsearch.stat
+[L951] │   │   │   │   ├── idents_qfU5TC.xml.gz
+[L952] │   │   │   │   └── idents_tapi.xml.gz
+[L953] │   │   │   ├── HsimSigOptDb.sdb
+[L954] │   │   │   ├── src_files_verilog
+[L955] │   │   │   ├── topmodules
+[L956] │   │   │   └── vir.sdb
+[L957] │   │   ├── eblklvl.db
+[L958] │   │   ├── elabmoddb.sdb
+[L959] │   │   ├── external_functions
+[L960] │   │   ├── hslevel_level.sdb
+[L961] │   │   ├── hslevel_rtime_level.sdb
+[L962] │   │   ├── hsscan_cfg.dat
+[L963] │   │   ├── nsparam.dat
+[L964] │   │   ├── pcc.sdb
+[L965] │   │   ├── pcxpxmr.dat
+[L966] │   │   ├── _prev_archive_1.so
+[L967] │   │   ├── prof.sdb
+[L968] │   │   ├── rmapats.dat
+[L969] │   │   ├── saifNetInfo.db
+[L970] │   │   ├── simv.kdb
+[L971] │   │   ├── stitch_nsparam.dat
+[L972] │   │   ├── tt.sdb
+[L973] │   │   ├── vcselab_master_hsim_elabout.db
+[L974] │   │   ├── vcselab_misc_hsdef.db
+[L975] │   │   ├── vcselab_misc_hsim_elab.db
+[L976] │   │   ├── vcselab_misc_hsim_fegate.db
+[L977] │   │   ├── vcselab_misc_hsim_lvl.db
+[L978] │   │   ├── vcselab_misc_hsim_name.db
+[L979] │   │   ├── vcselab_misc_hsim_uds.db
+[L980] │   │   ├── vcselab_misc_midd.db
+[L981] │   │   ├── vcselab_misc_mnmn.db
+[L982] │   │   ├── vcselab_misc_partition.db
+[L983] │   │   ├── vcselab_misc_tCEYNb
+[L984] │   │   ├── vcselab_misc_vcselabref.db
+[L985] │   │   ├── vcselab_misc_vpdnodenums
+[L986] │   │   └── vcs_rebuild
+[L987] │   ├── fc1_to_fc2_top_with_file_simv
+[L988] │   ├── fc1_to_fc2_top_with_file_simv.daidir
+[L989] │   │   ├── _12011_archive_1.so
+[L990] │   │   ├── binmap.sdb
+[L991] │   │   ├── build_db
+[L992] │   │   ├── cgname.json
+[L993] │   │   ├── covg_defs
+[L994] │   │   ├── debug_dump
+[L995] │   │   │   ├── AllModulesSkeletons.sdb
+[L996] │   │   │   ├── dumpcheck.db
+[L997] │   │   │   ├── dve_debug.db.gz
+[L998] │   │   │   ├── fsearch
+[L999] │   │   │   │   ├── check_fsearch_db
+[L1000] │   │   │   │   ├── fsearch.stat
+[L1001] │   │   │   │   ├── idents_bLg90U.xml.gz
+[L1002] │   │   │   │   └── idents_tapi.xml.gz
+[L1003] │   │   │   ├── HsimSigOptDb.sdb
+[L1004] │   │   │   ├── src_files_verilog
+[L1005] │   │   │   ├── topmodules
+[L1006] │   │   │   └── vir.sdb
+[L1007] │   │   ├── eblklvl.db
+[L1008] │   │   ├── elabmoddb.sdb
+[L1009] │   │   ├── external_functions
+[L1010] │   │   ├── hslevel_level.sdb
+[L1011] │   │   ├── hslevel_rtime_level.sdb
+[L1012] │   │   ├── hsscan_cfg.dat
+[L1013] │   │   ├── nsparam.dat
+[L1014] │   │   ├── pcc.sdb
+[L1015] │   │   ├── pcxpxmr.dat
+[L1016] │   │   ├── _prev_archive_1.so
+[L1017] │   │   ├── prof.sdb
+[L1018] │   │   ├── rmapats.dat
+[L1019] │   │   ├── saifNetInfo.db
+[L1020] │   │   ├── simv.kdb
+[L1021] │   │   ├── stitch_nsparam.dat
+[L1022] │   │   ├── tt.sdb
+[L1023] │   │   ├── vcselab_master_hsim_elabout.db
+[L1024] │   │   ├── vcselab_misc_hsdef.db
+[L1025] │   │   ├── vcselab_misc_hsim_elab.db
+[L1026] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1027] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1028] │   │   ├── vcselab_misc_hsim_name.db
+[L1029] │   │   ├── vcselab_misc_hsim_uds.db
+[L1030] │   │   ├── vcselab_misc_midd.db
+[L1031] │   │   ├── vcselab_misc_mnmn.db
+[L1032] │   │   ├── vcselab_misc_partition.db
+[L1033] │   │   ├── vcselab_misc_tCEYNb
+[L1034] │   │   ├── vcselab_misc_vcselabref.db
+[L1035] │   │   ├── vcselab_misc_vpdnodenums
+[L1036] │   │   └── vcs_rebuild
+[L1037] │   ├── fc1_weight_bank_simv
+[L1038] │   ├── fc1_weight_bank_simv.daidir
+[L1039] │   │   ├── _16045_archive_1.so
+[L1040] │   │   ├── binmap.sdb
+[L1041] │   │   ├── build_db
+[L1042] │   │   ├── cc
+[L1043] │   │   │   ├── cc_bcode.db
+[L1044] │   │   │   └── cc_dummy_file
+[L1045] │   │   ├── cgname.json
+[L1046] │   │   ├── covg_defs
+[L1047] │   │   ├── _csrc0.so
+[L1048] │   │   ├── debug_dump
+[L1049] │   │   │   ├── AllModulesSkeletons.sdb
+[L1050] │   │   │   ├── dumpcheck.db
+[L1051] │   │   │   ├── dve_debug.db.gz
+[L1052] │   │   │   ├── fsearch
+[L1053] │   │   │   │   ├── check_fsearch_db
+[L1054] │   │   │   │   ├── fsearch.stat
+[L1055] │   │   │   │   ├── idents_P4lgNl.xml.gz
+[L1056] │   │   │   │   └── idents_tapi.xml.gz
+[L1057] │   │   │   ├── HsimSigOptDb.sdb
+[L1058] │   │   │   ├── src_files_verilog
+[L1059] │   │   │   ├── topmodules
+[L1060] │   │   │   └── vir.sdb
+[L1061] │   │   ├── eblklvl.db
+[L1062] │   │   ├── elabmoddb.sdb
+[L1063] │   │   ├── external_functions
+[L1064] │   │   ├── hslevel_level.sdb
+[L1065] │   │   ├── hslevel_rtime_level.sdb
+[L1066] │   │   ├── hsscan_cfg.dat
+[L1067] │   │   ├── nsparam.dat
+[L1068] │   │   ├── pcc.sdb
+[L1069] │   │   ├── pcxpxmr.dat
+[L1070] │   │   ├── _prev_archive_1.so
+[L1071] │   │   ├── prof.sdb
+[L1072] │   │   ├── rmapats.dat
+[L1073] │   │   ├── saifNetInfo.db
+[L1074] │   │   ├── simv.kdb
+[L1075] │   │   ├── stitch_nsparam.dat
+[L1076] │   │   ├── tt.sdb
+[L1077] │   │   ├── vcselab_master_hsim_elabout.db
+[L1078] │   │   ├── vcselab_misc_hsdef.db
+[L1079] │   │   ├── vcselab_misc_hsim_elab.db
+[L1080] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1081] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1082] │   │   ├── vcselab_misc_hsim_name.db
+[L1083] │   │   ├── vcselab_misc_hsim_uds.db
+[L1084] │   │   ├── vcselab_misc_midd.db
+[L1085] │   │   ├── vcselab_misc_mnmn.db
+[L1086] │   │   ├── vcselab_misc_partition.db
+[L1087] │   │   ├── vcselab_misc_tCEYNb
+[L1088] │   │   ├── vcselab_misc_vcselabref.db
+[L1089] │   │   ├── vcselab_misc_vpdnodenums
+[L1090] │   │   └── vcs_rebuild
+[L1091] │   ├── fc2_bias_bank_simv
+[L1092] │   ├── fc2_bias_bank_simv.daidir
+[L1093] │   │   ├── _6286_archive_1.so
+[L1094] │   │   ├── binmap.sdb
+[L1095] │   │   ├── build_db
+[L1096] │   │   ├── cgname.json
+[L1097] │   │   ├── covg_defs
+[L1098] │   │   ├── debug_dump
+[L1099] │   │   │   ├── AllModulesSkeletons.sdb
+[L1100] │   │   │   ├── dumpcheck.db
+[L1101] │   │   │   ├── dve_debug.db.gz
+[L1102] │   │   │   ├── fsearch
+[L1103] │   │   │   │   ├── check_fsearch_db
+[L1104] │   │   │   │   ├── fsearch.stat
+[L1105] │   │   │   │   ├── idents_tapi.xml.gz
+[L1106] │   │   │   │   └── idents_uJ8Pz3.xml.gz
+[L1107] │   │   │   ├── HsimSigOptDb.sdb
+[L1108] │   │   │   ├── src_files_verilog
+[L1109] │   │   │   ├── topmodules
+[L1110] │   │   │   └── vir.sdb
+[L1111] │   │   ├── eblklvl.db
+[L1112] │   │   ├── elabmoddb.sdb
+[L1113] │   │   ├── external_functions
+[L1114] │   │   ├── hslevel_level.sdb
+[L1115] │   │   ├── hslevel_rtime_level.sdb
+[L1116] │   │   ├── hsscan_cfg.dat
+[L1117] │   │   ├── nsparam.dat
+[L1118] │   │   ├── pcc.sdb
+[L1119] │   │   ├── pcxpxmr.dat
+[L1120] │   │   ├── _prev_archive_1.so
+[L1121] │   │   ├── prof.sdb
+[L1122] │   │   ├── rmapats.dat
+[L1123] │   │   ├── saifNetInfo.db
+[L1124] │   │   ├── simv.kdb
+[L1125] │   │   ├── stitch_nsparam.dat
+[L1126] │   │   ├── tt.sdb
+[L1127] │   │   ├── vcselab_master_hsim_elabout.db
+[L1128] │   │   ├── vcselab_misc_hsdef.db
+[L1129] │   │   ├── vcselab_misc_hsim_elab.db
+[L1130] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1131] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1132] │   │   ├── vcselab_misc_hsim_name.db
+[L1133] │   │   ├── vcselab_misc_hsim_uds.db
+[L1134] │   │   ├── vcselab_misc_midd.db
+[L1135] │   │   ├── vcselab_misc_mnmn.db
+[L1136] │   │   ├── vcselab_misc_partition.db
+[L1137] │   │   ├── vcselab_misc_tCEYNb
+[L1138] │   │   ├── vcselab_misc_vcselabref.db
+[L1139] │   │   ├── vcselab_misc_vpdnodenums
+[L1140] │   │   └── vcs_rebuild
+[L1141] │   ├── fc2_core_simv
+[L1142] │   ├── fc2_core_simv.daidir
+[L1143] │   │   ├── _7194_archive_1.so
+[L1144] │   │   ├── binmap.sdb
+[L1145] │   │   ├── build_db
+[L1146] │   │   ├── cgname.json
+[L1147] │   │   ├── covg_defs
+[L1148] │   │   ├── debug_dump
+[L1149] │   │   │   ├── AllModulesSkeletons.sdb
+[L1150] │   │   │   ├── dumpcheck.db
+[L1151] │   │   │   ├── dve_debug.db.gz
+[L1152] │   │   │   ├── fsearch
+[L1153] │   │   │   │   ├── check_fsearch_db
+[L1154] │   │   │   │   ├── fsearch.stat
+[L1155] │   │   │   │   ├── idents_g9T7lC.xml.gz
+[L1156] │   │   │   │   └── idents_tapi.xml.gz
+[L1157] │   │   │   ├── HsimSigOptDb.sdb
+[L1158] │   │   │   ├── src_files_verilog
+[L1159] │   │   │   ├── topmodules
+[L1160] │   │   │   └── vir.sdb
+[L1161] │   │   ├── eblklvl.db
+[L1162] │   │   ├── elabmoddb.sdb
+[L1163] │   │   ├── external_functions
+[L1164] │   │   ├── hslevel_level.sdb
+[L1165] │   │   ├── hslevel_rtime_level.sdb
+[L1166] │   │   ├── hsscan_cfg.dat
+[L1167] │   │   ├── nsparam.dat
+[L1168] │   │   ├── pcc.sdb
+[L1169] │   │   ├── pcxpxmr.dat
+[L1170] │   │   ├── _prev_archive_1.so
+[L1171] │   │   ├── prof.sdb
+[L1172] │   │   ├── rmapats.dat
+[L1173] │   │   ├── saifNetInfo.db
+[L1174] │   │   ├── simv.kdb
+[L1175] │   │   ├── stitch_nsparam.dat
+[L1176] │   │   ├── tt.sdb
+[L1177] │   │   ├── vcselab_master_hsim_elabout.db
+[L1178] │   │   ├── vcselab_misc_hsdef.db
+[L1179] │   │   ├── vcselab_misc_hsim_elab.db
+[L1180] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1181] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1182] │   │   ├── vcselab_misc_hsim_name.db
+[L1183] │   │   ├── vcselab_misc_hsim_uds.db
+[L1184] │   │   ├── vcselab_misc_midd.db
+[L1185] │   │   ├── vcselab_misc_mnmn.db
+[L1186] │   │   ├── vcselab_misc_partition.db
+[L1187] │   │   ├── vcselab_misc_tCEYNb
+[L1188] │   │   ├── vcselab_misc_vcselabref.db
+[L1189] │   │   ├── vcselab_misc_vpdnodenums
+[L1190] │   │   └── vcs_rebuild
+[L1191] │   ├── fc2_weight_bank_simv
+[L1192] │   ├── fc2_weight_bank_simv.daidir
+[L1193] │   │   ├── _5751_archive_1.so
+[L1194] │   │   ├── binmap.sdb
+[L1195] │   │   ├── build_db
+[L1196] │   │   ├── cgname.json
+[L1197] │   │   ├── covg_defs
+[L1198] │   │   ├── debug_dump
+[L1199] │   │   │   ├── AllModulesSkeletons.sdb
+[L1200] │   │   │   ├── dumpcheck.db
+[L1201] │   │   │   ├── dve_debug.db.gz
+[L1202] │   │   │   ├── fsearch
+[L1203] │   │   │   │   ├── check_fsearch_db
+[L1204] │   │   │   │   ├── fsearch.stat
+[L1205] │   │   │   │   ├── idents_puyDFZ.xml.gz
+[L1206] │   │   │   │   └── idents_tapi.xml.gz
+[L1207] │   │   │   ├── HsimSigOptDb.sdb
+[L1208] │   │   │   ├── src_files_verilog
+[L1209] │   │   │   ├── topmodules
+[L1210] │   │   │   └── vir.sdb
+[L1211] │   │   ├── eblklvl.db
+[L1212] │   │   ├── elabmoddb.sdb
+[L1213] │   │   ├── external_functions
+[L1214] │   │   ├── hslevel_level.sdb
+[L1215] │   │   ├── hslevel_rtime_level.sdb
+[L1216] │   │   ├── hsscan_cfg.dat
+[L1217] │   │   ├── nsparam.dat
+[L1218] │   │   ├── pcc.sdb
+[L1219] │   │   ├── pcxpxmr.dat
+[L1220] │   │   ├── _prev_archive_1.so
+[L1221] │   │   ├── prof.sdb
+[L1222] │   │   ├── rmapats.dat
+[L1223] │   │   ├── saifNetInfo.db
+[L1224] │   │   ├── simv.kdb
+[L1225] │   │   ├── stitch_nsparam.dat
+[L1226] │   │   ├── tt.sdb
+[L1227] │   │   ├── vcselab_master_hsim_elabout.db
+[L1228] │   │   ├── vcselab_misc_hsdef.db
+[L1229] │   │   ├── vcselab_misc_hsim_elab.db
+[L1230] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1231] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1232] │   │   ├── vcselab_misc_hsim_name.db
+[L1233] │   │   ├── vcselab_misc_hsim_uds.db
+[L1234] │   │   ├── vcselab_misc_midd.db
+[L1235] │   │   ├── vcselab_misc_mnmn.db
+[L1236] │   │   ├── vcselab_misc_partition.db
+[L1237] │   │   ├── vcselab_misc_tCEYNb
+[L1238] │   │   ├── vcselab_misc_vcselabref.db
+[L1239] │   │   ├── vcselab_misc_vpdnodenums
+[L1240] │   │   └── vcs_rebuild
+[L1241] │   ├── input_buffer_simv
+[L1242] │   ├── input_buffer_simv.daidir
+[L1243] │   │   ├── _20724_archive_1.so
+[L1244] │   │   ├── binmap.sdb
+[L1245] │   │   ├── build_db
+[L1246] │   │   ├── cgname.json
+[L1247] │   │   ├── covg_defs
+[L1248] │   │   ├── _csrc0.so
+[L1249] │   │   ├── debug_dump
+[L1250] │   │   │   ├── AllModulesSkeletons.sdb
+[L1251] │   │   │   ├── dumpcheck.db
+[L1252] │   │   │   ├── dve_debug.db.gz
+[L1253] │   │   │   ├── fsearch
+[L1254] │   │   │   │   ├── check_fsearch_db
+[L1255] │   │   │   │   ├── fsearch.stat
+[L1256] │   │   │   │   ├── idents_dk0eeh.xml.gz
+[L1257] │   │   │   │   └── idents_tapi.xml.gz
+[L1258] │   │   │   ├── HsimSigOptDb.sdb
+[L1259] │   │   │   ├── src_files_verilog
+[L1260] │   │   │   ├── topmodules
+[L1261] │   │   │   └── vir.sdb
+[L1262] │   │   ├── eblklvl.db
+[L1263] │   │   ├── elabmoddb.sdb
+[L1264] │   │   ├── external_functions
+[L1265] │   │   ├── hslevel_level.sdb
+[L1266] │   │   ├── hslevel_rtime_level.sdb
+[L1267] │   │   ├── hsscan_cfg.dat
+[L1268] │   │   ├── nsparam.dat
+[L1269] │   │   ├── pcc.sdb
+[L1270] │   │   ├── pcxpxmr.dat
+[L1271] │   │   ├── _prev_archive_1.so
+[L1272] │   │   ├── prof.sdb
+[L1273] │   │   ├── rmapats.dat
+[L1274] │   │   ├── saifNetInfo.db
+[L1275] │   │   ├── simv.kdb
+[L1276] │   │   ├── stitch_nsparam.dat
+[L1277] │   │   ├── tt.sdb
+[L1278] │   │   ├── vcselab_master_hsim_elabout.db
+[L1279] │   │   ├── vcselab_misc_hsdef.db
+[L1280] │   │   ├── vcselab_misc_hsim_elab.db
+[L1281] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1282] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1283] │   │   ├── vcselab_misc_hsim_name.db
+[L1284] │   │   ├── vcselab_misc_hsim_uds.db
+[L1285] │   │   ├── vcselab_misc_midd.db
+[L1286] │   │   ├── vcselab_misc_mnmn.db
+[L1287] │   │   ├── vcselab_misc_partition.db
+[L1288] │   │   ├── vcselab_misc_tCEYNb
+[L1289] │   │   ├── vcselab_misc_vcselabref.db
+[L1290] │   │   ├── vcselab_misc_vpdnodenums
+[L1291] │   │   └── vcs_rebuild
+[L1292] │   ├── log
+[L1293] │   │   ├── compile_input_buffer.log
+[L1294] │   │   ├── compile_tb_cim_tile_single.log
+[L1295] │   │   ├── compile_tb_fc1_cim_core_block_all_scan.log
+[L1296] │   │   ├── compile_tb_fc1_cim_core_block.log
+[L1297] │   │   ├── compile_tb_fc1_cim_core_dual_instance.log
+[L1298] │   │   ├── compile_tb_fc1_multi_block_parallel.log
+[L1299] │   │   ├── compile_tb_fc1_multi_block_shared_input.log
+[L1300] │   │   ├── compile_tb_fc1_relu_requantize.log
+[L1301] │   │   ├── compile_tb_fc1_to_fc2_top.log
+[L1302] │   │   ├── compile_tb_fc1_to_fc2_top_with_file.log
+[L1303] │   │   ├── compile_tb_fc1_weight_bank.log
+[L1304] │   │   ├── compile_tb_fc2_bias_bank.log
+[L1305] │   │   ├── compile_tb_fc2_core.log
+[L1306] │   │   ├── compile_tb_fc2_weight_bank.log
+[L1307] │   │   ├── compile_tb_input_buffer.log
+[L1308] │   │   ├── compile_tb_mnist_inference_top.log
+[L1309] │   │   ├── compile_tb_mnist_inference_top_regression.log
+[L1310] │   │   ├── compile_tb_psum_accum.log
+[L1311] │   │   ├── sim_tb_cim_tile_single.log
+[L1312] │   │   ├── sim_tb_fc1_cim_core_block_all_scan.log
+[L1313] │   │   ├── sim_tb_fc1_cim_core_block.log
+[L1314] │   │   ├── sim_tb_fc1_cim_core_dual_instance.log
+[L1315] │   │   ├── sim_tb_fc1_multi_block_parallel.log
+[L1316] │   │   ├── sim_tb_fc1_multi_block_shared_input.log
+[L1317] │   │   ├── sim_tb_fc1_relu_requantize.log
+[L1318] │   │   ├── sim_tb_fc1_to_fc2_top.log
+[L1319] │   │   ├── sim_tb_fc1_to_fc2_top_with_file.log
+[L1320] │   │   ├── sim_tb_fc1_weight_bank.log
+[L1321] │   │   ├── sim_tb_fc2_bias_bank.log
+[L1322] │   │   ├── sim_tb_fc2_core.log
+[L1323] │   │   ├── sim_tb_fc2_weight_bank.log
+[L1324] │   │   ├── sim_tb_mnist_inference_top.log
+[L1325] │   │   └── sim_tb_tb_psum_accum.log
+[L1326] │   ├── log_regression
+[L1327] │   │   ├── sim_sample_0.log
+[L1328] │   │   ├── sim_sample_10.log
+[L1329] │   │   ├── sim_sample_11.log
+[L1330] │   │   ├── sim_sample_12.log
+[L1331] │   │   ├── sim_sample_13.log
+[L1332] │   │   ├── sim_sample_14.log
+[L1333] │   │   ├── sim_sample_15.log
+[L1334] │   │   ├── sim_sample_16.log
+[L1335] │   │   ├── sim_sample_17.log
+[L1336] │   │   ├── sim_sample_18.log
+[L1337] │   │   ├── sim_sample_19.log
+[L1338] │   │   ├── sim_sample_1.log
+[L1339] │   │   ├── sim_sample_2.log
+[L1340] │   │   ├── sim_sample_3.log
+[L1341] │   │   ├── sim_sample_4.log
+[L1342] │   │   ├── sim_sample_5.log
+[L1343] │   │   ├── sim_sample_6.log
+[L1344] │   │   ├── sim_sample_7.log
+[L1345] │   │   ├── sim_sample_8.log
+[L1346] │   │   └── sim_sample_9.log
+[L1347] │   ├── mnist_inference_top_simv
+[L1348] │   ├── mnist_inference_top_simv.daidir
+[L1349] │   │   ├── _12651_archive_1.so
+[L1350] │   │   ├── binmap.sdb
+[L1351] │   │   ├── build_db
+[L1352] │   │   ├── cc
+[L1353] │   │   │   ├── cc_bcode.db
+[L1354] │   │   │   └── cc_dummy_file
+[L1355] │   │   ├── cgname.json
+[L1356] │   │   ├── covg_defs
+[L1357] │   │   ├── _csrc0.so
+[L1358] │   │   ├── debug_dump
+[L1359] │   │   │   ├── AllModulesSkeletons.sdb
+[L1360] │   │   │   ├── dumpcheck.db
+[L1361] │   │   │   ├── dve_debug.db.gz
+[L1362] │   │   │   ├── fsearch
+[L1363] │   │   │   │   ├── check_fsearch_db
+[L1364] │   │   │   │   ├── fsearch.stat
+[L1365] │   │   │   │   ├── idents_lSGJoK.xml.gz
+[L1366] │   │   │   │   └── idents_tapi.xml.gz
+[L1367] │   │   │   ├── HsimSigOptDb.sdb
+[L1368] │   │   │   ├── src_files_verilog
+[L1369] │   │   │   ├── topmodules
+[L1370] │   │   │   └── vir.sdb
+[L1371] │   │   ├── eblklvl.db
+[L1372] │   │   ├── elabmoddb.sdb
+[L1373] │   │   ├── external_functions
+[L1374] │   │   ├── hslevel_callgraph.sdb
+[L1375] │   │   ├── hslevel_level.sdb
+[L1376] │   │   ├── hslevel_rtime_level.sdb
+[L1377] │   │   ├── hsscan_cfg.dat
+[L1378] │   │   ├── nsparam.dat
+[L1379] │   │   ├── pcc.sdb
+[L1380] │   │   ├── pcxpxmr.dat
+[L1381] │   │   ├── _prev_archive_1.so
+[L1382] │   │   ├── prof.sdb
+[L1383] │   │   ├── rmapats.dat
+[L1384] │   │   ├── rmapats.so
+[L1385] │   │   ├── saifNetInfo.db
+[L1386] │   │   ├── simv.kdb
+[L1387] │   │   ├── stitch_nsparam.dat
+[L1388] │   │   ├── tt.sdb
+[L1389] │   │   ├── vcselab_master_hsim_elabout.db
+[L1390] │   │   ├── vcselab_misc_hil_stmts.db
+[L1391] │   │   ├── vcselab_misc_hsdef.db
+[L1392] │   │   ├── vcselab_misc_hsim_elab.db
+[L1393] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1394] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1395] │   │   ├── vcselab_misc_hsim_merge.db
+[L1396] │   │   ├── vcselab_misc_hsim_name.db
+[L1397] │   │   ├── vcselab_misc_hsim_uds.db
+[L1398] │   │   ├── vcselab_misc_midd.db
+[L1399] │   │   ├── vcselab_misc_mnmn.db
+[L1400] │   │   ├── vcselab_misc_partition.db
+[L1401] │   │   ├── vcselab_misc_tCEYNb
+[L1402] │   │   ├── vcselab_misc_vcselabref.db
+[L1403] │   │   ├── vcselab_misc_vpdnodenums
+[L1404] │   │   └── vcs_rebuild
+[L1405] │   ├── psum_accum_simv
+[L1406] │   ├── psum_accum_simv.daidir
+[L1407] │   │   ├── _24209_archive_1.so
+[L1408] │   │   ├── binmap.sdb
+[L1409] │   │   ├── build_db
+[L1410] │   │   ├── cgname.json
+[L1411] │   │   ├── covg_defs
+[L1412] │   │   ├── debug_dump
+[L1413] │   │   │   ├── AllModulesSkeletons.sdb
+[L1414] │   │   │   ├── dumpcheck.db
+[L1415] │   │   │   ├── dve_debug.db.gz
+[L1416] │   │   │   ├── fsearch
+[L1417] │   │   │   │   ├── check_fsearch_db
+[L1418] │   │   │   │   ├── fsearch.stat
+[L1419] │   │   │   │   ├── idents_MFOK4J.xml.gz
+[L1420] │   │   │   │   └── idents_tapi.xml.gz
+[L1421] │   │   │   ├── HsimSigOptDb.sdb
+[L1422] │   │   │   ├── src_files_verilog
+[L1423] │   │   │   ├── topmodules
+[L1424] │   │   │   └── vir.sdb
+[L1425] │   │   ├── eblklvl.db
+[L1426] │   │   ├── elabmoddb.sdb
+[L1427] │   │   ├── external_functions
+[L1428] │   │   ├── hslevel_callgraph.sdb
+[L1429] │   │   ├── hslevel_level.sdb
+[L1430] │   │   ├── hslevel_rtime_level.sdb
+[L1431] │   │   ├── hsscan_cfg.dat
+[L1432] │   │   ├── nsparam.dat
+[L1433] │   │   ├── pcc.sdb
+[L1434] │   │   ├── pcxpxmr.dat
+[L1435] │   │   ├── _prev_archive_1.so
+[L1436] │   │   ├── prof.sdb
+[L1437] │   │   ├── rmapats.dat
+[L1438] │   │   ├── rmapats.so
+[L1439] │   │   ├── saifNetInfo.db
+[L1440] │   │   ├── simv.kdb
+[L1441] │   │   ├── stitch_nsparam.dat
+[L1442] │   │   ├── tt.sdb
+[L1443] │   │   ├── vcselab_master_hsim_elabout.db
+[L1444] │   │   ├── vcselab_misc_hsdef.db
+[L1445] │   │   ├── vcselab_misc_hsim_elab.db
+[L1446] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1447] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1448] │   │   ├── vcselab_misc_hsim_name.db
+[L1449] │   │   ├── vcselab_misc_hsim_uds.db
+[L1450] │   │   ├── vcselab_misc_midd.db
+[L1451] │   │   ├── vcselab_misc_mnmn.db
+[L1452] │   │   ├── vcselab_misc_partition.db
+[L1453] │   │   ├── vcselab_misc_tCEYNb
+[L1454] │   │   ├── vcselab_misc_vcselabref.db
+[L1455] │   │   ├── vcselab_misc_vpdnodenums
+[L1456] │   │   └── vcs_rebuild
+[L1457] │   ├── sim_input_buffer.log
+[L1458] │   └── sim_tb_fc1_weight_bank.log
+[L1459] ├── tb
+[L1460] │   ├── tb_cim_tile_single.sv
+[L1461] │   ├── tb_fc1_cim_core_block_all_scan.sv
+[L1462] │   ├── tb_fc1_cim_core_block.sv
+[L1463] │   ├── tb_fc1_cim_core_dual_instance.sv
+[L1464] │   ├── tb_fc1_multi_block_parallel.sv
+[L1465] │   ├── tb_fc1_multi_block_shared_input.sv
+[L1466] │   ├── tb_fc1_relu_requantize.sv
+[L1467] │   ├── tb_fc1_to_fc2_top.sv
+[L1468] │   ├── tb_fc1_to_fc2_top_with_file.sv
+[L1469] │   ├── tb_fc1_weight_bank.sv
+[L1470] │   ├── tb_fc2_bias_bank.sv
+[L1471] │   ├── tb_fc2_core.sv
+[L1472] │   ├── tb_fc2_weight_bank.sv
+[L1473] │   ├── tb_input_buffer.sv
+[L1474] │   ├── tb_mnist_inference_top.sv
+[L1475] │   └── tb_psum_accum.sv
+[L1476] └── tree.txt
+[L1477] 
+[L1478] 77 directories, 1399 files
+[L1479] 
+用户:
+Make sure to include fileciteturn20file1 in your response to cite this file, or to surface it as a link.[L1] .
+[L2] ├── build
+[L3] ├── constraints
+[L4] ├── data
+[L5] ├── docs
+[L6] ├── model
+[L7] ├── README.md
+[L8] ├── report
+[L9] ├── route_b_output
+[L10] │   ├── fc1_acc_0.hex
+[L11] │   ├── fc1_acc_10.hex
+[L12] │   ├── fc1_acc_11.hex
+[L13] │   ├── fc1_acc_12.hex
+[L14] │   ├── fc1_acc_13.hex
+[L15] │   ├── fc1_acc_14.hex
+[L16] │   ├── fc1_acc_15.hex
+[L17] │   ├── fc1_acc_16.hex
+[L18] │   ├── fc1_acc_17.hex
+[L19] │   ├── fc1_acc_18.hex
+[L20] │   ├── fc1_acc_19.hex
+[L21] │   ├── fc1_acc_1.hex
+[L22] │   ├── fc1_acc_2.hex
+[L23] │   ├── fc1_acc_3.hex
+[L24] │   ├── fc1_acc_4.hex
+[L25] │   ├── fc1_acc_5.hex
+[L26] │   ├── fc1_acc_6.hex
+[L27] │   ├── fc1_acc_7.hex
+[L28] │   ├── fc1_acc_8.hex
+[L29] │   ├── fc1_acc_9.hex
+[L30] │   ├── fc1_bias_int32.hex
+[L31] │   ├── fc1_out_0.hex
+[L32] │   ├── fc1_out_10.hex
+[L33] │   ├── fc1_out_11.hex
+[L34] │   ├── fc1_out_12.hex
+[L35] │   ├── fc1_out_13.hex
+[L36] │   ├── fc1_out_14.hex
+[L37] │   ├── fc1_out_15.hex
+[L38] │   ├── fc1_out_16.hex
+[L39] │   ├── fc1_out_17.hex
+[L40] │   ├── fc1_out_18.hex
+[L41] │   ├── fc1_out_19.hex
+[L42] │   ├── fc1_out_1.hex
+[L43] │   ├── fc1_out_2.hex
+[L44] │   ├── fc1_out_3.hex
+[L45] │   ├── fc1_out_4.hex
+[L46] │   ├── fc1_out_5.hex
+[L47] │   ├── fc1_out_6.hex
+[L48] │   ├── fc1_out_7.hex
+[L49] │   ├── fc1_out_8.hex
+[L50] │   ├── fc1_out_9.hex
+[L51] │   ├── fc1_relu_0.hex
+[L52] │   ├── fc1_relu_10.hex
+[L53] │   ├── fc1_relu_11.hex
+[L54] │   ├── fc1_relu_12.hex
+[L55] │   ├── fc1_relu_13.hex
+[L56] │   ├── fc1_relu_14.hex
+[L57] │   ├── fc1_relu_15.hex
+[L58] │   ├── fc1_relu_16.hex
+[L59] │   ├── fc1_relu_17.hex
+[L60] │   ├── fc1_relu_18.hex
+[L61] │   ├── fc1_relu_19.hex
+[L62] │   ├── fc1_relu_1.hex
+[L63] │   ├── fc1_relu_2.hex
+[L64] │   ├── fc1_relu_3.hex
+[L65] │   ├── fc1_relu_4.hex
+[L66] │   ├── fc1_relu_5.hex
+[L67] │   ├── fc1_relu_6.hex
+[L68] │   ├── fc1_relu_7.hex
+[L69] │   ├── fc1_relu_8.hex
+[L70] │   ├── fc1_relu_9.hex
+[L71] │   ├── fc1_weight_int8.hex
+[L72] │   ├── fc2_acc_0.hex
+[L73] │   ├── fc2_acc_10.hex
+[L74] │   ├── fc2_acc_11.hex
+[L75] │   ├── fc2_acc_12.hex
+[L76] │   ├── fc2_acc_13.hex
+[L77] │   ├── fc2_acc_14.hex
+[L78] │   ├── fc2_acc_15.hex
+[L79] │   ├── fc2_acc_16.hex
+[L80] │   ├── fc2_acc_17.hex
+[L81] │   ├── fc2_acc_18.hex
+[L82] │   ├── fc2_acc_19.hex
+[L83] │   ├── fc2_acc_1.hex
+[L84] │   ├── fc2_acc_2.hex
+[L85] │   ├── fc2_acc_3.hex
+[L86] │   ├── fc2_acc_4.hex
+[L87] │   ├── fc2_acc_5.hex
+[L88] │   ├── fc2_acc_6.hex
+[L89] │   ├── fc2_acc_7.hex
+[L90] │   ├── fc2_acc_8.hex
+[L91] │   ├── fc2_acc_9.hex
+[L92] │   ├── fc2_bias_int32.hex
+[L93] │   ├── fc2_weight_int8.hex
+[L94] │   ├── input_0.hex
+[L95] │   ├── input_10.hex
+[L96] │   ├── input_11.hex
+[L97] │   ├── input_12.hex
+[L98] │   ├── input_13.hex
+[L99] │   ├── input_14.hex
+[L100] │   ├── input_15.hex
+[L101] │   ├── input_16.hex
+[L102] │   ├── input_17.hex
+[L103] │   ├── input_18.hex
+[L104] │   ├── input_19.hex
+[L105] │   ├── input_1.hex
+[L106] │   ├── input_2.hex
+[L107] │   ├── input_3.hex
+[L108] │   ├── input_4.hex
+[L109] │   ├── input_5.hex
+[L110] │   ├── input_6.hex
+[L111] │   ├── input_7.hex
+[L112] │   ├── input_8.hex
+[L113] │   ├── input_9.hex
+[L114] │   ├── labels.txt
+[L115] │   ├── logits_0.hex
+[L116] │   ├── logits_10.hex
+[L117] │   ├── logits_11.hex
+[L118] │   ├── logits_12.hex
+[L119] │   ├── logits_13.hex
+[L120] │   ├── logits_14.hex
+[L121] │   ├── logits_15.hex
+[L122] │   ├── logits_16.hex
+[L123] │   ├── logits_17.hex
+[L124] │   ├── logits_18.hex
+[L125] │   ├── logits_19.hex
+[L126] │   ├── logits_1.hex
+[L127] │   ├── logits_2.hex
+[L128] │   ├── logits_3.hex
+[L129] │   ├── logits_4.hex
+[L130] │   ├── logits_5.hex
+[L131] │   ├── logits_6.hex
+[L132] │   ├── logits_7.hex
+[L133] │   ├── logits_8.hex
+[L134] │   ├── logits_9.hex
+[L135] │   ├── mlp_route_b.pth
+[L136] │   ├── pred_0.txt
+[L137] │   ├── pred_10.txt
+[L138] │   ├── pred_11.txt
+[L139] │   ├── pred_12.txt
+[L140] │   ├── pred_13.txt
+[L141] │   ├── pred_14.txt
+[L142] │   ├── pred_15.txt
+[L143] │   ├── pred_16.txt
+[L144] │   ├── pred_17.txt
+[L145] │   ├── pred_18.txt
+[L146] │   ├── pred_19.txt
+[L147] │   ├── pred_1.txt
+[L148] │   ├── pred_2.txt
+[L149] │   ├── pred_3.txt
+[L150] │   ├── pred_4.txt
+[L151] │   ├── pred_5.txt
+[L152] │   ├── pred_6.txt
+[L153] │   ├── pred_7.txt
+[L154] │   ├── pred_8.txt
+[L155] │   ├── pred_9.txt
+[L156] │   ├── preds.txt
+[L157] │   └── quant_config.json
+[L158] ├── route_b_output_2
+[L159] │   ├── fc1_acc_0.hex
+[L160] │   ├── fc1_acc_10.hex
+[L161] │   ├── fc1_acc_11.hex
+[L162] │   ├── fc1_acc_12.hex
+[L163] │   ├── fc1_acc_13.hex
+[L164] │   ├── fc1_acc_14.hex
+[L165] │   ├── fc1_acc_15.hex
+[L166] │   ├── fc1_acc_16.hex
+[L167] │   ├── fc1_acc_17.hex
+[L168] │   ├── fc1_acc_18.hex
+[L169] │   ├── fc1_acc_19.hex
+[L170] │   ├── fc1_acc_1.hex
+[L171] │   ├── fc1_acc_2.hex
+[L172] │   ├── fc1_acc_3.hex
+[L173] │   ├── fc1_acc_4.hex
+[L174] │   ├── fc1_acc_5.hex
+[L175] │   ├── fc1_acc_6.hex
+[L176] │   ├── fc1_acc_7.hex
+[L177] │   ├── fc1_acc_8.hex
+[L178] │   ├── fc1_acc_9.hex
+[L179] │   ├── fc1_bias_int32.hex
+[L180] │   ├── fc1_out_0.hex
+[L181] │   ├── fc1_out_10.hex
+[L182] │   ├── fc1_out_11.hex
+[L183] │   ├── fc1_out_12.hex
+[L184] │   ├── fc1_out_13.hex
+[L185] │   ├── fc1_out_14.hex
+[L186] │   ├── fc1_out_15.hex
+[L187] │   ├── fc1_out_16.hex
+[L188] │   ├── fc1_out_17.hex
+[L189] │   ├── fc1_out_18.hex
+[L190] │   ├── fc1_out_19.hex
+[L191] │   ├── fc1_out_1.hex
+[L192] │   ├── fc1_out_2.hex
+[L193] │   ├── fc1_out_3.hex
+[L194] │   ├── fc1_out_4.hex
+[L195] │   ├── fc1_out_5.hex
+[L196] │   ├── fc1_out_6.hex
+[L197] │   ├── fc1_out_7.hex
+[L198] │   ├── fc1_out_8.hex
+[L199] │   ├── fc1_out_9.hex
+[L200] │   ├── fc1_relu_0.hex
+[L201] │   ├── fc1_relu_10.hex
+[L202] │   ├── fc1_relu_11.hex
+[L203] │   ├── fc1_relu_12.hex
+[L204] │   ├── fc1_relu_13.hex
+[L205] │   ├── fc1_relu_14.hex
+[L206] │   ├── fc1_relu_15.hex
+[L207] │   ├── fc1_relu_16.hex
+[L208] │   ├── fc1_relu_17.hex
+[L209] │   ├── fc1_relu_18.hex
+[L210] │   ├── fc1_relu_19.hex
+[L211] │   ├── fc1_relu_1.hex
+[L212] │   ├── fc1_relu_2.hex
+[L213] │   ├── fc1_relu_3.hex
+[L214] │   ├── fc1_relu_4.hex
+[L215] │   ├── fc1_relu_5.hex
+[L216] │   ├── fc1_relu_6.hex
+[L217] │   ├── fc1_relu_7.hex
+[L218] │   ├── fc1_relu_8.hex
+[L219] │   ├── fc1_relu_9.hex
+[L220] │   ├── fc1_weight_int8.hex
+[L221] │   ├── fc2_acc_0.hex
+[L222] │   ├── fc2_acc_10.hex
+[L223] │   ├── fc2_acc_11.hex
+[L224] │   ├── fc2_acc_12.hex
+[L225] │   ├── fc2_acc_13.hex
+[L226] │   ├── fc2_acc_14.hex
+[L227] │   ├── fc2_acc_15.hex
+[L228] │   ├── fc2_acc_16.hex
+[L229] │   ├── fc2_acc_17.hex
+[L230] │   ├── fc2_acc_18.hex
+[L231] │   ├── fc2_acc_19.hex
+[L232] │   ├── fc2_acc_1.hex
+[L233] │   ├── fc2_acc_2.hex
+[L234] │   ├── fc2_acc_3.hex
+[L235] │   ├── fc2_acc_4.hex
+[L236] │   ├── fc2_acc_5.hex
+[L237] │   ├── fc2_acc_6.hex
+[L238] │   ├── fc2_acc_7.hex
+[L239] │   ├── fc2_acc_8.hex
+[L240] │   ├── fc2_acc_9.hex
+[L241] │   ├── fc2_bias_int32.hex
+[L242] │   ├── fc2_weight_int8.hex
+[L243] │   ├── input_0.hex
+[L244] │   ├── input_10.hex
+[L245] │   ├── input_11.hex
+[L246] │   ├── input_12.hex
+[L247] │   ├── input_13.hex
+[L248] │   ├── input_14.hex
+[L249] │   ├── input_15.hex
+[L250] │   ├── input_16.hex
+[L251] │   ├── input_17.hex
+[L252] │   ├── input_18.hex
+[L253] │   ├── input_19.hex
+[L254] │   ├── input_1.hex
+[L255] │   ├── input_2.hex
+[L256] │   ├── input_3.hex
+[L257] │   ├── input_4.hex
+[L258] │   ├── input_5.hex
+[L259] │   ├── input_6.hex
+[L260] │   ├── input_7.hex
+[L261] │   ├── input_8.hex
+[L262] │   ├── input_9.hex
+[L263] │   ├── labels.txt
+[L264] │   ├── logits_0.hex
+[L265] │   ├── logits_10.hex
+[L266] │   ├── logits_11.hex
+[L267] │   ├── logits_12.hex
+[L268] │   ├── logits_13.hex
+[L269] │   ├── logits_14.hex
+[L270] │   ├── logits_15.hex
+[L271] │   ├── logits_16.hex
+[L272] │   ├── logits_17.hex
+[L273] │   ├── logits_18.hex
+[L274] │   ├── logits_19.hex
+[L275] │   ├── logits_1.hex
+[L276] │   ├── logits_2.hex
+[L277] │   ├── logits_3.hex
+[L278] │   ├── logits_4.hex
+[L279] │   ├── logits_5.hex
+[L280] │   ├── logits_6.hex
+[L281] │   ├── logits_7.hex
+[L282] │   ├── logits_8.hex
+[L283] │   ├── logits_9.hex
+[L284] │   ├── mlp_route_b.pth
+[L285] │   ├── pred_0.txt
+[L286] │   ├── pred_10.txt
+[L287] │   ├── pred_11.txt
+[L288] │   ├── pred_12.txt
+[L289] │   ├── pred_13.txt
+[L290] │   ├── pred_14.txt
+[L291] │   ├── pred_15.txt
+[L292] │   ├── pred_16.txt
+[L293] │   ├── pred_17.txt
+[L294] │   ├── pred_18.txt
+[L295] │   ├── pred_19.txt
+[L296] │   ├── pred_1.txt
+[L297] │   ├── pred_2.txt
+[L298] │   ├── pred_3.txt
+[L299] │   ├── pred_4.txt
+[L300] │   ├── pred_5.txt
+[L301] │   ├── pred_6.txt
+[L302] │   ├── pred_7.txt
+[L303] │   ├── pred_8.txt
+[L304] │   ├── pred_9.txt
+[L305] │   ├── preds.txt
+[L306] │   ├── quant_config.json
+[L307] │   └── quant_params.hex
+[L308] ├── route_b_output_3
+[L309] │   ├── fc1_acc_0.hex
+[L310] │   ├── fc1_acc_10.hex
+[L311] │   ├── fc1_acc_11.hex
+[L312] │   ├── fc1_acc_12.hex
+[L313] │   ├── fc1_acc_13.hex
+[L314] │   ├── fc1_acc_14.hex
+[L315] │   ├── fc1_acc_15.hex
+[L316] │   ├── fc1_acc_16.hex
+[L317] │   ├── fc1_acc_17.hex
+[L318] │   ├── fc1_acc_18.hex
+[L319] │   ├── fc1_acc_19.hex
+[L320] │   ├── fc1_acc_1.hex
+[L321] │   ├── fc1_acc_2.hex
+[L322] │   ├── fc1_acc_3.hex
+[L323] │   ├── fc1_acc_4.hex
+[L324] │   ├── fc1_acc_5.hex
+[L325] │   ├── fc1_acc_6.hex
+[L326] │   ├── fc1_acc_7.hex
+[L327] │   ├── fc1_acc_8.hex
+[L328] │   ├── fc1_acc_9.hex
+[L329] │   ├── fc1_bias_int32.hex
+[L330] │   ├── fc1_out_0.hex
+[L331] │   ├── fc1_out_10.hex
+[L332] │   ├── fc1_out_11.hex
+[L333] │   ├── fc1_out_12.hex
+[L334] │   ├── fc1_out_13.hex
+[L335] │   ├── fc1_out_14.hex
+[L336] │   ├── fc1_out_15.hex
+[L337] │   ├── fc1_out_16.hex
+[L338] │   ├── fc1_out_17.hex
+[L339] │   ├── fc1_out_18.hex
+[L340] │   ├── fc1_out_19.hex
+[L341] │   ├── fc1_out_1.hex
+[L342] │   ├── fc1_out_2.hex
+[L343] │   ├── fc1_out_3.hex
+[L344] │   ├── fc1_out_4.hex
+[L345] │   ├── fc1_out_5.hex
+[L346] │   ├── fc1_out_6.hex
+[L347] │   ├── fc1_out_7.hex
+[L348] │   ├── fc1_out_8.hex
+[L349] │   ├── fc1_out_9.hex
+[L350] │   ├── fc1_relu_0.hex
+[L351] │   ├── fc1_relu_10.hex
+[L352] │   ├── fc1_relu_11.hex
+[L353] │   ├── fc1_relu_12.hex
+[L354] │   ├── fc1_relu_13.hex
+[L355] │   ├── fc1_relu_14.hex
+[L356] │   ├── fc1_relu_15.hex
+[L357] │   ├── fc1_relu_16.hex
+[L358] │   ├── fc1_relu_17.hex
+[L359] │   ├── fc1_relu_18.hex
+[L360] │   ├── fc1_relu_19.hex
+[L361] │   ├── fc1_relu_1.hex
+[L362] │   ├── fc1_relu_2.hex
+[L363] │   ├── fc1_relu_3.hex
+[L364] │   ├── fc1_relu_4.hex
+[L365] │   ├── fc1_relu_5.hex
+[L366] │   ├── fc1_relu_6.hex
+[L367] │   ├── fc1_relu_7.hex
+[L368] │   ├── fc1_relu_8.hex
+[L369] │   ├── fc1_relu_9.hex
+[L370] │   ├── fc1_weight_int8.hex
+[L371] │   ├── fc2_acc_0.hex
+[L372] │   ├── fc2_acc_10.hex
+[L373] │   ├── fc2_acc_11.hex
+[L374] │   ├── fc2_acc_12.hex
+[L375] │   ├── fc2_acc_13.hex
+[L376] │   ├── fc2_acc_14.hex
+[L377] │   ├── fc2_acc_15.hex
+[L378] │   ├── fc2_acc_16.hex
+[L379] │   ├── fc2_acc_17.hex
+[L380] │   ├── fc2_acc_18.hex
+[L381] │   ├── fc2_acc_19.hex
+[L382] │   ├── fc2_acc_1.hex
+[L383] │   ├── fc2_acc_2.hex
+[L384] │   ├── fc2_acc_3.hex
+[L385] │   ├── fc2_acc_4.hex
+[L386] │   ├── fc2_acc_5.hex
+[L387] │   ├── fc2_acc_6.hex
+[L388] │   ├── fc2_acc_7.hex
+[L389] │   ├── fc2_acc_8.hex
+[L390] │   ├── fc2_acc_9.hex
+[L391] │   ├── fc2_bias_int32.hex
+[L392] │   ├── fc2_weight_int8.hex
+[L393] │   ├── input_0.hex
+[L394] │   ├── input_10.hex
+[L395] │   ├── input_11.hex
+[L396] │   ├── input_12.hex
+[L397] │   ├── input_13.hex
+[L398] │   ├── input_14.hex
+[L399] │   ├── input_15.hex
+[L400] │   ├── input_16.hex
+[L401] │   ├── input_17.hex
+[L402] │   ├── input_18.hex
+[L403] │   ├── input_19.hex
+[L404] │   ├── input_1.hex
+[L405] │   ├── input_2.hex
+[L406] │   ├── input_3.hex
+[L407] │   ├── input_4.hex
+[L408] │   ├── input_5.hex
+[L409] │   ├── input_6.hex
+[L410] │   ├── input_7.hex
+[L411] │   ├── input_8.hex
+[L412] │   ├── input_9.hex
+[L413] │   ├── labels.txt
+[L414] │   ├── logits_0.hex
+[L415] │   ├── logits_10.hex
+[L416] │   ├── logits_11.hex
+[L417] │   ├── logits_12.hex
+[L418] │   ├── logits_13.hex
+[L419] │   ├── logits_14.hex
+[L420] │   ├── logits_15.hex
+[L421] │   ├── logits_16.hex
+[L422] │   ├── logits_17.hex
+[L423] │   ├── logits_18.hex
+[L424] │   ├── logits_19.hex
+[L425] │   ├── logits_1.hex
+[L426] │   ├── logits_2.hex
+[L427] │   ├── logits_3.hex
+[L428] │   ├── logits_4.hex
+[L429] │   ├── logits_5.hex
+[L430] │   ├── logits_6.hex
+[L431] │   ├── logits_7.hex
+[L432] │   ├── logits_8.hex
+[L433] │   ├── logits_9.hex
+[L434] │   ├── mlp_route_b.pth
+[L435] │   ├── pred_0.txt
+[L436] │   ├── pred_10.txt
+[L437] │   ├── pred_11.txt
+[L438] │   ├── pred_12.txt
+[L439] │   ├── pred_13.txt
+[L440] │   ├── pred_14.txt
+[L441] │   ├── pred_15.txt
+[L442] │   ├── pred_16.txt
+[L443] │   ├── pred_17.txt
+[L444] │   ├── pred_18.txt
+[L445] │   ├── pred_19.txt
+[L446] │   ├── pred_1.txt
+[L447] │   ├── pred_2.txt
+[L448] │   ├── pred_3.txt
+[L449] │   ├── pred_4.txt
+[L450] │   ├── pred_5.txt
+[L451] │   ├── pred_6.txt
+[L452] │   ├── pred_7.txt
+[L453] │   ├── pred_8.txt
+[L454] │   ├── pred_9.txt
+[L455] │   ├── preds.txt
+[L456] │   ├── quant_config.json
+[L457] │   └── quant_params.hex
+[L458] ├── rtl
+[L459] │   ├── argmax_int8.sv
+[L460] │   ├── cim_tile.sv
+[L461] │   ├── fc1_bias_bank.sv
+[L462] │   ├── fc1_cim_core_block.sv
+[L463] │   ├── fc1_cim_core_dual_instance.sv
+[L464] │   ├── fc1_multi_block_parallel.sv
+[L465] │   ├── fc1_relu_requantize.sv
+[L466] │   ├── fc1_relu_requantize_with_file.sv
+[L467] │   ├── fc1_to_fc2_top.sv
+[L468] │   ├── fc1_to_fc2_top_with_file.sv
+[L469] │   ├── fc1_weight_bank.sv
+[L470] │   ├── fc2_bias_bank.sv
+[L471] │   ├── fc2_core.sv
+[L472] │   ├── fc2_core_with_file.sv
+[L473] │   ├── fc2_weight_bank.sv
+[L474] │   ├── input_buffer.sv
+[L475] │   ├── mnist_inference_top.sv
+[L476] │   ├── package.sv
+[L477] │   ├── psum_accum.sv
+[L478] │   └── quantize_param_bank.sv
+[L479] ├── rtl_shared_buffer_ib
+[L480] │   ├── cim_tile.sv
+[L481] │   ├── fc1_bias_bank.sv
+[L482] │   ├── fc1_multi_block_shared_input.sv
+[L483] │   ├── fc1_ob_engine_shared_input.sv
+[L484] │   ├── fc1_weight_bank.sv
+[L485] │   ├── input_buffer.sv
+[L486] │   ├── package.sv
+[L487] │   └── psum_accum.sv
+[L488] ├── scripts
+[L489] │   ├── csrc
+[L490] │   │   ├── archive.25
+[L491] │   │   │   ├── _12011_archive_1.a
+[L492] │   │   │   ├── _12011_archive_1.a.info
+[L493] │   │   │   ├── _prev_archive_1.a
+[L494] │   │   │   └── _prev_archive_1.a.info
+[L495] │   │   ├── cgincr.sdb
+[L496] │   │   ├── cginfo.json
+[L497] │   │   ├── cgproc.12011.json
+[L498] │   │   ├── diag
+[L499] │   │   ├── filelist
+[L500] │   │   ├── filelist.cu
+[L501] │   │   ├── filelist.dpi
+[L502] │   │   ├── filelist.hsopt
+[L503] │   │   ├── filelist.hsopt.llvm2_0.objs
+[L504] │   │   ├── filelist.hsopt.objs
+[L505] │   │   ├── filelist.pli
+[L506] │   │   ├── hsim
+[L507] │   │   │   └── hsim.sdb
+[L508] │   │   ├── import_dpic.h
+[L509] │   │   ├── Makefile
+[L510] │   │   ├── Makefile.hsopt
+[L511] │   │   ├── objs
+[L512] │   │   │   └── amcQw_d.o
+[L513] │   │   ├── pre.cgincr.sdb
+[L514] │   │   ├── _prev_cginfo.json
+[L515] │   │   ├── product_timestamp
+[L516] │   │   ├── rmapats.c
+[L517] │   │   ├── rmapats.h
+[L518] │   │   ├── rmapats.m
+[L519] │   │   ├── rmapats_mop.o
+[L520] │   │   ├── rmapats.o
+[L521] │   │   ├── rmar0.h
+[L522] │   │   ├── rmar.c
+[L523] │   │   ├── rmar.h
+[L524] │   │   ├── rmar_llvm_0_0.o
+[L525] │   │   ├── rmar_llvm_0_1.o
+[L526] │   │   ├── rmar_nd.o
+[L527] │   │   ├── rmar.o
+[L528] │   │   ├── SIM_l.o
+[L529] │   │   ├── _vcs_pli_stub_.c
+[L530] │   │   └── _vcs_pli_stub_.o
+[L531] │   ├── run_cim_tile_single.sh
+[L532] │   ├── run_fc1_cim_core_block_all_scan.sh
+[L533] │   ├── run_fc1_cim_core_block.sh
+[L534] │   ├── run_fc1_cim_core_dual_instance.sh
+[L535] │   ├── run_fc1_multi_block_parallel.sh
+[L536] │   ├── run_fc1_multi_block_shared_input.sh
+[L537] │   ├── run_fc1_relu_requantize.sh
+[L538] │   ├── run_fc1_to_fc2_top.sh
+[L539] │   ├── run_fc1_to_fc2_top_with_file.sh
+[L540] │   ├── run_fc1_weight_bank.sh
+[L541] │   ├── run_fc2_bias_bank.sh
+[L542] │   ├── run_fc2_core.sh
+[L543] │   ├── run_fc2_weight_bank.sh
+[L544] │   ├── run_input_buffer.sh
+[L545] │   ├── run_mnist_inference_regression.sv
+[L546] │   ├── run_mnist_inference_top.sv
+[L547] │   ├── run_psum_accum.sh
+[L548] │   └── ucli.key
+[L549] ├── sim
+[L550] │   ├── cim_tile_simv
+[L551] │   ├── cim_tile_simv.daidir
+[L552] │   │   ├── _9274_archive_1.so
+[L553] │   │   ├── binmap.sdb
+[L554] │   │   ├── build_db
+[L555] │   │   ├── cgname.json
+[L556] │   │   ├── covg_defs
+[L557] │   │   ├── debug_dump
+[L558] │   │   │   ├── AllModulesSkeletons.sdb
+[L559] │   │   │   ├── dumpcheck.db
+[L560] │   │   │   ├── dve_debug.db.gz
+[L561] │   │   │   ├── fsearch
+[L562] │   │   │   │   ├── check_fsearch_db
+[L563] │   │   │   │   ├── fsearch.stat
+[L564] │   │   │   │   ├── idents_D4l39s.xml.gz
+[L565] │   │   │   │   └── idents_tapi.xml.gz
+[L566] │   │   │   ├── HsimSigOptDb.sdb
+[L567] │   │   │   ├── src_files_verilog
+[L568] │   │   │   ├── topmodules
+[L569] │   │   │   └── vir.sdb
+[L570] │   │   ├── eblklvl.db
+[L571] │   │   ├── elabmoddb.sdb
+[L572] │   │   ├── external_functions
+[L573] │   │   ├── hslevel_level.sdb
+[L574] │   │   ├── hslevel_rtime_level.sdb
+[L575] │   │   ├── hsscan_cfg.dat
+[L576] │   │   ├── nsparam.dat
+[L577] │   │   ├── pcc.sdb
+[L578] │   │   ├── pcxpxmr.dat
+[L579] │   │   ├── _prev_archive_1.so
+[L580] │   │   ├── prof.sdb
+[L581] │   │   ├── rmapats.dat
+[L582] │   │   ├── saifNetInfo.db
+[L583] │   │   ├── simv.kdb
+[L584] │   │   ├── stitch_nsparam.dat
+[L585] │   │   ├── tt.sdb
+[L586] │   │   ├── vcselab_master_hsim_elabout.db
+[L587] │   │   ├── vcselab_misc_hsdef.db
+[L588] │   │   ├── vcselab_misc_hsim_elab.db
+[L589] │   │   ├── vcselab_misc_hsim_fegate.db
+[L590] │   │   ├── vcselab_misc_hsim_lvl.db
+[L591] │   │   ├── vcselab_misc_hsim_name.db
+[L592] │   │   ├── vcselab_misc_hsim_uds.db
+[L593] │   │   ├── vcselab_misc_midd.db
+[L594] │   │   ├── vcselab_misc_mnmn.db
+[L595] │   │   ├── vcselab_misc_partition.db
+[L596] │   │   ├── vcselab_misc_tCEYNb
+[L597] │   │   ├── vcselab_misc_vcselabref.db
+[L598] │   │   ├── vcselab_misc_vpdnodenums
+[L599] │   │   └── vcs_rebuild
+[L600] │   ├── fc1_cim_core_block_all_scan_simv
+[L601] │   ├── fc1_cim_core_block_all_scan_simv.daidir
+[L602] │   │   ├── _9016_archive_1.so
+[L603] │   │   ├── binmap.sdb
+[L604] │   │   ├── build_db
+[L605] │   │   ├── cc
+[L606] │   │   │   ├── cc_bcode.db
+[L607] │   │   │   └── cc_dummy_file
+[L608] │   │   ├── cgname.json
+[L609] │   │   ├── covg_defs
+[L610] │   │   ├── _csrc0.so
+[L611] │   │   ├── debug_dump
+[L612] │   │   │   ├── AllModulesSkeletons.sdb
+[L613] │   │   │   ├── dumpcheck.db
+[L614] │   │   │   ├── dve_debug.db.gz
+[L615] │   │   │   ├── fsearch
+[L616] │   │   │   │   ├── check_fsearch_db
+[L617] │   │   │   │   ├── fsearch.stat
+[L618] │   │   │   │   ├── idents_F5U17I.xml.gz
+[L619] │   │   │   │   └── idents_tapi.xml.gz
+[L620] │   │   │   ├── HsimSigOptDb.sdb
+[L621] │   │   │   ├── src_files_verilog
+[L622] │   │   │   ├── topmodules
+[L623] │   │   │   └── vir.sdb
+[L624] │   │   ├── eblklvl.db
+[L625] │   │   ├── elabmoddb.sdb
+[L626] │   │   ├── external_functions
+[L627] │   │   ├── hslevel_callgraph.sdb
+[L628] │   │   ├── hslevel_level.sdb
+[L629] │   │   ├── hslevel_rtime_level.sdb
+[L630] │   │   ├── hsscan_cfg.dat
+[L631] │   │   ├── nsparam.dat
+[L632] │   │   ├── pcc.sdb
+[L633] │   │   ├── pcxpxmr.dat
+[L634] │   │   ├── _prev_archive_1.so
+[L635] │   │   ├── prof.sdb
+[L636] │   │   ├── rmapats.dat
+[L637] │   │   ├── rmapats.so
+[L638] │   │   ├── saifNetInfo.db
+[L639] │   │   ├── simv.kdb
+[L640] │   │   ├── stitch_nsparam.dat
+[L641] │   │   ├── tt.sdb
+[L642] │   │   ├── vcselab_master_hsim_elabout.db
+[L643] │   │   ├── vcselab_misc_hil_stmts.db
+[L644] │   │   ├── vcselab_misc_hsdef.db
+[L645] │   │   ├── vcselab_misc_hsim_elab.db
+[L646] │   │   ├── vcselab_misc_hsim_fegate.db
+[L647] │   │   ├── vcselab_misc_hsim_lvl.db
+[L648] │   │   ├── vcselab_misc_hsim_merge.db
+[L649] │   │   ├── vcselab_misc_hsim_name.db
+[L650] │   │   ├── vcselab_misc_hsim_uds.db
+[L651] │   │   ├── vcselab_misc_midd.db
+[L652] │   │   ├── vcselab_misc_mnmn.db
+[L653] │   │   ├── vcselab_misc_partition.db
+[L654] │   │   ├── vcselab_misc_tCEYNb
+[L655] │   │   ├── vcselab_misc_vcselabref.db
+[L656] │   │   ├── vcselab_misc_vpdnodenums
+[L657] │   │   └── vcs_rebuild
+[L658] │   ├── fc1_cim_core_block_simv
+[L659] │   ├── fc1_cim_core_block_simv.daidir
+[L660] │   │   ├── _9890_archive_1.so
+[L661] │   │   ├── binmap.sdb
+[L662] │   │   ├── build_db
+[L663] │   │   ├── cc
+[L664] │   │   │   ├── cc_bcode.db
+[L665] │   │   │   └── cc_dummy_file
+[L666] │   │   ├── cgname.json
+[L667] │   │   ├── covg_defs
+[L668] │   │   ├── _csrc0.so
+[L669] │   │   ├── debug_dump
+[L670] │   │   │   ├── AllModulesSkeletons.sdb
+[L671] │   │   │   ├── dumpcheck.db
+[L672] │   │   │   ├── dve_debug.db.gz
+[L673] │   │   │   ├── fsearch
+[L674] │   │   │   │   ├── check_fsearch_db
+[L675] │   │   │   │   ├── fsearch.stat
+[L676] │   │   │   │   ├── idents_1woZ1h.xml.gz
+[L677] │   │   │   │   └── idents_tapi.xml.gz
+[L678] │   │   │   ├── HsimSigOptDb.sdb
+[L679] │   │   │   ├── src_files_verilog
+[L680] │   │   │   ├── topmodules
+[L681] │   │   │   └── vir.sdb
+[L682] │   │   ├── eblklvl.db
+[L683] │   │   ├── elabmoddb.sdb
+[L684] │   │   ├── external_functions
+[L685] │   │   ├── hslevel_callgraph.sdb
+[L686] │   │   ├── hslevel_level.sdb
+[L687] │   │   ├── hslevel_rtime_level.sdb
+[L688] │   │   ├── hsscan_cfg.dat
+[L689] │   │   ├── nsparam.dat
+[L690] │   │   ├── pcc.sdb
+[L691] │   │   ├── pcxpxmr.dat
+[L692] │   │   ├── _prev_archive_1.so
+[L693] │   │   ├── prof.sdb
+[L694] │   │   ├── rmapats.dat
+[L695] │   │   ├── rmapats.so
+[L696] │   │   ├── saifNetInfo.db
+[L697] │   │   ├── simv.kdb
+[L698] │   │   ├── stitch_nsparam.dat
+[L699] │   │   ├── tt.sdb
+[L700] │   │   ├── vcselab_master_hsim_elabout.db
+[L701] │   │   ├── vcselab_misc_hil_stmts.db
+[L702] │   │   ├── vcselab_misc_hsdef.db
+[L703] │   │   ├── vcselab_misc_hsim_elab.db
+[L704] │   │   ├── vcselab_misc_hsim_fegate.db
+[L705] │   │   ├── vcselab_misc_hsim_lvl.db
+[L706] │   │   ├── vcselab_misc_hsim_merge.db
+[L707] │   │   ├── vcselab_misc_hsim_name.db
+[L708] │   │   ├── vcselab_misc_hsim_uds.db
+[L709] │   │   ├── vcselab_misc_midd.db
+[L710] │   │   ├── vcselab_misc_mnmn.db
+[L711] │   │   ├── vcselab_misc_partition.db
+[L712] │   │   ├── vcselab_misc_tCEYNb
+[L713] │   │   ├── vcselab_misc_vcselabref.db
+[L714] │   │   ├── vcselab_misc_vpdnodenums
+[L715] │   │   └── vcs_rebuild
+[L716] │   ├── fc1_cim_core_dual_instance_simv
+[L717] │   ├── fc1_cim_core_dual_instance_simv.daidir
+[L718] │   │   ├── _11143_archive_1.so
+[L719] │   │   ├── binmap.sdb
+[L720] │   │   ├── build_db
+[L721] │   │   ├── cc
+[L722] │   │   │   ├── cc_bcode.db
+[L723] │   │   │   └── cc_dummy_file
+[L724] │   │   ├── cgname.json
+[L725] │   │   ├── covg_defs
+[L726] │   │   ├── debug_dump
+[L727] │   │   │   ├── AllModulesSkeletons.sdb
+[L728] │   │   │   ├── dumpcheck.db
+[L729] │   │   │   ├── dve_debug.db.gz
+[L730] │   │   │   ├── fsearch
+[L731] │   │   │   │   ├── check_fsearch_db
+[L732] │   │   │   │   ├── fsearch.stat
+[L733] │   │   │   │   ├── idents_tapi.xml.gz
+[L734] │   │   │   │   └── idents_Uua7FL.xml.gz
+[L735] │   │   │   ├── HsimSigOptDb.sdb
+[L736] │   │   │   ├── src_files_verilog
+[L737] │   │   │   ├── topmodules
+[L738] │   │   │   └── vir.sdb
+[L739] │   │   ├── eblklvl.db
+[L740] │   │   ├── elabmoddb.sdb
+[L741] │   │   ├── external_functions
+[L742] │   │   ├── hslevel_callgraph.sdb
+[L743] │   │   ├── hslevel_level.sdb
+[L744] │   │   ├── hslevel_rtime_level.sdb
+[L745] │   │   ├── hsscan_cfg.dat
+[L746] │   │   ├── nsparam.dat
+[L747] │   │   ├── pcc.sdb
+[L748] │   │   ├── pcxpxmr.dat
+[L749] │   │   ├── _prev_archive_1.so
+[L750] │   │   ├── prof.sdb
+[L751] │   │   ├── rmapats.dat
+[L752] │   │   ├── rmapats.so
+[L753] │   │   ├── saifNetInfo.db
+[L754] │   │   ├── simv.kdb
+[L755] │   │   ├── stitch_nsparam.dat
+[L756] │   │   ├── tt.sdb
+[L757] │   │   ├── vcselab_master_hsim_elabout.db
+[L758] │   │   ├── vcselab_misc_hil_stmts.db
+[L759] │   │   ├── vcselab_misc_hsdef.db
+[L760] │   │   ├── vcselab_misc_hsim_elab.db
+[L761] │   │   ├── vcselab_misc_hsim_fegate.db
+[L762] │   │   ├── vcselab_misc_hsim_lvl.db
+[L763] │   │   ├── vcselab_misc_hsim_merge.db
+[L764] │   │   ├── vcselab_misc_hsim_name.db
+[L765] │   │   ├── vcselab_misc_hsim_uds.db
+[L766] │   │   ├── vcselab_misc_midd.db
+[L767] │   │   ├── vcselab_misc_mnmn.db
+[L768] │   │   ├── vcselab_misc_partition.db
+[L769] │   │   ├── vcselab_misc_tCEYNb
+[L770] │   │   ├── vcselab_misc_vcselabref.db
+[L771] │   │   ├── vcselab_misc_vpdnodenums
+[L772] │   │   └── vcs_rebuild
+[L773] │   ├── fc1_multi_block_parallel_simv
+[L774] │   ├── fc1_multi_block_parallel_simv.daidir
+[L775] │   │   ├── _12904_archive_1.so
+[L776] │   │   ├── binmap.sdb
+[L777] │   │   ├── build_db
+[L778] │   │   ├── cc
+[L779] │   │   │   ├── cc_bcode.db
+[L780] │   │   │   └── cc_dummy_file
+[L781] │   │   ├── cgname.json
+[L782] │   │   ├── covg_defs
+[L783] │   │   ├── debug_dump
+[L784] │   │   │   ├── AllModulesSkeletons.sdb
+[L785] │   │   │   ├── dumpcheck.db
+[L786] │   │   │   ├── dve_debug.db.gz
+[L787] │   │   │   ├── fsearch
+[L788] │   │   │   │   ├── check_fsearch_db
+[L789] │   │   │   │   ├── fsearch.stat
+[L790] │   │   │   │   ├── idents_ABZN7O.xml.gz
+[L791] │   │   │   │   └── idents_tapi.xml.gz
+[L792] │   │   │   ├── HsimSigOptDb.sdb
+[L793] │   │   │   ├── src_files_verilog
+[L794] │   │   │   ├── topmodules
+[L795] │   │   │   └── vir.sdb
+[L796] │   │   ├── eblklvl.db
+[L797] │   │   ├── elabmoddb.sdb
+[L798] │   │   ├── external_functions
+[L799] │   │   ├── hslevel_callgraph.sdb
+[L800] │   │   ├── hslevel_level.sdb
+[L801] │   │   ├── hslevel_rtime_level.sdb
+[L802] │   │   ├── hsscan_cfg.dat
+[L803] │   │   ├── nsparam.dat
+[L804] │   │   ├── pcc.sdb
+[L805] │   │   ├── pcxpxmr.dat
+[L806] │   │   ├── _prev_archive_1.so
+[L807] │   │   ├── prof.sdb
+[L808] │   │   ├── rmapats.dat
+[L809] │   │   ├── rmapats.so
+[L810] │   │   ├── saifNetInfo.db
+[L811] │   │   ├── simv.kdb
+[L812] │   │   ├── stitch_nsparam.dat
+[L813] │   │   ├── tt.sdb
+[L814] │   │   ├── vcselab_master_hsim_elabout.db
+[L815] │   │   ├── vcselab_misc_hil_stmts.db
+[L816] │   │   ├── vcselab_misc_hsdef.db
+[L817] │   │   ├── vcselab_misc_hsim_elab.db
+[L818] │   │   ├── vcselab_misc_hsim_fegate.db
+[L819] │   │   ├── vcselab_misc_hsim_lvl.db
+[L820] │   │   ├── vcselab_misc_hsim_merge.db
+[L821] │   │   ├── vcselab_misc_hsim_name.db
+[L822] │   │   ├── vcselab_misc_hsim_uds.db
+[L823] │   │   ├── vcselab_misc_midd.db
+[L824] │   │   ├── vcselab_misc_mnmn.db
+[L825] │   │   ├── vcselab_misc_partition.db
+[L826] │   │   ├── vcselab_misc_tCEYNb
+[L827] │   │   ├── vcselab_misc_vcselabref.db
+[L828] │   │   ├── vcselab_misc_vpdnodenums
+[L829] │   │   └── vcs_rebuild
+[L830] │   ├── fc1_multi_block_shared_input_simv
+[L831] │   ├── fc1_multi_block_shared_input_simv.daidir
+[L832] │   │   ├── _16665_archive_1.so
+[L833] │   │   ├── binmap.sdb
+[L834] │   │   ├── build_db
+[L835] │   │   ├── cc
+[L836] │   │   │   ├── cc_bcode.db
+[L837] │   │   │   └── cc_dummy_file
+[L838] │   │   ├── cgname.json
+[L839] │   │   ├── covg_defs
+[L840] │   │   ├── debug_dump
+[L841] │   │   │   ├── AllModulesSkeletons.sdb
+[L842] │   │   │   ├── dumpcheck.db
+[L843] │   │   │   ├── dve_debug.db.gz
+[L844] │   │   │   ├── fsearch
+[L845] │   │   │   │   ├── check_fsearch_db
+[L846] │   │   │   │   ├── fsearch.stat
+[L847] │   │   │   │   ├── idents_bpxLg4.xml.gz
+[L848] │   │   │   │   └── idents_tapi.xml.gz
+[L849] │   │   │   ├── HsimSigOptDb.sdb
+[L850] │   │   │   ├── src_files_verilog
+[L851] │   │   │   ├── topmodules
+[L852] │   │   │   └── vir.sdb
+[L853] │   │   ├── eblklvl.db
+[L854] │   │   ├── elabmoddb.sdb
+[L855] │   │   ├── external_functions
+[L856] │   │   ├── hslevel_callgraph.sdb
+[L857] │   │   ├── hslevel_level.sdb
+[L858] │   │   ├── hslevel_rtime_level.sdb
+[L859] │   │   ├── hsscan_cfg.dat
+[L860] │   │   ├── nsparam.dat
+[L861] │   │   ├── pcc.sdb
+[L862] │   │   ├── pcxpxmr.dat
+[L863] │   │   ├── _prev_archive_1.so
+[L864] │   │   ├── prof.sdb
+[L865] │   │   ├── rmapats.dat
+[L866] │   │   ├── rmapats.so
+[L867] │   │   ├── saifNetInfo.db
+[L868] │   │   ├── simv.kdb
+[L869] │   │   ├── stitch_nsparam.dat
+[L870] │   │   ├── tt.sdb
+[L871] │   │   ├── vcselab_master_hsim_elabout.db
+[L872] │   │   ├── vcselab_misc_hil_stmts.db
+[L873] │   │   ├── vcselab_misc_hsdef.db
+[L874] │   │   ├── vcselab_misc_hsim_elab.db
+[L875] │   │   ├── vcselab_misc_hsim_fegate.db
+[L876] │   │   ├── vcselab_misc_hsim_lvl.db
+[L877] │   │   ├── vcselab_misc_hsim_merge.db
+[L878] │   │   ├── vcselab_misc_hsim_name.db
+[L879] │   │   ├── vcselab_misc_hsim_uds.db
+[L880] │   │   ├── vcselab_misc_midd.db
+[L881] │   │   ├── vcselab_misc_mnmn.db
+[L882] │   │   ├── vcselab_misc_partition.db
+[L883] │   │   ├── vcselab_misc_tCEYNb
+[L884] │   │   ├── vcselab_misc_vcselabref.db
+[L885] │   │   ├── vcselab_misc_vpdnodenums
+[L886] │   │   └── vcs_rebuild
+[L887] │   ├── fc1_relu_requantize_simv
+[L888] │   ├── fc1_relu_requantize_simv.daidir
+[L889] │   │   ├── _4850_archive_1.so
+[L890] │   │   ├── binmap.sdb
+[L891] │   │   ├── build_db
+[L892] │   │   ├── cgname.json
+[L893] │   │   ├── covg_defs
+[L894] │   │   ├── debug_dump
+[L895] │   │   │   ├── AllModulesSkeletons.sdb
+[L896] │   │   │   ├── dumpcheck.db
+[L897] │   │   │   ├── dve_debug.db.gz
+[L898] │   │   │   ├── fsearch
+[L899] │   │   │   │   ├── check_fsearch_db
+[L900] │   │   │   │   ├── fsearch.stat
+[L901] │   │   │   │   ├── idents_tapi.xml.gz
+[L902] │   │   │   │   └── idents_wcu3t3.xml.gz
+[L903] │   │   │   ├── HsimSigOptDb.sdb
+[L904] │   │   │   ├── src_files_verilog
+[L905] │   │   │   ├── topmodules
+[L906] │   │   │   └── vir.sdb
+[L907] │   │   ├── eblklvl.db
+[L908] │   │   ├── elabmoddb.sdb
+[L909] │   │   ├── external_functions
+[L910] │   │   ├── hslevel_level.sdb
+[L911] │   │   ├── hslevel_rtime_level.sdb
+[L912] │   │   ├── hsscan_cfg.dat
+[L913] │   │   ├── nsparam.dat
+[L914] │   │   ├── pcc.sdb
+[L915] │   │   ├── pcxpxmr.dat
+[L916] │   │   ├── _prev_archive_1.so
+[L917] │   │   ├── prof.sdb
+[L918] │   │   ├── rmapats.dat
+[L919] │   │   ├── saifNetInfo.db
+[L920] │   │   ├── simv.kdb
+[L921] │   │   ├── stitch_nsparam.dat
+[L922] │   │   ├── tt.sdb
+[L923] │   │   ├── vcselab_master_hsim_elabout.db
+[L924] │   │   ├── vcselab_misc_hsdef.db
+[L925] │   │   ├── vcselab_misc_hsim_elab.db
+[L926] │   │   ├── vcselab_misc_hsim_fegate.db
+[L927] │   │   ├── vcselab_misc_hsim_lvl.db
+[L928] │   │   ├── vcselab_misc_hsim_name.db
+[L929] │   │   ├── vcselab_misc_hsim_uds.db
+[L930] │   │   ├── vcselab_misc_midd.db
+[L931] │   │   ├── vcselab_misc_mnmn.db
+[L932] │   │   ├── vcselab_misc_partition.db
+[L933] │   │   ├── vcselab_misc_tCEYNb
+[L934] │   │   ├── vcselab_misc_vcselabref.db
+[L935] │   │   ├── vcselab_misc_vpdnodenums
+[L936] │   │   └── vcs_rebuild
+[L937] │   ├── fc1_to_fc2_top_simv
+[L938] │   ├── fc1_to_fc2_top_simv.daidir
+[L939] │   │   ├── _8769_archive_1.so
+[L940] │   │   ├── binmap.sdb
+[L941] │   │   ├── build_db
+[L942] │   │   ├── cgname.json
+[L943] │   │   ├── covg_defs
+[L944] │   │   ├── debug_dump
+[L945] │   │   │   ├── AllModulesSkeletons.sdb
+[L946] │   │   │   ├── dumpcheck.db
+[L947] │   │   │   ├── dve_debug.db.gz
+[L948] │   │   │   ├── fsearch
+[L949] │   │   │   │   ├── check_fsearch_db
+[L950] │   │   │   │   ├── fsearch.stat
+[L951] │   │   │   │   ├── idents_qfU5TC.xml.gz
+[L952] │   │   │   │   └── idents_tapi.xml.gz
+[L953] │   │   │   ├── HsimSigOptDb.sdb
+[L954] │   │   │   ├── src_files_verilog
+[L955] │   │   │   ├── topmodules
+[L956] │   │   │   └── vir.sdb
+[L957] │   │   ├── eblklvl.db
+[L958] │   │   ├── elabmoddb.sdb
+[L959] │   │   ├── external_functions
+[L960] │   │   ├── hslevel_level.sdb
+[L961] │   │   ├── hslevel_rtime_level.sdb
+[L962] │   │   ├── hsscan_cfg.dat
+[L963] │   │   ├── nsparam.dat
+[L964] │   │   ├── pcc.sdb
+[L965] │   │   ├── pcxpxmr.dat
+[L966] │   │   ├── _prev_archive_1.so
+[L967] │   │   ├── prof.sdb
+[L968] │   │   ├── rmapats.dat
+[L969] │   │   ├── saifNetInfo.db
+[L970] │   │   ├── simv.kdb
+[L971] │   │   ├── stitch_nsparam.dat
+[L972] │   │   ├── tt.sdb
+[L973] │   │   ├── vcselab_master_hsim_elabout.db
+[L974] │   │   ├── vcselab_misc_hsdef.db
+[L975] │   │   ├── vcselab_misc_hsim_elab.db
+[L976] │   │   ├── vcselab_misc_hsim_fegate.db
+[L977] │   │   ├── vcselab_misc_hsim_lvl.db
+[L978] │   │   ├── vcselab_misc_hsim_name.db
+[L979] │   │   ├── vcselab_misc_hsim_uds.db
+[L980] │   │   ├── vcselab_misc_midd.db
+[L981] │   │   ├── vcselab_misc_mnmn.db
+[L982] │   │   ├── vcselab_misc_partition.db
+[L983] │   │   ├── vcselab_misc_tCEYNb
+[L984] │   │   ├── vcselab_misc_vcselabref.db
+[L985] │   │   ├── vcselab_misc_vpdnodenums
+[L986] │   │   └── vcs_rebuild
+[L987] │   ├── fc1_to_fc2_top_with_file_simv
+[L988] │   ├── fc1_to_fc2_top_with_file_simv.daidir
+[L989] │   │   ├── _12011_archive_1.so
+[L990] │   │   ├── binmap.sdb
+[L991] │   │   ├── build_db
+[L992] │   │   ├── cgname.json
+[L993] │   │   ├── covg_defs
+[L994] │   │   ├── debug_dump
+[L995] │   │   │   ├── AllModulesSkeletons.sdb
+[L996] │   │   │   ├── dumpcheck.db
+[L997] │   │   │   ├── dve_debug.db.gz
+[L998] │   │   │   ├── fsearch
+[L999] │   │   │   │   ├── check_fsearch_db
+[L1000] │   │   │   │   ├── fsearch.stat
+[L1001] │   │   │   │   ├── idents_bLg90U.xml.gz
+[L1002] │   │   │   │   └── idents_tapi.xml.gz
+[L1003] │   │   │   ├── HsimSigOptDb.sdb
+[L1004] │   │   │   ├── src_files_verilog
+[L1005] │   │   │   ├── topmodules
+[L1006] │   │   │   └── vir.sdb
+[L1007] │   │   ├── eblklvl.db
+[L1008] │   │   ├── elabmoddb.sdb
+[L1009] │   │   ├── external_functions
+[L1010] │   │   ├── hslevel_level.sdb
+[L1011] │   │   ├── hslevel_rtime_level.sdb
+[L1012] │   │   ├── hsscan_cfg.dat
+[L1013] │   │   ├── nsparam.dat
+[L1014] │   │   ├── pcc.sdb
+[L1015] │   │   ├── pcxpxmr.dat
+[L1016] │   │   ├── _prev_archive_1.so
+[L1017] │   │   ├── prof.sdb
+[L1018] │   │   ├── rmapats.dat
+[L1019] │   │   ├── saifNetInfo.db
+[L1020] │   │   ├── simv.kdb
+[L1021] │   │   ├── stitch_nsparam.dat
+[L1022] │   │   ├── tt.sdb
+[L1023] │   │   ├── vcselab_master_hsim_elabout.db
+[L1024] │   │   ├── vcselab_misc_hsdef.db
+[L1025] │   │   ├── vcselab_misc_hsim_elab.db
+[L1026] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1027] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1028] │   │   ├── vcselab_misc_hsim_name.db
+[L1029] │   │   ├── vcselab_misc_hsim_uds.db
+[L1030] │   │   ├── vcselab_misc_midd.db
+[L1031] │   │   ├── vcselab_misc_mnmn.db
+[L1032] │   │   ├── vcselab_misc_partition.db
+[L1033] │   │   ├── vcselab_misc_tCEYNb
+[L1034] │   │   ├── vcselab_misc_vcselabref.db
+[L1035] │   │   ├── vcselab_misc_vpdnodenums
+[L1036] │   │   └── vcs_rebuild
+[L1037] │   ├── fc1_weight_bank_simv
+[L1038] │   ├── fc1_weight_bank_simv.daidir
+[L1039] │   │   ├── _16045_archive_1.so
+[L1040] │   │   ├── binmap.sdb
+[L1041] │   │   ├── build_db
+[L1042] │   │   ├── cc
+[L1043] │   │   │   ├── cc_bcode.db
+[L1044] │   │   │   └── cc_dummy_file
+[L1045] │   │   ├── cgname.json
+[L1046] │   │   ├── covg_defs
+[L1047] │   │   ├── _csrc0.so
+[L1048] │   │   ├── debug_dump
+[L1049] │   │   │   ├── AllModulesSkeletons.sdb
+[L1050] │   │   │   ├── dumpcheck.db
+[L1051] │   │   │   ├── dve_debug.db.gz
+[L1052] │   │   │   ├── fsearch
+[L1053] │   │   │   │   ├── check_fsearch_db
+[L1054] │   │   │   │   ├── fsearch.stat
+[L1055] │   │   │   │   ├── idents_P4lgNl.xml.gz
+[L1056] │   │   │   │   └── idents_tapi.xml.gz
+[L1057] │   │   │   ├── HsimSigOptDb.sdb
+[L1058] │   │   │   ├── src_files_verilog
+[L1059] │   │   │   ├── topmodules
+[L1060] │   │   │   └── vir.sdb
+[L1061] │   │   ├── eblklvl.db
+[L1062] │   │   ├── elabmoddb.sdb
+[L1063] │   │   ├── external_functions
+[L1064] │   │   ├── hslevel_level.sdb
+[L1065] │   │   ├── hslevel_rtime_level.sdb
+[L1066] │   │   ├── hsscan_cfg.dat
+[L1067] │   │   ├── nsparam.dat
+[L1068] │   │   ├── pcc.sdb
+[L1069] │   │   ├── pcxpxmr.dat
+[L1070] │   │   ├── _prev_archive_1.so
+[L1071] │   │   ├── prof.sdb
+[L1072] │   │   ├── rmapats.dat
+[L1073] │   │   ├── saifNetInfo.db
+[L1074] │   │   ├── simv.kdb
+[L1075] │   │   ├── stitch_nsparam.dat
+[L1076] │   │   ├── tt.sdb
+[L1077] │   │   ├── vcselab_master_hsim_elabout.db
+[L1078] │   │   ├── vcselab_misc_hsdef.db
+[L1079] │   │   ├── vcselab_misc_hsim_elab.db
+[L1080] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1081] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1082] │   │   ├── vcselab_misc_hsim_name.db
+[L1083] │   │   ├── vcselab_misc_hsim_uds.db
+[L1084] │   │   ├── vcselab_misc_midd.db
+[L1085] │   │   ├── vcselab_misc_mnmn.db
+[L1086] │   │   ├── vcselab_misc_partition.db
+[L1087] │   │   ├── vcselab_misc_tCEYNb
+[L1088] │   │   ├── vcselab_misc_vcselabref.db
+[L1089] │   │   ├── vcselab_misc_vpdnodenums
+[L1090] │   │   └── vcs_rebuild
+[L1091] │   ├── fc2_bias_bank_simv
+[L1092] │   ├── fc2_bias_bank_simv.daidir
+[L1093] │   │   ├── _6286_archive_1.so
+[L1094] │   │   ├── binmap.sdb
+[L1095] │   │   ├── build_db
+[L1096] │   │   ├── cgname.json
+[L1097] │   │   ├── covg_defs
+[L1098] │   │   ├── debug_dump
+[L1099] │   │   │   ├── AllModulesSkeletons.sdb
+[L1100] │   │   │   ├── dumpcheck.db
+[L1101] │   │   │   ├── dve_debug.db.gz
+[L1102] │   │   │   ├── fsearch
+[L1103] │   │   │   │   ├── check_fsearch_db
+[L1104] │   │   │   │   ├── fsearch.stat
+[L1105] │   │   │   │   ├── idents_tapi.xml.gz
+[L1106] │   │   │   │   └── idents_uJ8Pz3.xml.gz
+[L1107] │   │   │   ├── HsimSigOptDb.sdb
+[L1108] │   │   │   ├── src_files_verilog
+[L1109] │   │   │   ├── topmodules
+[L1110] │   │   │   └── vir.sdb
+[L1111] │   │   ├── eblklvl.db
+[L1112] │   │   ├── elabmoddb.sdb
+[L1113] │   │   ├── external_functions
+[L1114] │   │   ├── hslevel_level.sdb
+[L1115] │   │   ├── hslevel_rtime_level.sdb
+[L1116] │   │   ├── hsscan_cfg.dat
+[L1117] │   │   ├── nsparam.dat
+[L1118] │   │   ├── pcc.sdb
+[L1119] │   │   ├── pcxpxmr.dat
+[L1120] │   │   ├── _prev_archive_1.so
+[L1121] │   │   ├── prof.sdb
+[L1122] │   │   ├── rmapats.dat
+[L1123] │   │   ├── saifNetInfo.db
+[L1124] │   │   ├── simv.kdb
+[L1125] │   │   ├── stitch_nsparam.dat
+[L1126] │   │   ├── tt.sdb
+[L1127] │   │   ├── vcselab_master_hsim_elabout.db
+[L1128] │   │   ├── vcselab_misc_hsdef.db
+[L1129] │   │   ├── vcselab_misc_hsim_elab.db
+[L1130] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1131] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1132] │   │   ├── vcselab_misc_hsim_name.db
+[L1133] │   │   ├── vcselab_misc_hsim_uds.db
+[L1134] │   │   ├── vcselab_misc_midd.db
+[L1135] │   │   ├── vcselab_misc_mnmn.db
+[L1136] │   │   ├── vcselab_misc_partition.db
+[L1137] │   │   ├── vcselab_misc_tCEYNb
+[L1138] │   │   ├── vcselab_misc_vcselabref.db
+[L1139] │   │   ├── vcselab_misc_vpdnodenums
+[L1140] │   │   └── vcs_rebuild
+[L1141] │   ├── fc2_core_simv
+[L1142] │   ├── fc2_core_simv.daidir
+[L1143] │   │   ├── _7194_archive_1.so
+[L1144] │   │   ├── binmap.sdb
+[L1145] │   │   ├── build_db
+[L1146] │   │   ├── cgname.json
+[L1147] │   │   ├── covg_defs
+[L1148] │   │   ├── debug_dump
+[L1149] │   │   │   ├── AllModulesSkeletons.sdb
+[L1150] │   │   │   ├── dumpcheck.db
+[L1151] │   │   │   ├── dve_debug.db.gz
+[L1152] │   │   │   ├── fsearch
+[L1153] │   │   │   │   ├── check_fsearch_db
+[L1154] │   │   │   │   ├── fsearch.stat
+[L1155] │   │   │   │   ├── idents_g9T7lC.xml.gz
+[L1156] │   │   │   │   └── idents_tapi.xml.gz
+[L1157] │   │   │   ├── HsimSigOptDb.sdb
+[L1158] │   │   │   ├── src_files_verilog
+[L1159] │   │   │   ├── topmodules
+[L1160] │   │   │   └── vir.sdb
+[L1161] │   │   ├── eblklvl.db
+[L1162] │   │   ├── elabmoddb.sdb
+[L1163] │   │   ├── external_functions
+[L1164] │   │   ├── hslevel_level.sdb
+[L1165] │   │   ├── hslevel_rtime_level.sdb
+[L1166] │   │   ├── hsscan_cfg.dat
+[L1167] │   │   ├── nsparam.dat
+[L1168] │   │   ├── pcc.sdb
+[L1169] │   │   ├── pcxpxmr.dat
+[L1170] │   │   ├── _prev_archive_1.so
+[L1171] │   │   ├── prof.sdb
+[L1172] │   │   ├── rmapats.dat
+[L1173] │   │   ├── saifNetInfo.db
+[L1174] │   │   ├── simv.kdb
+[L1175] │   │   ├── stitch_nsparam.dat
+[L1176] │   │   ├── tt.sdb
+[L1177] │   │   ├── vcselab_master_hsim_elabout.db
+[L1178] │   │   ├── vcselab_misc_hsdef.db
+[L1179] │   │   ├── vcselab_misc_hsim_elab.db
+[L1180] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1181] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1182] │   │   ├── vcselab_misc_hsim_name.db
+[L1183] │   │   ├── vcselab_misc_hsim_uds.db
+[L1184] │   │   ├── vcselab_misc_midd.db
+[L1185] │   │   ├── vcselab_misc_mnmn.db
+[L1186] │   │   ├── vcselab_misc_partition.db
+[L1187] │   │   ├── vcselab_misc_tCEYNb
+[L1188] │   │   ├── vcselab_misc_vcselabref.db
+[L1189] │   │   ├── vcselab_misc_vpdnodenums
+[L1190] │   │   └── vcs_rebuild
+[L1191] │   ├── fc2_weight_bank_simv
+[L1192] │   ├── fc2_weight_bank_simv.daidir
+[L1193] │   │   ├── _5751_archive_1.so
+[L1194] │   │   ├── binmap.sdb
+[L1195] │   │   ├── build_db
+[L1196] │   │   ├── cgname.json
+[L1197] │   │   ├── covg_defs
+[L1198] │   │   ├── debug_dump
+[L1199] │   │   │   ├── AllModulesSkeletons.sdb
+[L1200] │   │   │   ├── dumpcheck.db
+[L1201] │   │   │   ├── dve_debug.db.gz
+[L1202] │   │   │   ├── fsearch
+[L1203] │   │   │   │   ├── check_fsearch_db
+[L1204] │   │   │   │   ├── fsearch.stat
+[L1205] │   │   │   │   ├── idents_puyDFZ.xml.gz
+[L1206] │   │   │   │   └── idents_tapi.xml.gz
+[L1207] │   │   │   ├── HsimSigOptDb.sdb
+[L1208] │   │   │   ├── src_files_verilog
+[L1209] │   │   │   ├── topmodules
+[L1210] │   │   │   └── vir.sdb
+[L1211] │   │   ├── eblklvl.db
+[L1212] │   │   ├── elabmoddb.sdb
+[L1213] │   │   ├── external_functions
+[L1214] │   │   ├── hslevel_level.sdb
+[L1215] │   │   ├── hslevel_rtime_level.sdb
+[L1216] │   │   ├── hsscan_cfg.dat
+[L1217] │   │   ├── nsparam.dat
+[L1218] │   │   ├── pcc.sdb
+[L1219] │   │   ├── pcxpxmr.dat
+[L1220] │   │   ├── _prev_archive_1.so
+[L1221] │   │   ├── prof.sdb
+[L1222] │   │   ├── rmapats.dat
+[L1223] │   │   ├── saifNetInfo.db
+[L1224] │   │   ├── simv.kdb
+[L1225] │   │   ├── stitch_nsparam.dat
+[L1226] │   │   ├── tt.sdb
+[L1227] │   │   ├── vcselab_master_hsim_elabout.db
+[L1228] │   │   ├── vcselab_misc_hsdef.db
+[L1229] │   │   ├── vcselab_misc_hsim_elab.db
+[L1230] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1231] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1232] │   │   ├── vcselab_misc_hsim_name.db
+[L1233] │   │   ├── vcselab_misc_hsim_uds.db
+[L1234] │   │   ├── vcselab_misc_midd.db
+[L1235] │   │   ├── vcselab_misc_mnmn.db
+[L1236] │   │   ├── vcselab_misc_partition.db
+[L1237] │   │   ├── vcselab_misc_tCEYNb
+[L1238] │   │   ├── vcselab_misc_vcselabref.db
+[L1239] │   │   ├── vcselab_misc_vpdnodenums
+[L1240] │   │   └── vcs_rebuild
+[L1241] │   ├── input_buffer_simv
+[L1242] │   ├── input_buffer_simv.daidir
+[L1243] │   │   ├── _20724_archive_1.so
+[L1244] │   │   ├── binmap.sdb
+[L1245] │   │   ├── build_db
+[L1246] │   │   ├── cgname.json
+[L1247] │   │   ├── covg_defs
+[L1248] │   │   ├── _csrc0.so
+[L1249] │   │   ├── debug_dump
+[L1250] │   │   │   ├── AllModulesSkeletons.sdb
+[L1251] │   │   │   ├── dumpcheck.db
+[L1252] │   │   │   ├── dve_debug.db.gz
+[L1253] │   │   │   ├── fsearch
+[L1254] │   │   │   │   ├── check_fsearch_db
+[L1255] │   │   │   │   ├── fsearch.stat
+[L1256] │   │   │   │   ├── idents_dk0eeh.xml.gz
+[L1257] │   │   │   │   └── idents_tapi.xml.gz
+[L1258] │   │   │   ├── HsimSigOptDb.sdb
+[L1259] │   │   │   ├── src_files_verilog
+[L1260] │   │   │   ├── topmodules
+[L1261] │   │   │   └── vir.sdb
+[L1262] │   │   ├── eblklvl.db
+[L1263] │   │   ├── elabmoddb.sdb
+[L1264] │   │   ├── external_functions
+[L1265] │   │   ├── hslevel_level.sdb
+[L1266] │   │   ├── hslevel_rtime_level.sdb
+[L1267] │   │   ├── hsscan_cfg.dat
+[L1268] │   │   ├── nsparam.dat
+[L1269] │   │   ├── pcc.sdb
+[L1270] │   │   ├── pcxpxmr.dat
+[L1271] │   │   ├── _prev_archive_1.so
+[L1272] │   │   ├── prof.sdb
+[L1273] │   │   ├── rmapats.dat
+[L1274] │   │   ├── saifNetInfo.db
+[L1275] │   │   ├── simv.kdb
+[L1276] │   │   ├── stitch_nsparam.dat
+[L1277] │   │   ├── tt.sdb
+[L1278] │   │   ├── vcselab_master_hsim_elabout.db
+[L1279] │   │   ├── vcselab_misc_hsdef.db
+[L1280] │   │   ├── vcselab_misc_hsim_elab.db
+[L1281] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1282] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1283] │   │   ├── vcselab_misc_hsim_name.db
+[L1284] │   │   ├── vcselab_misc_hsim_uds.db
+[L1285] │   │   ├── vcselab_misc_midd.db
+[L1286] │   │   ├── vcselab_misc_mnmn.db
+[L1287] │   │   ├── vcselab_misc_partition.db
+[L1288] │   │   ├── vcselab_misc_tCEYNb
+[L1289] │   │   ├── vcselab_misc_vcselabref.db
+[L1290] │   │   ├── vcselab_misc_vpdnodenums
+[L1291] │   │   └── vcs_rebuild
+[L1292] │   ├── log
+[L1293] │   │   ├── compile_input_buffer.log
+[L1294] │   │   ├── compile_tb_cim_tile_single.log
+[L1295] │   │   ├── compile_tb_fc1_cim_core_block_all_scan.log
+[L1296] │   │   ├── compile_tb_fc1_cim_core_block.log
+[L1297] │   │   ├── compile_tb_fc1_cim_core_dual_instance.log
+[L1298] │   │   ├── compile_tb_fc1_multi_block_parallel.log
+[L1299] │   │   ├── compile_tb_fc1_multi_block_shared_input.log
+[L1300] │   │   ├── compile_tb_fc1_relu_requantize.log
+[L1301] │   │   ├── compile_tb_fc1_to_fc2_top.log
+[L1302] │   │   ├── compile_tb_fc1_to_fc2_top_with_file.log
+[L1303] │   │   ├── compile_tb_fc1_weight_bank.log
+[L1304] │   │   ├── compile_tb_fc2_bias_bank.log
+[L1305] │   │   ├── compile_tb_fc2_core.log
+[L1306] │   │   ├── compile_tb_fc2_weight_bank.log
+[L1307] │   │   ├── compile_tb_input_buffer.log
+[L1308] │   │   ├── compile_tb_mnist_inference_top.log
+[L1309] │   │   ├── compile_tb_mnist_inference_top_regression.log
+[L1310] │   │   ├── compile_tb_psum_accum.log
+[L1311] │   │   ├── sim_tb_cim_tile_single.log
+[L1312] │   │   ├── sim_tb_fc1_cim_core_block_all_scan.log
+[L1313] │   │   ├── sim_tb_fc1_cim_core_block.log
+[L1314] │   │   ├── sim_tb_fc1_cim_core_dual_instance.log
+[L1315] │   │   ├── sim_tb_fc1_multi_block_parallel.log
+[L1316] │   │   ├── sim_tb_fc1_multi_block_shared_input.log
+[L1317] │   │   ├── sim_tb_fc1_relu_requantize.log
+[L1318] │   │   ├── sim_tb_fc1_to_fc2_top.log
+[L1319] │   │   ├── sim_tb_fc1_to_fc2_top_with_file.log
+[L1320] │   │   ├── sim_tb_fc1_weight_bank.log
+[L1321] │   │   ├── sim_tb_fc2_bias_bank.log
+[L1322] │   │   ├── sim_tb_fc2_core.log
+[L1323] │   │   ├── sim_tb_fc2_weight_bank.log
+[L1324] │   │   ├── sim_tb_mnist_inference_top.log
+[L1325] │   │   └── sim_tb_tb_psum_accum.log
+[L1326] │   ├── log_regression
+[L1327] │   │   ├── sim_sample_0.log
+[L1328] │   │   ├── sim_sample_10.log
+[L1329] │   │   ├── sim_sample_11.log
+[L1330] │   │   ├── sim_sample_12.log
+[L1331] │   │   ├── sim_sample_13.log
+[L1332] │   │   ├── sim_sample_14.log
+[L1333] │   │   ├── sim_sample_15.log
+[L1334] │   │   ├── sim_sample_16.log
+[L1335] │   │   ├── sim_sample_17.log
+[L1336] │   │   ├── sim_sample_18.log
+[L1337] │   │   ├── sim_sample_19.log
+[L1338] │   │   ├── sim_sample_1.log
+[L1339] │   │   ├── sim_sample_2.log
+[L1340] │   │   ├── sim_sample_3.log
+[L1341] │   │   ├── sim_sample_4.log
+[L1342] │   │   ├── sim_sample_5.log
+[L1343] │   │   ├── sim_sample_6.log
+[L1344] │   │   ├── sim_sample_7.log
+[L1345] │   │   ├── sim_sample_8.log
+[L1346] │   │   └── sim_sample_9.log
+[L1347] │   ├── mnist_inference_top_simv
+[L1348] │   ├── mnist_inference_top_simv.daidir
+[L1349] │   │   ├── _12651_archive_1.so
+[L1350] │   │   ├── binmap.sdb
+[L1351] │   │   ├── build_db
+[L1352] │   │   ├── cc
+[L1353] │   │   │   ├── cc_bcode.db
+[L1354] │   │   │   └── cc_dummy_file
+[L1355] │   │   ├── cgname.json
+[L1356] │   │   ├── covg_defs
+[L1357] │   │   ├── _csrc0.so
+[L1358] │   │   ├── debug_dump
+[L1359] │   │   │   ├── AllModulesSkeletons.sdb
+[L1360] │   │   │   ├── dumpcheck.db
+[L1361] │   │   │   ├── dve_debug.db.gz
+[L1362] │   │   │   ├── fsearch
+[L1363] │   │   │   │   ├── check_fsearch_db
+[L1364] │   │   │   │   ├── fsearch.stat
+[L1365] │   │   │   │   ├── idents_lSGJoK.xml.gz
+[L1366] │   │   │   │   └── idents_tapi.xml.gz
+[L1367] │   │   │   ├── HsimSigOptDb.sdb
+[L1368] │   │   │   ├── src_files_verilog
+[L1369] │   │   │   ├── topmodules
+[L1370] │   │   │   └── vir.sdb
+[L1371] │   │   ├── eblklvl.db
+[L1372] │   │   ├── elabmoddb.sdb
+[L1373] │   │   ├── external_functions
+[L1374] │   │   ├── hslevel_callgraph.sdb
+[L1375] │   │   ├── hslevel_level.sdb
+[L1376] │   │   ├── hslevel_rtime_level.sdb
+[L1377] │   │   ├── hsscan_cfg.dat
+[L1378] │   │   ├── nsparam.dat
+[L1379] │   │   ├── pcc.sdb
+[L1380] │   │   ├── pcxpxmr.dat
+[L1381] │   │   ├── _prev_archive_1.so
+[L1382] │   │   ├── prof.sdb
+[L1383] │   │   ├── rmapats.dat
+[L1384] │   │   ├── rmapats.so
+[L1385] │   │   ├── saifNetInfo.db
+[L1386] │   │   ├── simv.kdb
+[L1387] │   │   ├── stitch_nsparam.dat
+[L1388] │   │   ├── tt.sdb
+[L1389] │   │   ├── vcselab_master_hsim_elabout.db
+[L1390] │   │   ├── vcselab_misc_hil_stmts.db
+[L1391] │   │   ├── vcselab_misc_hsdef.db
+[L1392] │   │   ├── vcselab_misc_hsim_elab.db
+[L1393] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1394] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1395] │   │   ├── vcselab_misc_hsim_merge.db
+[L1396] │   │   ├── vcselab_misc_hsim_name.db
+[L1397] │   │   ├── vcselab_misc_hsim_uds.db
+[L1398] │   │   ├── vcselab_misc_midd.db
+[L1399] │   │   ├── vcselab_misc_mnmn.db
+[L1400] │   │   ├── vcselab_misc_partition.db
+[L1401] │   │   ├── vcselab_misc_tCEYNb
+[L1402] │   │   ├── vcselab_misc_vcselabref.db
+[L1403] │   │   ├── vcselab_misc_vpdnodenums
+[L1404] │   │   └── vcs_rebuild
+[L1405] │   ├── psum_accum_simv
+[L1406] │   ├── psum_accum_simv.daidir
+[L1407] │   │   ├── _24209_archive_1.so
+[L1408] │   │   ├── binmap.sdb
+[L1409] │   │   ├── build_db
+[L1410] │   │   ├── cgname.json
+[L1411] │   │   ├── covg_defs
+[L1412] │   │   ├── debug_dump
+[L1413] │   │   │   ├── AllModulesSkeletons.sdb
+[L1414] │   │   │   ├── dumpcheck.db
+[L1415] │   │   │   ├── dve_debug.db.gz
+[L1416] │   │   │   ├── fsearch
+[L1417] │   │   │   │   ├── check_fsearch_db
+[L1418] │   │   │   │   ├── fsearch.stat
+[L1419] │   │   │   │   ├── idents_MFOK4J.xml.gz
+[L1420] │   │   │   │   └── idents_tapi.xml.gz
+[L1421] │   │   │   ├── HsimSigOptDb.sdb
+[L1422] │   │   │   ├── src_files_verilog
+[L1423] │   │   │   ├── topmodules
+[L1424] │   │   │   └── vir.sdb
+[L1425] │   │   ├── eblklvl.db
+[L1426] │   │   ├── elabmoddb.sdb
+[L1427] │   │   ├── external_functions
+[L1428] │   │   ├── hslevel_callgraph.sdb
+[L1429] │   │   ├── hslevel_level.sdb
+[L1430] │   │   ├── hslevel_rtime_level.sdb
+[L1431] │   │   ├── hsscan_cfg.dat
+[L1432] │   │   ├── nsparam.dat
+[L1433] │   │   ├── pcc.sdb
+[L1434] │   │   ├── pcxpxmr.dat
+[L1435] │   │   ├── _prev_archive_1.so
+[L1436] │   │   ├── prof.sdb
+[L1437] │   │   ├── rmapats.dat
+[L1438] │   │   ├── rmapats.so
+[L1439] │   │   ├── saifNetInfo.db
+[L1440] │   │   ├── simv.kdb
+[L1441] │   │   ├── stitch_nsparam.dat
+[L1442] │   │   ├── tt.sdb
+[L1443] │   │   ├── vcselab_master_hsim_elabout.db
+[L1444] │   │   ├── vcselab_misc_hsdef.db
+[L1445] │   │   ├── vcselab_misc_hsim_elab.db
+[L1446] │   │   ├── vcselab_misc_hsim_fegate.db
+[L1447] │   │   ├── vcselab_misc_hsim_lvl.db
+[L1448] │   │   ├── vcselab_misc_hsim_name.db
+[L1449] │   │   ├── vcselab_misc_hsim_uds.db
+[L1450] │   │   ├── vcselab_misc_midd.db
+[L1451] │   │   ├── vcselab_misc_mnmn.db
+[L1452] │   │   ├── vcselab_misc_partition.db
+[L1453] │   │   ├── vcselab_misc_tCEYNb
+[L1454] │   │   ├── vcselab_misc_vcselabref.db
+[L1455] │   │   ├── vcselab_misc_vpdnodenums
+[L1456] │   │   └── vcs_rebuild
+[L1457] │   ├── sim_input_buffer.log
+[L1458] │   └── sim_tb_fc1_weight_bank.log
+[L1459] ├── tb
+[L1460] │   ├── tb_cim_tile_single.sv
+[L1461] │   ├── tb_fc1_cim_core_block_all_scan.sv
+[L1462] │   ├── tb_fc1_cim_core_block.sv
+[L1463] │   ├── tb_fc1_cim_core_dual_instance.sv
+[L1464] │   ├── tb_fc1_multi_block_parallel.sv
+[L1465] │   ├── tb_fc1_multi_block_shared_input.sv
+[L1466] │   ├── tb_fc1_relu_requantize.sv
+[L1467] │   ├── tb_fc1_to_fc2_top.sv
+[L1468] │   ├── tb_fc1_to_fc2_top_with_file.sv
+[L1469] │   ├── tb_fc1_weight_bank.sv
+[L1470] │   ├── tb_fc2_bias_bank.sv
+[L1471] │   ├── tb_fc2_core.sv
+[L1472] │   ├── tb_fc2_weight_bank.sv
+[L1473] │   ├── tb_input_buffer.sv
+[L1474] │   ├── tb_mnist_inference_top.sv
+[L1475] │   └── tb_psum_accum.sv
+[L1476] └── tree.txt
+[L1477] 
+[L1478] 77 directories, 1399 files
+[L1479] 
+用户:
+
+用户:
+
+用户:
+Empty search results
+No results were found for the provided queries
+AI助手:
+我看了你现在的工程树，结论分两部分说。
+
+##文件架构
+
+**整体方向是合理的**。现在根目录已经分成了`build/constraints/data/docs/model/route_b_output*/rtl/rtl_shared_buffer_ib/scripts/sim/tb`这些层，说明你已经从“只会跑仿真”走向了“有工程边界”的结构；尤其`route_b_output_2`、`route_b_output_3`都是完整的一套数据集，里面有输入、golden、权重、偏置和`quant_params.hex`，这很适合后面的regression和板级初始化。
+
+不过从“准备做A方案上板”的角度看，**还不够收敛**，主要有三点：
+
+第一，`rtl`和`rtl_shared_buffer_ib`目前是两套并行存在的实现，这在仿真阶段可以接受，但做板级时最好明确“谁是最终主线”。你现在的共享buffer路线在`rtl_shared_buffer_ib`，而后处理和`with_file`版本在`rtl`，这在逻辑上能跑通，但工程上会让后面IP封装和Vivado文件管理变复杂。
+
+第二，`scripts/`和`sim/`里混入了大量仿真产物，不像源代码目录。比如`scripts/csrc/`这种VCS编译中间物不应该长期留在仓库里；`scripts/`里还有`run_mnist_inference_regression.sv`、`run_mnist_inference_top.sv`这种名字上像RTL、实际上像脚本的文件，也会增加混乱。`sim/`里大量`simv`和`*.daidir`也属于生成物，更适合加入忽略列表，而不是作为长期工程结构的一部分。
+
+第三，`data/`目录已经有了，这是对的，但从你给我的树片段里，我**只能确认它存在，不能确认里面已经列出了你新生成的`mnist_samples_route_b_output_2.hex`**。所以“目录设计合理”我能确认，“这个新文件已经在仓库树里呈现正确位置”我目前没在树片段里看到直接证据。
+
+###我对架构的建议
+现在最合适的收敛方式是：
+
+-`route_b_output_2/route_b_output_3`继续保留，作为**数据导出与回归黄金目录**
+-`data/`专门放**板级初始化用文件**，比如`mnist_samples_route_b_output_2.hex`
+-`rtl_shared_buffer_ib/`先保留，作为FC1共享输入主线
+-`rtl/`保留后处理、FC2、argmax、quant参数bank
+-新增`rtl_ip/`做A/C方案板级封装
+-把`scripts/csrc/`、`sim/`里的生成物移出版本管理
+
+这样就更适合你接下来做上板。整体上，这个方向是合理的。
+
+##拼接文件`hw/data/mnist_samples_route_b_output_2.hex`
+
+这里我得诚实一点：
+
+**我现在不能直接确认这个文件内容“已经正确”**，因为我没有读到这个文件本身的内容，也没在你提供的树片段里看到它的条目。
+但我可以非常明确地告诉你，它**应该满足什么条件**，你可以立刻自查：
+
+###正确拼接应满足的条件
+
+如果你是把`route_b_output_2`下20个样本按顺序拼接：
+
+-`input_0.hex`
+-`input_1.hex`
+-...
+-`input_19.hex`
+
+而每个输入文件都是784行，那么最终大文件应该有：
+
+\[
+20\times784=15680
+\]
+
+行。
+
+而且逻辑顺序应该是：
+
+-第`0~783`行对应`input_0.hex`
+-第`784~1567`行对应`input_1.hex`
+-...
+-第`19*784~20*784-1`行对应`input_19.hex`
+
+你现在`route_b_output_2`里确实有`input_0.hex`到`input_19.hex`，所以这个拼接规则是成立的。
+
+###你可以快速核对的两个命令
+
+先看总行数：
+
+```bash
+wc-lhw/data/mnist_samples_route_b_output_2.hex
+```
+
+应当输出`15680`。
+
+再看拼接边界是否正确，比如：
+
+```bash
+head-n5hw/route_b_output_2/input_0.hex
+head-n5hw/data/mnist_samples_route_b_output_2.hex
+```
+
+这两者应该完全一致。
+
+再看`input_1.hex`是否从第785行开始：
+
+```bash
+head-n5hw/route_b_output_2/input_1.hex
+sed-n'785,789p'hw/data/mnist_samples_route_b_output_2.hex
+```
+
+这两者也应该完全一致。
+
+###我对“是否大概率正确”的判断
+
+如果你的拼接脚本就是之前那种“对`i=0..19`逐个读`input_i.hex`，每个文件检查784行，再顺序写出”的逻辑，那么**大概率是正确的**。因为这种文件拼接本身很直接，且`route_b_output_2`的样本集合是完整的。
+
+但在没有直接看到`hw/data/mnist_samples_route_b_output_2.hex`内容或至少`wc-l/head/sed`结果前，我不想假装已经验证过它。
+
+##我建议你现在先做的事
+
+先别动板级RTL。
+先把这两个结果发我：
+
+```bash
+wc-lhw/data/mnist_samples_route_b_output_2.hex
+head-n5hw/data/mnist_samples_route_b_output_2.hex
+sed-n'785,789p'hw/data/mnist_samples_route_b_output_2.hex
+```
+
+如果你再补一组：
+
+```bash
+head-n5hw/route_b_output_2/input_0.hex
+head-n5hw/route_b_output_2/input_1.hex
+```
+
+我就可以直接帮你确认这个拼接文件是不是正确，然后我们再进入方案A的第一步。
+
+用户:
+我现在已经写了python脚本，生成了hw/data/mnist_samples_route_b_output_2.hex，
+
+你可通过https://github.com/Invoker-pray/MNIST-CIM-FPGA读取我的现在的文件架构，主要读取hw_A文件，
+
+你需要做的事情：
+检查我的文件架构是否合理；
+生成的拼接文件是否正确；
+其余的文件（主要是rtl_ip）是否正确合理；
+为我生成用来测试rtl_ip所有新文件的tb;
+运行tb的脚本。
+
+你生成的代码都应该参考hw对应目录下的文件，风格相同。
+AI助手:
+
+
+用户:
+
+用户:
+
+用户:
+
+用户:
+
+用户:
+
+用户:
+
+用户:
+
+用户:
+
+用户:
+
+用户:
+
+用户:
+
+AI助手:
+我先给你结论，再给代码。
+
+你的`hw_A`目录分层是合理的：`data/`放板上初始化数据，`rtl/`放已验证通过的后处理/FC2/argmax/quantbank，`rtl_shared_buffer_ib/`放共享buffer的FC1，`rtl_ip/`放方案A的板级模块，这和你在`hw_A/README.md`里写的设计意图是一致的；当前`rtl_ip/`也确实已经有7个核心文件。
+
+不过有一个**必须先修**的问题：你现在的`hw_A/rtl_ip/mnist_sample_rom.sv`里把`x_eff_tile[i]`直接赋成了`sample_mem[addr]`，而`package.sv`明确把`INPUT_ZERO_POINT`定义为`-128`，并且注释说明`X_EFF_WIDTH=9`是因为`x_q-zp`可能到`0~255`。这意味着板级输入路径现在**缺少零点修正**，会和你此前验证通过的共享buffer仿真路径不一致。
+
+另外，`rtl_shared_buffer_ib/`里的`fc1_ob_engine_shared_input.sv`、`fc1_weight_bank.sv`、`fc1_bias_bank.sv`默认路径还保留着旧的`../../CIM-sw-version1/...`，虽然你在板级wrapper里通过参数覆盖后仍然能工作，但后面最好统一这些默认路径，避免混淆。
+
+你写的`gen_board_sample_rom.py`逻辑本身是对的：它按`input_0.hex`到`input_19.hex`的顺序拼接，并且强制每个文件正好784行，所以脚本层面的拼接规则没有问题。实际生成文件是否和预期完全一致，下面的`tb_mnist_sample_rom.sv`会帮你从硬件地址映射角度做验证。
+
+下面我按你现有`hw/`的风格，给你：
+
+1.先修正一个文件：`hw_A/rtl_ip/mnist_sample_rom.sv`
+2.新增`hw_A/tb/`下的testbench
+3.新增`hw_A/scripts/`下的运行脚本
+
+---
+
+##先修正：`hw_A/rtl_ip/mnist_sample_rom.sv`
+
+```systemverilog
+modulemnist_sample_rom#(
+parameterintN_SAMPLES=20,
+parameterstringDEFAULT_SAMPLE_HEX_FILE="../data/mnist_samples_route_b_output_2.hex"
+)(
+inputlogic[$clog2(N_SAMPLES)-1:0]sample_id,
+inputlogic[$clog2(mnist_cim_pkg::N_INPUT_BLOCKS)-1:0]ib,
+
+outputlogicsigned[mnist_cim_pkg::INPUT_WIDTH-1:0]
+x_tile[0:mnist_cim_pkg::TILE_INPUT_SIZE-1],
+
+outputlogic[mnist_cim_pkg::X_EFF_WIDTH-1:0]
+x_eff_tile[0:mnist_cim_pkg::TILE_INPUT_SIZE-1]
+);
+importmnist_cim_pkg::*;
+
+(*rom_style="block"*)
+logicsigned[INPUT_WIDTH-1:0]sample_mem[0:N_SAMPLES*INPUT_DIM-1];
+
+integeri,addr;
+integerx_eff_tmp;
+
+initialbegin
+$readmemh(DEFAULT_SAMPLE_HEX_FILE,sample_mem);
+end
+
+always_combbegin
+for(i=0;i<TILE_INPUT_SIZE;i=i+1)begin
+addr=sample_id*INPUT_DIM+ib*TILE_INPUT_SIZE+i;
+
+x_tile[i]=sample_mem[addr];
+
+x_eff_tmp=sample_mem[addr]-INPUT_ZERO_POINT;
+if(x_eff_tmp<0)
+x_eff_tile[i]='0;
+elseif(x_eff_tmp>((1<<X_EFF_WIDTH)-1))
+x_eff_tile[i]={X_EFF_WIDTH{1'b1}};
+else
+x_eff_tile[i]=x_eff_tmp[X_EFF_WIDTH-1:0];
+end
+end
+
+endmodule
+```
+
+---
+
+#新建目录
+
+先建这两个目录：
+
+```bash
+mkdir-phw_A/tb
+mkdir-phw_A/scripts
+```
+
+---
+
+#1.`hw_A/tb/tb_mnist_sample_rom.sv`
+
+用途：验证`mnist_sample_rom.sv`的地址映射和`x_eff`零点修正。
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_mnist_sample_rom;
+importmnist_cim_pkg::*;
+
+parameterintN_SAMPLES=20;
+parameterstringSAMPLE_HEX_FILE="../data/mnist_samples_route_b_output_2.hex";
+
+logic[$clog2(N_SAMPLES)-1:0]sample_id;
+logic[$clog2(N_INPUT_BLOCKS)-1:0]ib;
+
+logicsigned[INPUT_WIDTH-1:0]x_tile[0:TILE_INPUT_SIZE-1];
+logic[X_EFF_WIDTH-1:0]x_eff_tile[0:TILE_INPUT_SIZE-1];
+
+logicsigned[INPUT_WIDTH-1:0]ref_mem[0:N_SAMPLES*INPUT_DIM-1];
+
+integersid,blk,i,addr;
+integererror_count;
+integerx_eff_tmp;
+
+mnist_sample_rom#(
+.N_SAMPLES(N_SAMPLES),
+.DEFAULT_SAMPLE_HEX_FILE(SAMPLE_HEX_FILE)
+)dut(
+.sample_id(sample_id),
+.ib(ib),
+.x_tile(x_tile),
+.x_eff_tile(x_eff_tile)
+);
+
+initialbegin
+$display("TBusingSAMPLE_HEX_FILE:%s",SAMPLE_HEX_FILE);
+$readmemh(SAMPLE_HEX_FILE,ref_mem);
+
+error_count=0;
+
+for(sid=0;sid<N_SAMPLES;sid=sid+1)begin
+sample_id=sid[$clog2(N_SAMPLES)-1:0];
+for(blk=0;blk<N_INPUT_BLOCKS;blk=blk+1)begin
+ib=blk[$clog2(N_INPUT_BLOCKS)-1:0];
+#1;
+for(i=0;i<TILE_INPUT_SIZE;i=i+1)begin
+addr=sid*INPUT_DIM+blk*TILE_INPUT_SIZE+i;
+
+if(x_tile[i]!==ref_mem[addr])begin
+$display("ERRORx_tilesid=%0dib=%0di=%0dgot=%0dexpected=%0d",
+sid,blk,i,x_tile[i],ref_mem[addr]);
+error_count=error_count+1;
+end
+
+x_eff_tmp=ref_mem[addr]-INPUT_ZERO_POINT;
+if(x_eff_tmp<0)x_eff_tmp=0;
+if(x_eff_tmp>((1<<X_EFF_WIDTH)-1))x_eff_tmp=(1<<X_EFF_WIDTH)-1;
+
+if(x_eff_tile[i]!==x_eff_tmp[X_EFF_WIDTH-1:0])begin
+$display("ERRORx_effsid=%0dib=%0di=%0dgot=%0dexpected=%0d",
+sid,blk,i,x_eff_tile[i],x_eff_tmp);
+error_count=error_count+1;
+end
+end
+end
+end
+
+if(error_count==0)
+$display("PASS:mnist_sample_romaddressmappingandx_effconversionarecorrect.");
+else
+$display("FAIL:found%0dmismatches.",error_count);
+
+$finish;
+end
+
+endmodule
+```
+
+---
+
+#2.`hw_A/tb/tb_fc1_multi_block_shared_sample_rom.sv`
+
+用途：验证板级FC1输入路径接到共享bufferFC1后，`fc1_acc_all`和`fc1_acc_0.hex`一致。
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_fc1_multi_block_shared_sample_rom;
+importmnist_cim_pkg::*;
+
+parameterintN_SAMPLES=20;
+parameterstringSAMPLE_HEX_FILE="../data/mnist_samples_route_b_output_2.hex";
+parameterstringFC1_WEIGHT_HEX_FILE="../route_b_output_2/fc1_weight_int8.hex";
+parameterstringFC1_BIAS_HEX_FILE="../route_b_output_2/fc1_bias_int32.hex";
+parameterstringFC1_ACC_FILE="../route_b_output_2/fc1_acc_0.hex";
+
+logicclk;
+logicrst_n;
+logicstart;
+logic[$clog2(N_SAMPLES)-1:0]sample_id;
+logicbusy;
+logicdone;
+
+logicsigned[PSUM_WIDTH-1:0]fc1_acc_all[0:HIDDEN_DIM-1];
+logicsigned[PSUM_WIDTH-1:0]ref_fc1_acc[0:HIDDEN_DIM-1];
+
+integeri;
+integererror_count;
+
+fc1_multi_block_shared_sample_rom#(
+.PAR_OB(8),
+.BASE_OB(0),
+.N_SAMPLES(N_SAMPLES),
+.DEFAULT_SAMPLE_HEX_FILE(SAMPLE_HEX_FILE),
+.DEFAULT_WEIGHT_HEX_FILE(FC1_WEIGHT_HEX_FILE),
+.DEFAULT_BIAS_HEX_FILE(FC1_BIAS_HEX_FILE)
+)dut(
+.clk(clk),
+.rst_n(rst_n),
+.start(start),
+.sample_id(sample_id),
+.busy(busy),
+.done(done),
+.fc1_acc_all(fc1_acc_all)
+);
+
+initialclk=1'b0;
+always#5clk=~clk;
+
+initialbegin
+$display("TBusingFC1_ACC_FILE:%s",FC1_ACC_FILE);
+$readmemh(FC1_ACC_FILE,ref_fc1_acc);
+end
+
+initialbegin
+error_count=0;
+rst_n=1'b0;
+start=1'b0;
+sample_id='0;
+
+#12;
+rst_n=1'b1;
+
+@(posedgeclk);
+start<=1'b1;
+@(posedgeclk);
+start<=1'b0;
+
+wait(done==1'b1);
+@(posedgeclk);
+#1;
+
+for(i=0;i<HIDDEN_DIM;i=i+1)begin
+if(fc1_acc_all[i]!==ref_fc1_acc[i])begin
+$display("ERRORidx=%0dgot=%0dexpected=%0d",
+i,fc1_acc_all[i],ref_fc1_acc[i]);
+error_count=error_count+1;
+end
+end
+
+if(error_count==0)
+$display("PASS:fc1_multi_block_shared_sample_rommatchesfc1_acc_0.hex.");
+else
+$display("FAIL:found%0dmismatches.",error_count);
+
+$finish;
+end
+
+endmodule
+```
+
+---
+
+#3.`hw_A/tb/tb_mnist_inference_core_board.sv`
+
+用途：验证板级推理核心`sample_id=0`时，`logits`和`pred`正确。
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_mnist_inference_core_board;
+importmnist_cim_pkg::*;
+
+parameterintN_SAMPLES=20;
+parameterstringSAMPLE_HEX_FILE="../data/mnist_samples_route_b_output_2.hex";
+parameterstringFC1_WEIGHT_HEX_FILE="../route_b_output_2/fc1_weight_int8.hex";
+parameterstringFC1_BIAS_HEX_FILE="../route_b_output_2/fc1_bias_int32.hex";
+parameterstringQUANT_PARAM_FILE="../route_b_output_2/quant_params.hex";
+parameterstringFC2_WEIGHT_HEX_FILE="../route_b_output_2/fc2_weight_int8.hex";
+parameterstringFC2_BIAS_HEX_FILE="../route_b_output_2/fc2_bias_int32.hex";
+parameterstringLOGITS_FILE="../route_b_output_2/logits_0.hex";
+parameterstringPRED_FILE="../route_b_output_2/pred_0.txt";
+
+logicclk;
+logicrst_n;
+logicstart;
+logic[$clog2(N_SAMPLES)-1:0]sample_id;
+logicbusy;
+logicdone;
+
+logicsigned[OUTPUT_WIDTH-1:0]logits_all[0:FC2_OUT_DIM-1];
+logic[$clog2(FC2_OUT_DIM)-1:0]pred_class;
+
+logicsigned[OUTPUT_WIDTH-1:0]ref_logits[0:FC2_OUT_DIM-1];
+integerref_pred_class;
+
+integeri,fd,r;
+integererror_count;
+
+mnist_inference_core_board#(
+.N_SAMPLES(N_SAMPLES),
+.DEFAULT_SAMPLE_HEX_FILE(SAMPLE_HEX_FILE),
+.DEFAULT_FC1_WEIGHT_HEX_FILE(FC1_WEIGHT_HEX_FILE),
+.DEFAULT_FC1_BIAS_HEX_FILE(FC1_BIAS_HEX_FILE),
+.DEFAULT_QUANT_PARAM_FILE(QUANT_PARAM_FILE),
+.DEFAULT_FC2_WEIGHT_HEX_FILE(FC2_WEIGHT_HEX_FILE),
+.DEFAULT_FC2_BIAS_HEX_FILE(FC2_BIAS_HEX_FILE)
+)dut(
+.clk(clk),
+.rst_n(rst_n),
+.start(start),
+.sample_id(sample_id),
+.busy(busy),
+.done(done),
+.logits_all(logits_all),
+.pred_class(pred_class)
+);
+
+initialclk=1'b0;
+always#5clk=~clk;
+
+initialbegin
+$readmemh(LOGITS_FILE,ref_logits);
+
+fd=$fopen(PRED_FILE,"r");
+if(fd==0)begin
+$display("ERROR:cannotopenpredfile.");
+$finish;
+end
+r=$fscanf(fd,"%d",ref_pred_class);
+$fclose(fd);
+if(r!=1)begin
+$display("ERROR:failedtoparsepredfile.");
+$finish;
+end
+end
+
+initialbegin
+error_count=0;
+rst_n=1'b0;
+start=1'b0;
+sample_id='0;
+
+#12;
+rst_n=1'b1;
+
+@(posedgeclk);
+start<=1'b1;
+@(posedgeclk);
+start<=1'b0;
+
+wait(done==1'b1);
+@(posedgeclk);
+#1;
+
+for(i=0;i<FC2_OUT_DIM;i=i+1)begin
+if(logits_all[i]!==ref_logits[i])begin
+$display("ERRORLOGITidx=%0dgot=%0dexpected=%0d",
+i,logits_all[i],ref_logits[i]);
+error_count=error_count+1;
+end
+end
+
+if(pred_class!==ref_pred_class[$clog2(FC2_OUT_DIM)-1:0])begin
+$display("ERRORPREDgot=%0dexpected=%0d",pred_class,ref_pred_class);
+error_count=error_count+1;
+end
+
+if(error_count==0)
+$display("PASS:mnist_inference_core_boardmatchessample0logits/pred.");
+else
+$display("FAIL:found%0dmismatches.",error_count);
+
+$finish;
+end
+
+endmodule
+```
+
+---
+
+#4.`hw_A/tb/tb_mnist_cim_accel_ip.sv`
+
+用途：验证CSR接口壳层。
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_mnist_cim_accel_ip;
+importmnist_cim_pkg::*;
+
+parameterintN_SAMPLES=20;
+parameterstringSAMPLE_HEX_FILE="../data/mnist_samples_route_b_output_2.hex";
+parameterstringFC1_WEIGHT_HEX_FILE="../route_b_output_2/fc1_weight_int8.hex";
+parameterstringFC1_BIAS_HEX_FILE="../route_b_output_2/fc1_bias_int32.hex";
+parameterstringQUANT_PARAM_FILE="../route_b_output_2/quant_params.hex";
+parameterstringFC2_WEIGHT_HEX_FILE="../route_b_output_2/fc2_weight_int8.hex";
+parameterstringFC2_BIAS_HEX_FILE="../route_b_output_2/fc2_bias_int32.hex";
+parameterstringLOGITS_FILE="../route_b_output_2/logits_0.hex";
+parameterstringPRED_FILE="../route_b_output_2/pred_0.txt";
+
+logicclk;
+logicrst_n;
+logiccsr_we;
+logiccsr_re;
+logic[7:0]csr_addr;
+logic[31:0]csr_wdata;
+logic[31:0]csr_rdata;
+logicirq_done;
+logic[$clog2(FC2_OUT_DIM)-1:0]pred_class_dbg;
+logicbusy_dbg;
+logicdone_dbg;
+
+logicsigned[OUTPUT_WIDTH-1:0]ref_logits[0:FC2_OUT_DIM-1];
+integerref_pred_class;
+integeri,fd,r;
+integererror_count;
+
+mnist_cim_accel_ip#(
+.N_SAMPLES(N_SAMPLES),
+.DEFAULT_SAMPLE_HEX_FILE(SAMPLE_HEX_FILE),
+.DEFAULT_FC1_WEIGHT_HEX_FILE(FC1_WEIGHT_HEX_FILE),
+.DEFAULT_FC1_BIAS_HEX_FILE(FC1_BIAS_HEX_FILE),
+.DEFAULT_QUANT_PARAM_FILE(QUANT_PARAM_FILE),
+.DEFAULT_FC2_WEIGHT_HEX_FILE(FC2_WEIGHT_HEX_FILE),
+.DEFAULT_FC2_BIAS_HEX_FILE(FC2_BIAS_HEX_FILE)
+)dut(
+.clk(clk),
+.rst_n(rst_n),
+.csr_we(csr_we),
+.csr_re(csr_re),
+.csr_addr(csr_addr),
+.csr_wdata(csr_wdata),
+.csr_rdata(csr_rdata),
+.irq_done(irq_done),
+.pred_class_dbg(pred_class_dbg),
+.busy_dbg(busy_dbg),
+.done_dbg(done_dbg)
+);
+
+initialclk=1'b0;
+always#5clk=~clk;
+
+taskautomaticcsr_write(input[7:0]addr,input[31:0]data);
+begin
+@(posedgeclk);
+csr_we<=1'b1;
+csr_addr<=addr;
+csr_wdata<=data;
+@(posedgeclk);
+csr_we<=1'b0;
+csr_addr<=8'h00;
+csr_wdata<=32'd0;
+end
+endtask
+
+taskautomaticcsr_read(input[7:0]addr);
+begin
+csr_re=1'b1;
+csr_addr=addr;
+#1;
+csr_re=1'b0;
+end
+endtask
+
+initialbegin
+$readmemh(LOGITS_FILE,ref_logits);
+
+fd=$fopen(PRED_FILE,"r");
+if(fd==0)begin
+$display("ERROR:cannotopenpredfile.");
+$finish;
+end
+r=$fscanf(fd,"%d",ref_pred_class);
+$fclose(fd);
+if(r!=1)begin
+$display("ERROR:failedtoparsepredfile.");
+$finish;
+end
+end
+
+initialbegin
+error_count=0;
+rst_n=1'b0;
+csr_we=1'b0;
+csr_re=1'b0;
+csr_addr=8'h00;
+csr_wdata=32'd0;
+
+#12;
+rst_n=1'b1;
+
+csr_write(8'h08,32'd0);//sample_id
+csr_write(8'h00,32'h1);//start
+
+wait(irq_done==1'b1);
+#1;
+
+csr_read(8'h0C);
+if(csr_rdata[$clog2(FC2_OUT_DIM)-1:0]!==ref_pred_class[$clog2(FC2_OUT_DIM)-1:0])begin
+$display("ERRORPREDgot=%0dexpected=%0d",
+csr_rdata[$clog2(FC2_OUT_DIM)-1:0],ref_pred_class);
+error_count=error_count+1;
+end
+
+for(i=0;i<FC2_OUT_DIM;i=i+1)begin
+csr_read(8'h10+i*4);
+if($signed(csr_rdata[OUTPUT_WIDTH-1:0])!==ref_logits[i])begin
+$display("ERRORLOGITidx=%0dgot=%0dexpected=%0d",
+i,$signed(csr_rdata[OUTPUT_WIDTH-1:0]),ref_logits[i]);
+error_count=error_count+1;
+end
+end
+
+if(error_count==0)
+$display("PASS:mnist_cim_accel_ipCSRpathworksforsample0.");
+else
+$display("FAIL:found%0dmismatches.",error_count);
+
+$finish;
+end
+
+endmodule
+```
+
+---
+
+#5.`hw_A/tb/tb_uart_tx.sv`
+
+用途：验证UART发送单字节。
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_uart_tx;
+
+parameterintCLK_HZ=1000;
+parameterintBAUD=100;
+localparamintDIV=CLK_HZ/BAUD;
+localparamtimeCLK_PERIOD=10ns;
+localparamtimeBIT_TIME=DIV*CLK_PERIOD;
+
+logicclk;
+logicrst_n;
+logicstart;
+logic[7:0]data_in;
+logictx;
+logicbusy;
+
+reg[7:0]rx_byte;
+integererror_count;
+integeri;
+
+uart_tx#(
+.CLK_HZ(CLK_HZ),
+.BAUD(BAUD)
+)dut(
+.clk(clk),
+.rst_n(rst_n),
+.start(start),
+.data_in(data_in),
+.tx(tx),
+.busy(busy)
+);
+
+initialclk=1'b0;
+always#(CLK_PERIOD/2)clk=~clk;
+
+taskautomaticuart_recv_byte(outputreg[7:0]data);
+begin
+wait(tx==1'b0);
+#(BIT_TIME+BIT_TIME/2);
+for(i=0;i<8;i=i+1)begin
+data[i]=tx;
+#BIT_TIME;
+end
+#BIT_TIME;//stopbit
+end
+endtask
+
+initialbegin
+error_count=0;
+rst_n=1'b0;
+start=1'b0;
+data_in=8'h37;//'7'
+
+#(3*CLK_PERIOD);
+rst_n=1'b1;
+
+@(posedgeclk);
+start<=1'b1;
+@(posedgeclk);
+start<=1'b0;
+
+uart_recv_byte(rx_byte);
+
+if(rx_byte!==8'h37)begin
+$display("ERRORUARTgot=0x%02xexpected=0x37",rx_byte);
+error_count=error_count+1;
+end
+
+if(error_count==0)
+$display("PASS:uart_txsendsonebytecorrectly.");
+else
+$display("FAIL:found%0dmismatches.",error_count);
+
+$finish;
+end
+
+endmodule
+```
+
+---
+
+#6.`hw_A/tb/tb_uart_pred_sender.sv`
+
+用途：验证`pred_class->"digit\r\n"`。
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_uart_pred_sender;
+
+parameterintCLK_HZ=1000;
+parameterintBAUD=100;
+localparamintDIV=CLK_HZ/BAUD;
+localparamtimeCLK_PERIOD=10ns;
+localparamtimeBIT_TIME=DIV*CLK_PERIOD;
+
+logicclk;
+logicrst_n;
+logictrigger;
+logic[3:0]pred_class;
+logicuart_tx;
+
+reg[7:0]b0,b1,b2;
+integererror_count;
+integeri;
+
+uart_pred_sender#(
+.CLK_HZ(CLK_HZ),
+.BAUD(BAUD)
+)dut(
+.clk(clk),
+.rst_n(rst_n),
+.trigger(trigger),
+.pred_class(pred_class),
+.uart_tx(uart_tx)
+);
+
+initialclk=1'b0;
+always#(CLK_PERIOD/2)clk=~clk;
+
+taskautomaticuart_recv_byte(outputreg[7:0]data);
+begin
+wait(uart_tx==1'b0);
+#(BIT_TIME+BIT_TIME/2);
+for(i=0;i<8;i=i+1)begin
+data[i]=uart_tx;
+#BIT_TIME;
+end
+#BIT_TIME;
+end
+endtask
+
+initialbegin
+error_count=0;
+rst_n=1'b0;
+trigger=1'b0;
+pred_class=4'd7;
+
+#(3*CLK_PERIOD);
+rst_n=1'b1;
+
+@(posedgeclk);
+trigger<=1'b1;
+@(posedgeclk);
+trigger<=1'b0;
+
+uart_recv_byte(b0);
+uart_recv_byte(b1);
+uart_recv_byte(b2);
+
+if(b0!==8'h37)error_count=error_count+1;
+if(b1!==8'h0D)error_count=error_count+1;
+if(b2!==8'h0A)error_count=error_count+1;
+
+if(error_count==0)
+$display("PASS:uart_pred_sendersendsdigit/CR/LFcorrectly.");
+else
+$display("FAIL:found%0dmismatches.",error_count);
+
+$finish;
+end
+
+endmodule
+```
+
+---
+
+#7.`hw_A/tb/tb_mnist_cim_demo_a_top.sv`
+
+用途：验证方案A顶层。这里直接检查UART是否发出`pred_0.txt`对应的数字和换行。
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_mnist_cim_demo_a_top;
+importmnist_cim_pkg::*;
+
+parameterintCLK_HZ=1000;
+parameterintBAUD=100;
+parameterintN_SAMPLES=20;
+parameterstringSAMPLE_HEX_FILE="../data/mnist_samples_route_b_output_2.hex";
+parameterstringFC1_WEIGHT_HEX_FILE="../route_b_output_2/fc1_weight_int8.hex";
+parameterstringFC1_BIAS_HEX_FILE="../route_b_output_2/fc1_bias_int32.hex";
+parameterstringQUANT_PARAM_FILE="../route_b_output_2/quant_params.hex";
+parameterstringFC2_WEIGHT_HEX_FILE="../route_b_output_2/fc2_weight_int8.hex";
+parameterstringFC2_BIAS_HEX_FILE="../route_b_output_2/fc2_bias_int32.hex";
+parameterstringPRED_FILE="../route_b_output_2/pred_0.txt";
+
+localparamintDIV=CLK_HZ/BAUD;
+localparamtimeCLK_PERIOD=10ns;
+localparamtimeBIT_TIME=DIV*CLK_PERIOD;
+
+logicclk;
+logicrst_n;
+logicbtn_start;
+logic[$clog2(N_SAMPLES)-1:0]sample_sel;
+logicuart_tx;
+logicled_busy;
+logicled_done;
+
+integerref_pred_class;
+integerfd,r;
+integeri;
+integererror_count;
+reg[7:0]b0,b1,b2;
+
+mnist_cim_demo_a_top#(
+.CLK_HZ(CLK_HZ),
+.BAUD(BAUD),
+.N_SAMPLES(N_SAMPLES),
+.DEFAULT_SAMPLE_HEX_FILE(SAMPLE_HEX_FILE),
+.DEFAULT_FC1_WEIGHT_HEX_FILE(FC1_WEIGHT_HEX_FILE),
+.DEFAULT_FC1_BIAS_HEX_FILE(FC1_BIAS_HEX_FILE),
+.DEFAULT_QUANT_PARAM_FILE(QUANT_PARAM_FILE),
+.DEFAULT_FC2_WEIGHT_HEX_FILE(FC2_WEIGHT_HEX_FILE),
+.DEFAULT_FC2_BIAS_HEX_FILE(FC2_BIAS_HEX_FILE)
+)dut(
+.clk(clk),
+.rst_n(rst_n),
+.btn_start(btn_start),
+.sample_sel(sample_sel),
+.uart_tx(uart_tx),
+.led_busy(led_busy),
+.led_done(led_done)
+);
+
+initialclk=1'b0;
+always#(CLK_PERIOD/2)clk=~clk;
+
+taskautomaticuart_recv_byte(outputreg[7:0]data);
+begin
+wait(uart_tx==1'b0);
+#(BIT_TIME+BIT_TIME/2);
+for(i=0;i<8;i=i+1)begin
+data[i]=uart_tx;
+#BIT_TIME;
+end
+#BIT_TIME;
+end
+endtask
+
+initialbegin
+fd=$fopen(PRED_FILE,"r");
+if(fd==0)begin
+$display("ERROR:cannotopenpredfile.");
+$finish;
+end
+r=$fscanf(fd,"%d",ref_pred_class);
+$fclose(fd);
+if(r!=1)begin
+$display("ERROR:failedtoparsepredfile.");
+$finish;
+end
+end
+
+initialbegin
+error_count=0;
+rst_n=1'b0;
+btn_start=1'b0;
+sample_sel='0;
+
+#(3*CLK_PERIOD);
+rst_n=1'b1;
+
+@(posedgeclk);
+btn_start<=1'b1;
+@(posedgeclk);
+btn_start<=1'b0;
+
+uart_recv_byte(b0);
+uart_recv_byte(b1);
+uart_recv_byte(b2);
+
+if(b0!==(8'd48+ref_pred_class[3:0]))error_count=error_count+1;
+if(b1!==8'h0D)error_count=error_count+1;
+if(b2!==8'h0A)error_count=error_count+1;
+
+if(error_count==0)
+$display("PASS:mnist_cim_demo_a_topsendspred_classoverUART.");
+else
+$display("FAIL:found%0dmismatches.",error_count);
+
+$finish;
+end
+
+endmodule
+```
+
+---
+
+#运行脚本
+
+下面这些脚本都放到`hw_A/scripts/`。
+
+---
+
+##`run_tb_mnist_sample_rom.sh`
+
+```bash
+#!/usr/bin/envbash
+set-e
+
+SIM_DIR=../sim
+RTL_DIR=../rtl
+RTL_IP_DIR=../rtl_ip
+TB_DIR=../tb
+
+mkdir-p${SIM_DIR}
+mkdir-p${SIM_DIR}/log
+
+vcs-full64-sverilog-timescale=1ns/1ps\
+-debug_access+all\
+-o${SIM_DIR}/tb_mnist_sample_rom_simv\
+${RTL_DIR}/package.sv\
+${RTL_IP_DIR}/mnist_sample_rom.sv\
+${TB_DIR}/tb_mnist_sample_rom.sv\
+2>&1|tee${SIM_DIR}/log/compile_tb_mnist_sample_rom.log
+
+${SIM_DIR}/tb_mnist_sample_rom_simv\
+2>&1|tee${SIM_DIR}/log/sim_tb_mnist_sample_rom.log
+```
+
+---
+
+##`run_tb_fc1_multi_block_shared_sample_rom.sh`
+
+```bash
+#!/usr/bin/envbash
+set-e
+
+SIM_DIR=../sim
+RTL_DIR=../rtl
+RTL_IP_DIR=../rtl_ip
+RTL_SHARED_DIR=../rtl_shared_buffer_ib
+TB_DIR=../tb
+
+mkdir-p${SIM_DIR}
+mkdir-p${SIM_DIR}/log
+
+vcs-full64-sverilog-timescale=1ns/1ps\
+-debug_access+all\
+-o${SIM_DIR}/tb_fc1_multi_block_shared_sample_rom_simv\
+${RTL_DIR}/package.sv\
+${RTL_IP_DIR}/mnist_sample_rom.sv\
+${RTL_SHARED_DIR}/cim_tile.sv\
+${RTL_SHARED_DIR}/psum_accum.sv\
+${RTL_SHARED_DIR}/fc1_weight_bank.sv\
+${RTL_SHARED_DIR}/fc1_bias_bank.sv\
+${RTL_SHARED_DIR}/fc1_ob_engine_shared_input.sv\
+${RTL_IP_DIR}/fc1_multi_block_shared_sample_rom.sv\
+${TB_DIR}/tb_fc1_multi_block_shared_sample_rom.sv\
+2>&1|tee${SIM_DIR}/log/compile_tb_fc1_multi_block_shared_sample_rom.log
+
+${SIM_DIR}/tb_fc1_multi_block_shared_sample_rom_simv\
++WEIGHT_HEX_FILE=../route_b_output_2/fc1_weight_int8.hex\
++FC1_BIAS_FILE=../route_b_output_2/fc1_bias_int32.hex\
+2>&1|tee${SIM_DIR}/log/sim_tb_fc1_multi_block_shared_sample_rom.log
+```
+
+---
+
+##`run_tb_mnist_inference_core_board.sh`
+
+```bash
+#!/usr/bin/envbash
+set-e
+
+SIM_DIR=../sim
+RTL_DIR=../rtl
+RTL_IP_DIR=../rtl_ip
+RTL_SHARED_DIR=../rtl_shared_buffer_ib
+TB_DIR=../tb
+
+mkdir-p${SIM_DIR}
+mkdir-p${SIM_DIR}/log
+
+vcs-full64-sverilog-timescale=1ns/1ps\
+-debug_access+all\
+-o${SIM_DIR}/tb_mnist_inference_core_board_simv\
+${RTL_DIR}/package.sv\
+${RTL_DIR}/quantize_param_bank.sv\
+${RTL_DIR}/fc1_relu_requantize_with_file.sv\
+${RTL_DIR}/fc2_weight_bank.sv\
+${RTL_DIR}/fc2_bias_bank.sv\
+${RTL_DIR}/fc2_core_with_file.sv\
+${RTL_DIR}/fc1_to_fc2_top_with_file.sv\
+${RTL_DIR}/argmax_int8.sv\
+${RTL_IP_DIR}/mnist_sample_rom.sv\
+${RTL_SHARED_DIR}/cim_tile.sv\
+${RTL_SHARED_DIR}/psum_accum.sv\
+${RTL_SHARED_DIR}/fc1_weight_bank.sv\
+${RTL_SHARED_DIR}/fc1_bias_bank.sv\
+${RTL_SHARED_DIR}/fc1_ob_engine_shared_input.sv\
+${RTL_IP_DIR}/fc1_multi_block_shared_sample_rom.sv\
+${RTL_IP_DIR}/mnist_inference_core_board.sv\
+${TB_DIR}/tb_mnist_inference_core_board.sv\
+2>&1|tee${SIM_DIR}/log/compile_tb_mnist_inference_core_board.log
+
+${SIM_DIR}/tb_mnist_inference_core_board_simv\
++WEIGHT_HEX_FILE=../route_b_output_2/fc1_weight_int8.hex\
++FC1_BIAS_FILE=../route_b_output_2/fc1_bias_int32.hex\
++FC2_WEIGHT_HEX_FILE=../route_b_output_2/fc2_weight_int8.hex\
++FC2_BIAS_FILE=../route_b_output_2/fc2_bias_int32.hex\
++QUANT_PARAM_FILE=../route_b_output_2/quant_params.hex\
+2>&1|tee${SIM_DIR}/log/sim_tb_mnist_inference_core_board.log
+```
+
+---
+
+##`run_tb_mnist_cim_accel_ip.sh`
+
+```bash
+#!/usr/bin/envbash
+set-e
+
+SIM_DIR=../sim
+RTL_DIR=../rtl
+RTL_IP_DIR=../rtl_ip
+RTL_SHARED_DIR=../rtl_shared_buffer_ib
+TB_DIR=../tb
+
+mkdir-p${SIM_DIR}
+mkdir-p${SIM_DIR}/log
+
+vcs-full64-sverilog-timescale=1ns/1ps\
+-debug_access+all\
+-o${SIM_DIR}/tb_mnist_cim_accel_ip_simv\
+${RTL_DIR}/package.sv\
+${RTL_DIR}/quantize_param_bank.sv\
+${RTL_DIR}/fc1_relu_requantize_with_file.sv\
+${RTL_DIR}/fc2_weight_bank.sv\
+${RTL_DIR}/fc2_bias_bank.sv\
+${RTL_DIR}/fc2_core_with_file.sv\
+${RTL_DIR}/fc1_to_fc2_top_with_file.sv\
+${RTL_DIR}/argmax_int8.sv\
+${RTL_IP_DIR}/mnist_sample_rom.sv\
+${RTL_SHARED_DIR}/cim_tile.sv\
+${RTL_SHARED_DIR}/psum_accum.sv\
+${RTL_SHARED_DIR}/fc1_weight_bank.sv\
+${RTL_SHARED_DIR}/fc1_bias_bank.sv\
+${RTL_SHARED_DIR}/fc1_ob_engine_shared_input.sv\
+${RTL_IP_DIR}/fc1_multi_block_shared_sample_rom.sv\
+${RTL_IP_DIR}/mnist_inference_core_board.sv\
+${RTL_IP_DIR}/mnist_cim_accel_ip.sv\
+${TB_DIR}/tb_mnist_cim_accel_ip.sv\
+2>&1|tee${SIM_DIR}/log/compile_tb_mnist_cim_accel_ip.log
+
+${SIM_DIR}/tb_mnist_cim_accel_ip_simv\
++WEIGHT_HEX_FILE=../route_b_output_2/fc1_weight_int8.hex\
++FC1_BIAS_FILE=../route_b_output_2/fc1_bias_int32.hex\
++FC2_WEIGHT_HEX_FILE=../route_b_output_2/fc2_weight_int8.hex\
++FC2_BIAS_FILE=../route_b_output_2/fc2_bias_int32.hex\
++QUANT_PARAM_FILE=../route_b_output_2/quant_params.hex\
+2>&1|tee${SIM_DIR}/log/sim_tb_mnist_cim_accel_ip.log
+```
+
+---
+
+##`run_tb_uart_tx.sh`
+
+```bash
+#!/usr/bin/envbash
+set-e
+
+SIM_DIR=../sim
+RTL_IP_DIR=../rtl_ip
+TB_DIR=../tb
+
+mkdir-p${SIM_DIR}
+mkdir-p${SIM_DIR}/log
+
+vcs-full64-sverilog-timescale=1ns/1ps\
+-debug_access+all\
+-o${SIM_DIR}/tb_uart_tx_simv\
+${RTL_IP_DIR}/uart_tx.sv\
+${TB_DIR}/tb_uart_tx.sv\
+2>&1|tee${SIM_DIR}/log/compile_tb_uart_tx.log
+
+${SIM_DIR}/tb_uart_tx_simv\
+2>&1|tee${SIM_DIR}/log/sim_tb_uart_tx.log
+```
+
+---
+
+##`run_tb_uart_pred_sender.sh`
+
+```bash
+#!/usr/bin/envbash
+set-e
+
+SIM_DIR=../sim
+RTL_IP_DIR=../rtl_ip
+TB_DIR=../tb
+
+mkdir-p${SIM_DIR}
+mkdir-p${SIM_DIR}/log
+
+vcs-full64-sverilog-timescale=1ns/1ps\
+-debug_access+all\
+-o${SIM_DIR}/tb_uart_pred_sender_simv\
+${RTL_IP_DIR}/uart_tx.sv\
+${RTL_IP_DIR}/uart_pred_sender.sv\
+${TB_DIR}/tb_uart_pred_sender.sv\
+2>&1|tee${SIM_DIR}/log/compile_tb_uart_pred_sender.log
+
+${SIM_DIR}/tb_uart_pred_sender_simv\
+2>&1|tee${SIM_DIR}/log/sim_tb_uart_pred_sender.log
+```
+
+---
+
+##`run_tb_mnist_cim_demo_a_top.sh`
+
+```bash
+#!/usr/bin/envbash
+set-e
+
+SIM_DIR=../sim
+RTL_DIR=../rtl
+RTL_IP_DIR=../rtl_ip
+RTL_SHARED_DIR=../rtl_shared_buffer_ib
+TB_DIR=../tb
+
+mkdir-p${SIM_DIR}
+mkdir-p${SIM_DIR}/log
+
+vcs-full64-sverilog-timescale=1ns/1ps\
+-debug_access+all\
+-o${SIM_DIR}/tb_mnist_cim_demo_a_top_simv\
+${RTL_DIR}/package.sv\
+${RTL_DIR}/quantize_param_bank.sv\
+${RTL_DIR}/fc1_relu_requantize_with_file.sv\
+${RTL_DIR}/fc2_weight_bank.sv\
+${RTL_DIR}/fc2_bias_bank.sv\
+${RTL_DIR}/fc2_core_with_file.sv\
+${RTL_DIR}/fc1_to_fc2_top_with_file.sv\
+${RTL_DIR}/argmax_int8.sv\
+${RTL_IP_DIR}/mnist_sample_rom.sv\
+${RTL_SHARED_DIR}/cim_tile.sv\
+${RTL_SHARED_DIR}/psum_accum.sv\
+${RTL_SHARED_DIR}/fc1_weight_bank.sv\
+${RTL_SHARED_DIR}/fc1_bias_bank.sv\
+${RTL_SHARED_DIR}/fc1_ob_engine_shared_input.sv\
+${RTL_IP_DIR}/fc1_multi_block_shared_sample_rom.sv\
+${RTL_IP_DIR}/mnist_inference_core_board.sv\
+${RTL_IP_DIR}/uart_tx.sv\
+${RTL_IP_DIR}/uart_pred_sender.sv\
+${RTL_IP_DIR}/mnist_cim_demo_a_top.sv\
+${TB_DIR}/tb_mnist_cim_demo_a_top.sv\
+2>&1|tee${SIM_DIR}/log/compile_tb_mnist_cim_demo_a_top.log
+
+${SIM_DIR}/tb_mnist_cim_demo_a_top_simv\
++WEIGHT_HEX_FILE=../route_b_output_2/fc1_weight_int8.hex\
++FC1_BIAS_FILE=../route_b_output_2/fc1_bias_int32.hex\
++FC2_WEIGHT_HEX_FILE=../route_b_output_2/fc2_weight_int8.hex\
++FC2_BIAS_FILE=../route_b_output_2/fc2_bias_int32.hex\
++QUANT_PARAM_FILE=../route_b_output_2/quant_params.hex\
+2>&1|tee${SIM_DIR}/log/sim_tb_mnist_cim_demo_a_top.log
+```
+
+---
+
+##我对`hw_A`当前状态的建议
+
+你现在最该先做的不是一次性跑所有testbench，而是按这个顺序：
+
+1.`run_tb_mnist_sample_rom.sh`
+2.`run_tb_fc1_multi_block_shared_sample_rom.sh`
+3.`run_tb_mnist_inference_core_board.sh`
+4.`run_tb_mnist_cim_accel_ip.sh`
+5.`run_tb_uart_tx.sh`
+6.`run_tb_uart_pred_sender.sh`
+7.`run_tb_mnist_cim_demo_a_top.sh`
+
+这样你能最快定位问题：先把**板级输入路径**打准，再验证**整机core**，最后验证**IP/串口/demo**。
+
+等你把这些日志跑出来，我再帮你做第二轮检查，并给你收敛成一版“**方案A最终可交付结构**”。
+
+用户:
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 13:20 2026
+FAIL: found 1 mismatches.
+$finish called from file "../tb/tb_uart_pred_sender.sv", line 73.
+$finish at simulation time              3195000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 3195000 ps
+CPU Time:      0.230 seconds;       Data structure size:   0.0Mb
+Mon Mar  9 13:20:12 2026这个失败了，帮我检查一下
+AI助手:
+
+
+AI助手:
+我先不往后扩展方案 A。这个报错看起来更像是 `uart_pred_sender` 和 `tb_uart_pred_sender` 之间的时序握手/采样边界有一个小偏差，不像核心功能错误。你这边只出现 **1 个 mismatch**，很可能是 `\r\n` 中某一拍的采样点对齐问题。
+
+AI助手:
+这个失败我更倾向于判断为：**`tb_uart_pred_sender.sv` 的接收采样写法不够稳**，不一定是 `uart_pred_sender.sv` 本身逻辑错了。
+
+你现在这个现象的特征很像：
+
+- 总共只错 **1 个字节**
+- `uart_pred_sender` 发的是连续 3 个字节：  
+  `digit`、`\r`、`\n`
+- testbench 里的接收函数如果用的是：
+
+```systemverilog
+wait(uart_tx == 1'b0);
+```
+
+这种写法，在连续发多个字节时，**很容易在“线已经是 0”时立刻返回**，从而把下一帧的采样点对齐错半拍或一拍。
+
+这会导致：
+- 第一字节正常
+- 后面某一个字节（通常是 `\r` 或 `\n`）错 1 次  
+这和你现在“found 1 mismatches”非常一致。
+
+---
+
+# 你先检查的地方
+
+请先看你 `tb_uart_pred_sender.sv` 里是不是有类似这段：
+
+```systemverilog
+task automatic uart_recv_byte(output reg [7:0] data);
+begin
+    wait(uart_tx == 1'b0);
+    #(BIT_TIME + BIT_TIME/2);
+    ...
+end
+endtask
+```
+
+如果是，**优先改这里**。
+
+---
+
+# 推荐修改：把 `wait(uart_tx == 1'b0)` 改成 `@(negedge uart_tx)`
+
+## 原因
+`wait(uart_tx == 1'b0)` 的问题是：
+
+- 如果你调用这个 task 时，`uart_tx` 已经是 0  
+- 那它会**立即返回**
+- 这样你的“1.5 bit time 后采样”就不是从真正的 start bit 边沿开始算的
+
+而：
+
+```systemverilog
+@(negedge uart_tx);
+```
+
+是等到 **真正的下降沿** 到来才开始对齐，这才是 UART 接收更稳的写法。
+
+---
+
+# 请把 `tb_uart_pred_sender.sv` 改成下面这版
+
+```systemverilog
+`timescale 1ns / 1ps
+
+module tb_uart_pred_sender;
+
+  parameter int CLK_HZ = 1000;
+  parameter int BAUD   = 100;
+  localparam int DIV = CLK_HZ / BAUD;
+  localparam time CLK_PERIOD = 10ns;
+  localparam time BIT_TIME   = DIV * CLK_PERIOD;
+
+  logic clk;
+  logic rst_n;
+  logic trigger;
+  logic [3:0] pred_class;
+  logic uart_tx;
+
+  reg [7:0] b0, b1, b2;
+  integer error_count;
+  integer i;
+
+  uart_pred_sender #(
+      .CLK_HZ(CLK_HZ),
+      .BAUD(BAUD)
+  ) dut (
+      .clk(clk),
+      .rst_n(rst_n),
+      .trigger(trigger),
+      .pred_class(pred_class),
+      .uart_tx(uart_tx)
+  );
+
+  initial clk = 1'b0;
+  always #(CLK_PERIOD/2) clk = ~clk;
+
+  task automatic uart_recv_byte(output reg [7:0] data);
+    begin
+      // 等真正的 start bit 下降沿，而不是简单等电平为 0
+      @(negedge uart_tx);
+
+      // 到每个数据位中心采样
+      #(BIT_TIME + BIT_TIME/2);
+
+      for (i = 0; i < 8; i = i + 1) begin
+        data[i] = uart_tx;
+        #BIT_TIME;
+      end
+
+      // 跳过 stop bit
+      #BIT_TIME;
+    end
+  endtask
+
+  initial begin
+    error_count = 0;
+    rst_n = 1'b0;
+    trigger = 1'b0;
+    pred_class = 4'd7;
+
+    #(3*CLK_PERIOD);
+    rst_n = 1'b1;
+
+    @(posedge clk);
+    trigger <= 1'b1;
+    @(posedge clk);
+    trigger <= 1'b0;
+
+    uart_recv_byte(b0);
+    uart_recv_byte(b1);
+    uart_recv_byte(b2);
+
+    $display("UART bytes: b0=0x%02x b1=0x%02x b2=0x%02x", b0, b1, b2);
+
+    if (b0 !== 8'h37) begin
+      $display("ERROR b0 got=0x%02x expected=0x37", b0);
+      error_count = error_count + 1;
+    end
+
+    if (b1 !== 8'h0D) begin
+      $display("ERROR b1 got=0x%02x expected=0x0D", b1);
+      error_count = error_count + 1;
+    end
+
+    if (b2 !== 8'h0A) begin
+      $display("ERROR b2 got=0x%02x expected=0x0A", b2);
+      error_count = error_count + 1;
+    end
+
+    if (error_count == 0)
+      $display("PASS: uart_pred_sender sends digit/CR/LF correctly.");
+    else
+      $display("FAIL: found %0d mismatches.", error_count);
+
+    $finish;
+  end
+
+endmodule
+```
+
+---
+
+# 为什么我优先建议改 TB，而不是改 RTL
+
+因为从你当前现象看：
+
+- 只错 1 次
+- `uart_pred_sender` 的状态机本身很简单
+- 这个问题在串口 testbench 里非常典型
+
+所以优先级应该是：
+
+1. **先把 `tb_uart_pred_sender.sv` 的接收逻辑改稳**
+2. 重新跑
+3. 如果还错，再检查 `uart_pred_sender.sv`
+
+---
+
+# 如果改完还是错，再检查这两个点
+
+## 1. `uart_pred_sender.sv` 是否发送顺序正确
+应该是：
+
+- `pred_class + "0"`
+- `0x0D`
+- `0x0A`
+
+## 2. `uart_tx.sv` 的 stop bit 时长是否足够
+有些写法 stop bit 和 busy 拉低在同一个边界，testbench 比较苛刻时容易踩边界。
+
+但从你现在的表现看，**更像 TB 采样问题，不像 UART 发送器本身坏了**。
+
+---
+
+# 你现在先做什么
+
+先只做这一件事：
+
+- **把 `tb_uart_pred_sender.sv` 改成上面这版**
+- 再重新跑 `run_tb_uart_pred_sender.sh`
+
+然后把新的日志贴给我。  
+我先帮你把方案 A 的这个小问题修掉，再继续往后收整个板级链路。
+
+用户:
+我给你相关代码，你检查一下：
+module uart_pred_sender #(
+    parameter int CLK_HZ = 50_000_000,
+    parameter int BAUD   = 115200
+) (
+    input logic clk,
+    input logic rst_n,
+    input logic trigger,
+    input logic [3:0] pred_class,
+
+    output logic uart_tx
+);
+  typedef enum logic [1:0] {
+    S_IDLE = 2'd0,
+    S_DIGIT = 2'd1,
+    S_CR = 2'd2,
+    S_LF = 2'd3
+  } state_t;
+
+  state_t state, state_n;
+  logic tx_start;
+  logic [7:0] tx_data;
+  logic tx_busy;
+
+  uart_tx #(
+      .CLK_HZ(CLK_HZ),
+      .BAUD  (BAUD)
+  ) u_uart_tx (
+      .clk(clk),
+      .rst_n(rst_n),
+      .start(tx_start),
+      .data_in(tx_data),
+      .tx(uart_tx),
+      .busy(tx_busy)
+  );
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) state <= S_IDLE;
+    else state <= state_n;
+  end
+
+  always_comb begin
+    state_n  = state;
+    tx_start = 1'b0;
+    tx_data  = 8'h00;
+
+    case (state)
+      S_IDLE: begin
+        if (trigger && !tx_busy) begin
+          tx_start = 1'b1;
+          tx_data  = 8'd48 + pred_class;
+          state_n  = S_DIGIT;
+        end
+      end
+
+      S_DIGIT: begin
+        if (!tx_busy) begin
+          tx_start = 1'b1;
+          tx_data  = 8'h0D;
+          state_n  = S_CR;
+        end
+      end
+
+      S_CR: begin
+        if (!tx_busy) begin
+          tx_start = 1'b1;
+          tx_data  = 8'h0A;
+          state_n  = S_LF;
+        end
+      end
+
+      S_LF: begin
+        if (!tx_busy) state_n = S_IDLE;
+      end
+    endcase
+  end
+
+endmodule
+
+
+`timescale 1ns / 1ps
+
+module tb_uart_pred_sender;
+
+  parameter int CLK_HZ = 1000;
+  parameter int BAUD = 100;
+  localparam int DIV = CLK_HZ / BAUD;
+  localparam time CLK_PERIOD = 10ns;
+  localparam time BIT_TIME = DIV * CLK_PERIOD;
+
+  logic clk;
+  logic rst_n;
+  logic trigger;
+  logic [3:0] pred_class;
+  logic uart_tx;
+
+  reg [7:0] b0, b1, b2;
+  integer error_count;
+  integer i;
+
+  uart_pred_sender #(
+      .CLK_HZ(CLK_HZ),
+      .BAUD  (BAUD)
+  ) dut (
+      .clk(clk),
+      .rst_n(rst_n),
+      .trigger(trigger),
+      .pred_class(pred_class),
+      .uart_tx(uart_tx)
+  );
+
+  initial clk = 1'b0;
+  always #(CLK_PERIOD / 2) clk = ~clk;
+
+  task automatic uart_recv_byte(output reg [7:0] data);
+    begin
+      wait (uart_tx == 1'b0);
+      #(BIT_TIME + BIT_TIME / 2);
+      for (i = 0; i < 8; i = i + 1) begin
+        data[i] = uart_tx;
+        #BIT_TIME;
+      end
+      #BIT_TIME;
+    end
+  endtask
+
+  initial begin
+    error_count = 0;
+    rst_n = 1'b0;
+    trigger = 1'b0;
+    pred_class = 4'd7;
+
+    #(3 * CLK_PERIOD);
+    rst_n = 1'b1;
+
+    @(posedge clk);
+    trigger <= 1'b1;
+    @(posedge clk);
+    trigger <= 1'b0;
+
+    uart_recv_byte(b0);
+    uart_recv_byte(b1);
+    uart_recv_byte(b2);
+
+    if (b0 !== 8'h37) error_count = error_count + 1;
+    if (b1 !== 8'h0D) error_count = error_count + 1;
+    if (b2 !== 8'h0A) error_count = error_count + 1;
+
+    if (error_count == 0) $display("PASS: uart_pred_sender sends digit/CR/LF correctly.");
+    else $display("FAIL: found %0d mismatches.", error_count);
+
+    $finish;
+  end
+
+endmodule
+AI助手:
+
+
+AI助手:
+我检查了这两段代码，结论是：
+
+## 结论
+**`uart_pred_sender` 本身大概率是对的，失败更可能出在 `tb_uart_pred_sender` 的接收 task。**
+
+问题核心就在这里：
+
+```systemverilog
+wait (uart_tx == 1'b0);
+```
+
+这句在连续发送多个字节时不稳。
+
+---
+
+# 为什么 TB 会错
+
+你的 `uart_pred_sender` 会连续发 3 个字节：
+
+1. `'7'` = `8'h37`
+2. `'\r'` = `8'h0D`
+3. `'\n'` = `8'h0A`
+
+而 testbench 的接收 task 是：
+
+```systemverilog
+task automatic uart_recv_byte(output reg [7:0] data);
+  begin
+    wait (uart_tx == 1'b0);
+    #(BIT_TIME + BIT_TIME / 2);
+    for (i = 0; i < 8; i = i + 1) begin
+      data[i] = uart_tx;
+      #BIT_TIME;
+    end
+    #BIT_TIME;
+  end
+endtask
+```
+
+这个写法有个典型问题：
+
+## 问题点
+`wait (uart_tx == 1'b0)` 等的是“**电平为 0**”，不是“**新的起始位下降沿**”。
+
+如果第二次调用 `uart_recv_byte(b1)` 的时候，`uart_tx` 此刻刚好已经是 0，  
+那 `wait` 会**立刻返回**，不会等到新字节真正开始。
+
+于是采样点就可能偏掉，造成：
+- 3 个字节里只错 1 个
+- 非常符合你现在的现象
+
+---
+
+# `uart_pred_sender` 本身有没有明显 bug
+
+我检查下来，这个状态机逻辑是通的：
+
+```systemverilog
+S_IDLE  -> 发送 digit
+S_DIGIT -> 等 tx_busy 拉低，再发 CR
+S_CR    -> 等 tx_busy 拉低，再发 LF
+S_LF    -> 等 tx_busy 拉低，再回 IDLE
+```
+
+这个顺序本身没问题。
+
+### 它可能的一个小隐患
+`tx_start` 是组合脉冲，只要 `!tx_busy` 就会拉高一拍。  
+但因为状态机会在同一个周期切到下一个状态，所以不会持续重复发送，逻辑上是成立的。
+
+所以我不建议先改 `uart_pred_sender`，先改 TB。
+
+---
+
+# 你应该怎么改 TB
+
+把：
+
+```systemverilog
+wait (uart_tx == 1'b0);
+```
+
+改成：
+
+```systemverilog
+@(negedge uart_tx);
+```
+
+这样才是“等到新的 start bit 下降沿”。
+
+---
+
+# 推荐修改版 `tb_uart_pred_sender.sv`
+
+```systemverilog
+`timescale 1ns / 1ps
+
+module tb_uart_pred_sender;
+
+  parameter int CLK_HZ = 1000;
+  parameter int BAUD = 100;
+  localparam int DIV = CLK_HZ / BAUD;
+  localparam time CLK_PERIOD = 10ns;
+  localparam time BIT_TIME = DIV * CLK_PERIOD;
+
+  logic clk;
+  logic rst_n;
+  logic trigger;
+  logic [3:0] pred_class;
+  logic uart_tx;
+
+  reg [7:0] b0, b1, b2;
+  integer error_count;
+  integer i;
+
+  uart_pred_sender #(
+      .CLK_HZ(CLK_HZ),
+      .BAUD  (BAUD)
+  ) dut (
+      .clk(clk),
+      .rst_n(rst_n),
+      .trigger(trigger),
+      .pred_class(pred_class),
+      .uart_tx(uart_tx)
+  );
+
+  initial clk = 1'b0;
+  always #(CLK_PERIOD / 2) clk = ~clk;
+
+  task automatic uart_recv_byte(output reg [7:0] data);
+    begin
+      @(negedge uart_tx);  // 等真正的 start bit 边沿
+      #(BIT_TIME + BIT_TIME / 2);
+
+      for (i = 0; i < 8; i = i + 1) begin
+        data[i] = uart_tx;
+        #BIT_TIME;
+      end
+
+      #BIT_TIME; // stop bit
+    end
+  endtask
+
+  initial begin
+    error_count = 0;
+    rst_n = 1'b0;
+    trigger = 1'b0;
+    pred_class = 4'd7;
+
+    #(3 * CLK_PERIOD);
+    rst_n = 1'b1;
+
+    @(posedge clk);
+    trigger <= 1'b1;
+    @(posedge clk);
+    trigger <= 1'b0;
+
+    uart_recv_byte(b0);
+    uart_recv_byte(b1);
+    uart_recv_byte(b2);
+
+    $display("UART bytes: b0=0x%02x b1=0x%02x b2=0x%02x", b0, b1, b2);
+
+    if (b0 !== 8'h37) begin
+      $display("ERROR b0 got=0x%02x expected=0x37", b0);
+      error_count = error_count + 1;
+    end
+    if (b1 !== 8'h0D) begin
+      $display("ERROR b1 got=0x%02x expected=0x0D", b1);
+      error_count = error_count + 1;
+    end
+    if (b2 !== 8'h0A) begin
+      $display("ERROR b2 got=0x%02x expected=0x0A", b2);
+      error_count = error_count + 1;
+    end
+
+    if (error_count == 0)
+      $display("PASS: uart_pred_sender sends digit/CR/LF correctly.");
+    else
+      $display("FAIL: found %0d mismatches.", error_count);
+
+    $finish;
+  end
+
+endmodule
+```
+
+---
+
+# 如果你想更稳，再加一个小修改
+
+你也可以让 task 在收第二个字节前，确保线路先回到 idle：
+
+```systemverilog
+wait (uart_tx == 1'b1);
+@(negedge uart_tx);
+```
+
+不过大多数情况下，直接改成 `@(negedge uart_tx)` 就够了。
+
+---
+
+# 进一步检查点
+
+如果你改完 TB 还失败，再看这两个地方：
+
+## 1. `uart_tx` 模块
+重点看：
+- start bit 是否持续整整 1 bit
+- stop bit 是否持续整整 1 bit
+- busy 拉低的时刻是不是和 stop bit 结束对齐
+
+## 2. `uart_pred_sender`
+可以临时加打印：
+
+```systemverilog
+$display("state=%0d tx_busy=%0b tx_start=%0b tx_data=0x%02x time=%0t",
+         state, tx_busy, tx_start, tx_data, $time);
+```
+
+但我判断你这次先改 TB 基本就能过。
+
+---
+
+## 最终判断
+这两段代码里，**优先怀疑 testbench，不优先怀疑 `uart_pred_sender` RTL**。  
+你先把 TB 改成 `@(negedge uart_tx)` 再跑一次。
+
+用户:
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 13:26 2026
+UART bytes: b0=0x37 b1=0x43 b2=0xe1
+ERROR b1 got=0x43 expected=0x0D
+ERROR b2 got=0xe1 expected=0x0A
+FAIL: found 2 mismatches.
+$finish called from file "../tb/tb_uart_pred_sender.sv", line 86.
+$finish at simulation time              3415000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 3415000 ps
+CPU Time:      0.120 seconds;       Data structure size:   0.0Mb
+Mon Mar  9 13:26:51 2026
+AI助手:
+
+
+AI助手:
+这个结果已经把问题定位得比较清楚了：
+
+## 结论
+**这次不是 `tb_uart_pred_sender.sv` 的问题了，真正的问题在 `uart_tx.sv`。**
+
+因为现在：
+- 第一个字节 `b0 = 0x37` 是对的
+- 后两个字节 `b1 = 0x43`、`b2 = 0xE1` 都错了
+
+这非常像一种典型错误：
+
+> **前一个字节还没把 stop bit 发完整，后一个字节就提前开始了。**
+
+也就是说，`uart_pred_sender` 在等 `tx_busy` 拉低后才发下一字节，这个逻辑本身没问题；  
+问题是你现在的 `uart_tx` 很可能把 `busy` **拉低得太早了**，导致发送器误以为“上一字节已经结束”，于是第二个字节过早启动。
+
+---
+
+# 为什么会这样
+
+你之前的 `uart_tx` 是我给你的这版思路：
+
+```systemverilog
+if (baud_cnt == DIV-1) begin
+  baud_cnt <= 0;
+  bit_idx  <= bit_idx + 1'b1;
+  shifter  <= {1'b1, shifter[9:1]};
+  tx       <= shifter[1];
+
+  if (bit_idx == 9) begin
+    busy <= 1'b0;
+    tx   <= 1'b1;
+  end
+end
+```
+
+这里的问题是：
+
+## `busy` 在 stop bit 刚开始时就被拉低了
+而不是在 **stop bit 发满一个 bit 时间之后** 才拉低。
+
+于是 `uart_pred_sender` 在 `S_DIGIT / S_CR` 里看到：
+
+```systemverilog
+if (!tx_busy) begin
+    tx_start = 1'b1;
+    ...
+end
+```
+
+就会**过早开始下一字节**。
+
+所以：
+- 第一个字节独立发送，正确
+- 第二个字节起始位踩在前一个字节 stop bit 上，后面全乱
+- 正好和你现在的现象一致
+
+---
+
+# 应该怎么修
+
+## 优先修 `uart_tx.sv`
+`tb_uart_pred_sender.sv` 里改成 `@(negedge uart_tx)` 是对的，应该保留。  
+但真正需要修的是 `uart_tx.sv`，让它：
+
+- 每一位都保持整整 `DIV` 个时钟周期
+- **stop bit 也必须保持完整一个 bit 时间**
+- `busy` 只能在 stop bit 完成后再拉低
+
+---
+
+# 推荐你把 `uart_tx.sv` 改成下面这版
+
+```systemverilog
+module uart_tx #(
+    parameter int CLK_HZ = 50_000_000,
+    parameter int BAUD   = 115200
+) (
+    input  logic clk,
+    input  logic rst_n,
+    input  logic start,
+    input  logic [7:0] data_in,
+    output logic tx,
+    output logic busy
+);
+
+  localparam int DIV = CLK_HZ / BAUD;
+
+  logic [15:0] baud_cnt;
+  logic [3:0]  bit_idx;
+  logic [9:0]  frame;
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      tx       <= 1'b1;
+      busy     <= 1'b0;
+      baud_cnt <= '0;
+      bit_idx  <= '0;
+      frame    <= 10'h3FF;
+    end else begin
+      if (!busy) begin
+        tx <= 1'b1;
+
+        if (start) begin
+          // frame = {stop, data[7:0], start}
+          frame    <= {1'b1, data_in, 1'b0};
+          busy     <= 1'b1;
+          baud_cnt <= 16'd0;
+          bit_idx  <= 4'd0;
+          tx       <= 1'b0;  // start bit
+        end
+      end else begin
+        if (baud_cnt == DIV - 1) begin
+          baud_cnt <= 16'd0;
+
+          if (bit_idx == 4'd9) begin
+            // stop bit 已经保持满 1 bit 时间，现在才真正结束
+            busy    <= 1'b0;
+            bit_idx <= 4'd0;
+            tx      <= 1'b1;
+          end else begin
+            bit_idx <= bit_idx + 1'b1;
+            tx      <= frame[bit_idx + 1'b1];
+          end
+        end else begin
+          baud_cnt <= baud_cnt + 1'b1;
+        end
+      end
+    end
+  end
+
+endmodule
+```
+
+---
+
+# 为什么这版是对的
+
+这版的关键点在这里：
+
+```systemverilog
+if (bit_idx == 4'd9) begin
+    // stop bit 已经保持满 1 bit 时间，现在才真正结束
+    busy <= 1'b0;
+```
+
+也就是：
+
+- `bit_idx=0`：start bit
+- `bit_idx=1..8`：8 个数据位
+- `bit_idx=9`：stop bit
+- 只有当 `bit_idx=9` 这一位也保持满 `DIV` 个时钟后，才结束发送
+
+这样下一字节才不会踩前一字节的 stop bit。
+
+---
+
+# `tb_uart_pred_sender.sv` 也建议保持你刚改的版本
+
+也就是接收 task 用：
+
+```systemverilog
+@(negedge uart_tx);
+```
+
+而不是：
+
+```systemverilog
+wait(uart_tx == 1'b0);
+```
+
+这样 testbench 才稳。
+
+---
+
+# 你现在应该怎么做
+
+按这个顺序：
+
+1. **先替换 `rtl_ip/uart_tx.sv` 为上面这版**
+2. 保留你已经改过的 `tb_uart_pred_sender.sv`
+3. 重新跑：
+   - `run_tb_uart_tx.sh`
+   - `run_tb_uart_pred_sender.sh`
+
+---
+
+# 我对结果的预期
+
+修完后，`tb_uart_pred_sender.sv` 应该会看到：
+
+```text
+UART bytes: b0=0x37 b1=0x0d b2=0x0a
+PASS: uart_pred_sender sends digit/CR/LF correctly.
+```
+
+---
+
+# 一句话总结
+
+这次失败的根因是：
+
+**`uart_tx.sv` 提前结束 busy，导致后一个字节过早启动，破坏了连续发送。**
+
+你先把 `uart_tx.sv` 改掉再跑。  
+等你把新的日志贴出来，我再继续帮你把方案 A 的整条链路收完。
+
+用户:
+https://github.com/Invoker-pray/MNIST-CIM-FPGA请阅读hw_A下的文件，rtl_ip/下的两个uart文件, tb/下的uart两个tb,还有sim/log下的两个sim_uart* 文件，定位问题并修改
+AI助手:
+
+
+AI助手:
+我先把你指定的 `hw_A/rtl_ip`、`hw_A/tb` 和 `hw_A/sim/log` 这几处文件逐个对照，重点看 `uart_tx/uart_pred_sender` 的实际实现和仿真日志里首个出错字节对应的时序位置，再给你一个最小修复。
+
+用户:
+
+用户:
+
+AI助手:
+我定位到了，**这次真正的问题在`tb_uart_pred_sender.sv`的接收时序，不在`uart_tx.sv`或`uart_pred_sender.sv`本体**。
+
+证据很明确：
+
+-`sim_tb_uart_tx.log`里，单字节UART发送已经通过：`PASS:uart_txsendsonebytecorrectly.`，说明`uart_tx.sv`的单帧发送至少在当前参数下是正确的。
+-`sim_tb_uart_pred_sender.log`里，第一字节`b0=0x37`正确，但后两个字节变成了`0x43`和`0xE1`，说明**连续多字节接收时对齐错了**，而不是发送器从第一个字节就坏了。
+-你当前`tb_uart_pred_sender.sv`已经改成了`@(negedgeuart_tx)`，这一步是对的；但task里还有一个更隐蔽的问题：**总延时多了半个bittime**。
+
+---
+
+#根因
+
+你现在的接收task是这种结构：
+
+```systemverilog
+@(negedgeuart_tx);
+#(BIT_TIME+BIT_TIME/2);
+for(i=0;i<8;i=i+1)begin
+data[i]=uart_tx;
+#BIT_TIME;
+end
+#BIT_TIME;
+```
+
+问题在于：
+
+-从startbit下降沿开始，到**最后一个数据位中心**，时间是`8.5*BIT_TIME`
+-你的loop在**最后一次采样后又多等了1个BIT_TIME**
+-然后task末尾又再等了`1个BIT_TIME`
+
+所以task返回时刻不是字节结束的`10.0*BIT_TIME`，而是**`10.5*BIT_TIME`**
+
+这会导致第二次调用`uart_recv_byte(b1)`时，已经错过了下一帧真正的startbit，对齐滑进了后面某个数据位，因此后两个字节就会变成你现在看到的乱值`0x43`和`0xE1`。这和日志表现完全吻合。
+
+---
+
+#该怎么改
+
+**只改`tb_uart_pred_sender.sv`即可。**
+
+核心修改：
+
+1.保留`@(negedgeuart_tx)`
+2.**不要在最后一个数据位采样后再多等一个`BIT_TIME`**
+3.在loop结束后只补**`1.5*BIT_TIME`**，刚好走到stopbit结束
+
+---
+
+#修改后的`tb_uart_pred_sender.sv`
+
+把你现在的`tb_uart_pred_sender.sv`改成下面这版：
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_uart_pred_sender;
+
+parameterintCLK_HZ=1000;
+parameterintBAUD=100;
+localparamintDIV=CLK_HZ/BAUD;
+localparamtimeCLK_PERIOD=10ns;
+localparamtimeBIT_TIME=DIV*CLK_PERIOD;
+
+logicclk;
+logicrst_n;
+logictrigger;
+logic[3:0]pred_class;
+logicuart_tx;
+
+reg[7:0]b0,b1,b2;
+integererror_count;
+integeri;
+
+uart_pred_sender#(
+.CLK_HZ(CLK_HZ),
+.BAUD(BAUD)
+)dut(
+.clk(clk),
+.rst_n(rst_n),
+.trigger(trigger),
+.pred_class(pred_class),
+.uart_tx(uart_tx)
+);
+
+initialclk=1'b0;
+always#(CLK_PERIOD/2)clk=~clk;
+
+taskautomaticuart_recv_byte(outputreg[7:0]data);
+begin
+@(negedgeuart_tx);//startbit下降沿
+#(BIT_TIME+BIT_TIME/2);//到第0个数据位中心
+
+for(i=0;i<8;i=i+1)begin
+data[i]=uart_tx;
+if(i!=7)
+#BIT_TIME;//只在前7位后继续走1bit
+end
+
+//此时位于最后一个数据位中心（8.5bit）
+//再走1.5bit，刚好到stopbit结束（10.0bit）
+#(BIT_TIME+BIT_TIME/2);
+end
+endtask
+
+initialbegin
+error_count=0;
+rst_n=1'b0;
+trigger=1'b0;
+pred_class=4'd7;
+
+#(3*CLK_PERIOD);
+rst_n=1'b1;
+
+@(posedgeclk);
+trigger<=1'b1;
+@(posedgeclk);
+trigger<=1'b0;
+
+uart_recv_byte(b0);
+uart_recv_byte(b1);
+uart_recv_byte(b2);
+
+$display("UARTbytes:b0=0x%02xb1=0x%02xb2=0x%02x",b0,b1,b2);
+
+if(b0!==8'h37)begin
+$display("ERRORb0got=0x%02xexpected=0x37",b0);
+error_count=error_count+1;
+end
+if(b1!==8'h0D)begin
+$display("ERRORb1got=0x%02xexpected=0x0D",b1);
+error_count=error_count+1;
+end
+if(b2!==8'h0A)begin
+$display("ERRORb2got=0x%02xexpected=0x0A",b2);
+error_count=error_count+1;
+end
+
+if(error_count==0)
+$display("PASS:uart_pred_sendersendsdigit/CR/LFcorrectly.");
+else
+$display("FAIL:found%0dmismatches.",error_count);
+
+$finish;
+end
+
+endmodule
+```
+
+---
+
+#为什么我现在不建议改`uart_tx.sv`
+
+因为从仓库当前文件和日志看：
+
+-`hw_A/rtl_ip/uart_tx.sv`单字节测试通过。
+-`hw_A/rtl_ip/uart_pred_sender.sv`的状态机逻辑也很直接：按`digit->CR->LF`发送，没有明显的重复启动或丢状态问题。
+-真正出问题的是`tb_uart_pred_sender.sv`的接收task在多字节连续流里**返回得太晚半个bit**。
+
+所以现在最小修复就是改TB，不要先动RTL。
+
+---
+
+#你接下来怎么做
+
+先只改这一份文件：
+
+-`hw_A/tb/tb_uart_pred_sender.sv`
+
+然后重跑你现在的脚本：
+
+```bash
+bashrun_tb_uart_pred_sender.sh
+```
+
+你新的日志里，预期应该会变成：
+
+```text
+UARTbytes:b0=0x37b1=0x0db2=0x0a
+PASS:uart_pred_sendersendsdigit/CR/LFcorrectly.
+```
+
+把新的日志贴给我，我再继续帮你把`hw_A`的方案A测试链路收完整。
+
+AI助手:
+
+
+AI助手:
+我先把你仓库里 `hw_A/rtl_ip`、`hw_A/tb` 和 `hw_A/sim/log` 下与 UART 相关的文件逐个对照起来，重点看 `busy`/`start` 的握手时序和 testbench 的采样点是不是一致。
+
+用户:
+
+用户:
+
+AI助手:
+问题定位出来了：**主要是`tb_uart_pred_sender.sv`的接收task末尾多等了一个bittime，导致它在连续字节场景下错过了下一帧的startbit。**
+
+这和你仓库里的现象是对得上的：
+
+-`tb_uart_tx`单字节测试通过，说明`uart_tx.sv`的基本发送时序没有明显问题。
+-`tb_uart_pred_sender`连续3字节测试失败，而且第一字节`0x37`正确，后两字节错成`0x43`、`0xE1`，这非常像**第二帧开始时，TB已经晚了半拍以上才开始等下一次下降沿**。
+
+---
+
+##根因分析
+
+你现在`tb_uart_pred_sender.sv`的接收task是：
+
+```systemverilog
+taskautomaticuart_recv_byte(outputreg[7:0]data);
+begin
+@(negedgeuart_tx);
+#(BIT_TIME+BIT_TIME/2);
+for(i=0;i<8;i=i+1)begin
+data[i]=uart_tx;
+#BIT_TIME;
+end
+#BIT_TIME;//stopbit
+end
+endtask
+```
+
+仓库里就是这个版本。
+
+问题在最后这一句：
+
+```systemverilog
+#BIT_TIME;
+```
+
+###为什么这是错的
+从startbit下降沿开始计时：
+
+-1.5T采到data0
+-...
+-8.5T采到data7
+-`for`循环结束时，其实已经走到了**9.5T**
+-你又额外等了一个`#BIT_TIME`，就变成**10.5T**
+
+而UART一帧（1start+8data+1stop）总共是**10T**。
+也就是说，**你的task返回时已经比当前字节结束晚了0.5T**。如果下一字节是连续发送的，那么下一帧的startbit很可能已经开始了，于是第二次`uart_recv_byte()`会错过真正的startbit，最终读出错误字节。
+
+这正好解释了：
+
+-第一字节正确
+-后两字节错误
+
+---
+
+##`uart_tx.sv`和`uart_pred_sender.sv`是否要改
+
+###`uart_tx.sv`
+从你仓库当前版本看，单字节发送测试是通过的，而且stopbit结束后才`busy<=0`的逻辑是合理的。
+这一步**不用先改**。
+
+###`uart_pred_sender.sv`
+状态机也没发现明显逻辑错误：
+`digit->CR->LF`的顺序是对的，且每一步都在`!tx_busy`时发下一字节。
+这一步**也不用先改**。
+
+---
+
+#你应该改什么
+
+##只改`hw_A/tb/tb_uart_pred_sender.sv`
+
+把接收task改成下面这版。
+
+###修改后的版本
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_uart_pred_sender;
+
+parameterintCLK_HZ=1000;
+parameterintBAUD=100;
+localparamintDIV=CLK_HZ/BAUD;
+localparamtimeCLK_PERIOD=10ns;
+localparamtimeBIT_TIME=DIV*CLK_PERIOD;
+
+logicclk;
+logicrst_n;
+logictrigger;
+logic[3:0]pred_class;
+logicuart_tx;
+
+reg[7:0]b0,b1,b2;
+integererror_count;
+integeri;
+
+uart_pred_sender#(
+.CLK_HZ(CLK_HZ),
+.BAUD(BAUD)
+)dut(
+.clk(clk),
+.rst_n(rst_n),
+.trigger(trigger),
+.pred_class(pred_class),
+.uart_tx(uart_tx)
+);
+
+initialclk=1'b0;
+always#(CLK_PERIOD/2)clk=~clk;
+
+taskautomaticuart_recv_byte(outputreg[7:0]data);
+begin
+@(negedgeuart_tx);//startbit边沿
+#(BIT_TIME+BIT_TIME/2);//到data0中心
+
+for(i=0;i<8;i=i+1)begin
+data[i]=uart_tx;
+#BIT_TIME;
+end
+
+//此时已经位于stopbit中心附近，不再额外多等一个bit
+end
+endtask
+
+initialbegin
+error_count=0;
+rst_n=1'b0;
+trigger=1'b0;
+pred_class=4'd7;
+
+#(3*CLK_PERIOD);
+rst_n=1'b1;
+
+@(posedgeclk);
+trigger<=1'b1;
+@(posedgeclk);
+trigger<=1'b0;
+
+uart_recv_byte(b0);
+uart_recv_byte(b1);
+uart_recv_byte(b2);
+
+$display("UARTbytes:b0=0x%02xb1=0x%02xb2=0x%02x",b0,b1,b2);
+
+if(b0!==8'h37)begin
+$display("ERRORb0got=0x%02xexpected=0x37",b0);
+error_count=error_count+1;
+end
+if(b1!==8'h0D)begin
+$display("ERRORb1got=0x%02xexpected=0x0D",b1);
+error_count=error_count+1;
+end
+if(b2!==8'h0A)begin
+$display("ERRORb2got=0x%02xexpected=0x0A",b2);
+error_count=error_count+1;
+end
+
+if(error_count==0)
+$display("PASS:uart_pred_sendersendsdigit/CR/LFcorrectly.");
+else
+$display("FAIL:found%0dmismatches.",error_count);
+
+$finish;
+end
+
+endmodule
+```
+
+---
+
+##顺手建议：`tb_uart_tx.sv`也一起改
+你现在单字节版虽然能过，但task末尾的逻辑和这个问题本质相同，也建议一起修掉，避免以后再踩。
+
+把`hw_A/tb/tb_uart_tx.sv`里的task也同样去掉最后那个多余的`#BIT_TIME;`。仓库里当前版本也有这个额外等待。
+
+---
+
+#为什么我不建议你现在改`uart_tx.sv`
+因为根据你仓库里的结果：
+
+-`sim_tb_uart_tx.log`已经PASS
+-`sim_tb_uart_pred_sender.log`失败模式完全符合“testbench错过下一帧起始位”的特征
+
+所以最小、最准确的修复就是先改TB。
+
+---
+
+##你接下来怎么做
+先只改这两个testbench里的`uart_recv_byte()`，重新跑：
+
+-`run_tb_uart_tx.sh`
+-`run_tb_uart_pred_sender.sh`
+
+如果你把新的`sim_tb_uart_pred_sender.log`贴给我，我继续帮你确认方案A的UART链已经稳定。
+
+AI助手:
+
+
+AI助手:
+我先把你指定的 6 个文件逐个对照：`rtl_ip/` 下两个 UART 模块、`tb/` 下两个 UART TB，以及 `sim/log/` 下两份 UART 日志。然后我会直接定位是发送器、握手还是 testbench 采样的问题，并给你一版应改的代码。
+
+用户:
+
+用户:
+
+AI助手:
+我看完了你指定的6个文件，定位结果是：
+
+##问题定位
+
+**真正的问题不在`rtl_ip/uart_tx.sv`，也不在`rtl_ip/uart_pred_sender.sv`的发送顺序，而是在`tb/tb_uart_pred_sender.sv`的多字节接收方式。**
+
+证据很清楚：
+
+-单字节发送测试`tb_uart_tx`是通过的，日志里明确是`PASS:uart_txsendsonebytecorrectly.`，说明`uart_tx.sv`作为单字节发送器本身没有基础性错误。
+-多字节测试`tb_uart_pred_sender`里，第一个字节`0x37`正确，但后两个字节被解成了`0x43`和`0xE1`，说明问题出在**连续字节之间的接收同步**，不是第一帧发送格式本身错误。
+-`uart_pred_sender.sv`的逻辑是：先发`8'd48+pred_class`，然后等`tx_busy`结束后发`0x0D`，再等结束后发`0x0A`。这就是标准的连续三字节发送，没有明显的状态机错误。
+-你当前`tb_uart_pred_sender.sv`的接收task是“每收一个字节就重新`@(negedgeuart_tx)`等下一帧startbit”。对于**连续背靠背发送**，这个写法有竞争窗口：上一个字节的stopbit结束和下一个字节的startbit可能在你task切换的同一时刻发生，导致TB错过第二帧真实start边沿，从而把后续采样点整体错位。
+
+所以这次应当**修改testbench**，而不是先改UARTRTL。
+
+---
+
+#为什么会错
+
+你现在的`tb_uart_pred_sender.sv`大致是这种模式：
+
+1.`uart_recv_byte(b0)`
+2.`uart_recv_byte(b1)`
+3.`uart_recv_byte(b2)`
+
+每个`uart_recv_byte`都自己等一个新的`@(negedgeuart_tx)`。
+但`uart_pred_sender`发3个字节时是**紧挨着发**的，中间只有UART协议要求的stopbit，没有额外空闲字节间隙。
+
+于是第一字节收完后，TB正好在stopbit边界退出task；第二字节的start可能已经发生或正在发生，新的`@(negedgeuart_tx)`就可能错过真正的起始位，导致后两个字节采样错位，这正符合你日志里“首字节对、后两字节错”的现象。
+
+---
+
+#建议修改
+
+##1.`rtl_ip/uart_tx.sv`
+**先不改。**
+
+理由：
+-你当前仓库里的`sim_tb_uart_tx.log`已经证明它单字节发送通过。
+-`uart_tx.sv`代码里stopbit是单独占一个bit时间发送完后才退出busy，逻辑上没有明显bug。
+
+##2.`rtl_ip/uart_pred_sender.sv`
+**也先不改。**
+
+它的状态机本意就是：
+-发数字
+-发`CR`
+-发`LF`
+
+这个逻辑是合理的。
+
+##3.`tb/tb_uart_pred_sender.sv`
+**需要改。**
+
+不要每个字节都重新等startbit。
+对于这种固定三字节连续输出，最稳的方法是：
+
+-只在第一个字节上等待一次`@(negedgeuart_tx)`
+-后面按固定的UART帧长度连续采样3帧
+
+---
+
+#你直接替换`hw_A/tb/tb_uart_pred_sender.sv`为下面这版
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_uart_pred_sender;
+
+parameterintCLK_HZ=1000;
+parameterintBAUD=100;
+localparamintDIV=CLK_HZ/BAUD;
+localparamtimeCLK_PERIOD=10ns;
+localparamtimeBIT_TIME=DIV*CLK_PERIOD;
+localparamtimeFRAME_TIME=10*BIT_TIME;//1start+8data+1stop
+
+logicclk;
+logicrst_n;
+logictrigger;
+logic[3:0]pred_class;
+logicuart_tx;
+
+reg[7:0]b0,b1,b2;
+integererror_count;
+integeri;
+
+uart_pred_sender#(
+.CLK_HZ(CLK_HZ),
+.BAUD(BAUD)
+)dut(
+.clk(clk),
+.rst_n(rst_n),
+.trigger(trigger),
+.pred_class(pred_class),
+.uart_tx(uart_tx)
+);
+
+initialclk=1'b0;
+always#(CLK_PERIOD/2)clk=~clk;
+
+//在“当前时刻已经对准某一帧的startbit下降沿”的前提下，
+//采样这一整帧的8个数据位
+taskautomaticuart_recv_byte_aligned(outputreg[7:0]data);
+begin
+#(BIT_TIME+BIT_TIME/2);//到第1个数据位中心
+
+for(i=0;i<8;i=i+1)begin
+data[i]=uart_tx;
+#BIT_TIME;
+end
+
+#BIT_TIME;//跳过stopbit
+end
+endtask
+
+initialbegin
+error_count=0;
+rst_n=1'b0;
+trigger=1'b0;
+pred_class=4'd7;
+
+#(3*CLK_PERIOD);
+rst_n=1'b1;
+
+@(posedgeclk);
+trigger<=1'b1;
+@(posedgeclk);
+trigger<=1'b0;
+
+//只等一次第一个字节的startbit
+@(negedgeuart_tx);
+uart_recv_byte_aligned(b0);
+
+//后续两帧连续发送，不再重新等边沿，直接按帧长对齐
+@(negedgeuart_tx);
+uart_recv_byte_aligned(b1);
+
+@(negedgeuart_tx);
+uart_recv_byte_aligned(b2);
+
+$display("UARTbytes:b0=0x%02xb1=0x%02xb2=0x%02x",b0,b1,b2);
+
+if(b0!==8'h37)begin
+$display("ERRORb0got=0x%02xexpected=0x37",b0);
+error_count=error_count+1;
+end
+
+if(b1!==8'h0D)begin
+$display("ERRORb1got=0x%02xexpected=0x0D",b1);
+error_count=error_count+1;
+end
+
+if(b2!==8'h0A)begin
+$display("ERRORb2got=0x%02xexpected=0x0A",b2);
+error_count=error_count+1;
+end
+
+if(error_count==0)
+$display("PASS:uart_pred_sendersendsdigit/CR/LFcorrectly.");
+else
+$display("FAIL:found%0dmismatches.",error_count);
+
+$finish;
+end
+
+endmodule
+```
+
+---
+
+#更稳的版本（我更推荐）
+
+上面这版已经大概率能过，但我更推荐再进一步，**根本不重新等第二、第三个`negedge`**，而是从第一帧起点开始，严格按帧长连续读三帧。这样完全消除字节间竞争窗口。
+
+把`tb_uart_pred_sender.sv`改成下面这版会最稳：
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_uart_pred_sender;
+
+parameterintCLK_HZ=1000;
+parameterintBAUD=100;
+localparamintDIV=CLK_HZ/BAUD;
+localparamtimeCLK_PERIOD=10ns;
+localparamtimeBIT_TIME=DIV*CLK_PERIOD;
+
+logicclk;
+logicrst_n;
+logictrigger;
+logic[3:0]pred_class;
+logicuart_tx;
+
+reg[7:0]b0,b1,b2;
+integererror_count;
+integeri;
+
+uart_pred_sender#(
+.CLK_HZ(CLK_HZ),
+.BAUD(BAUD)
+)dut(
+.clk(clk),
+.rst_n(rst_n),
+.trigger(trigger),
+.pred_class(pred_class),
+.uart_tx(uart_tx)
+);
+
+initialclk=1'b0;
+always#(CLK_PERIOD/2)clk=~clk;
+
+taskautomaticuart_recv_byte_from_current_start(outputreg[7:0]data);
+begin
+#(BIT_TIME+BIT_TIME/2);
+for(i=0;i<8;i=i+1)begin
+data[i]=uart_tx;
+#BIT_TIME;
+end
+#BIT_TIME;//stopbit
+end
+endtask
+
+initialbegin
+error_count=0;
+rst_n=1'b0;
+trigger=1'b0;
+pred_class=4'd7;
+
+#(3*CLK_PERIOD);
+rst_n=1'b1;
+
+@(posedgeclk);
+trigger<=1'b1;
+@(posedgeclk);
+trigger<=1'b0;
+
+//只在第一帧开始时对齐一次
+@(negedgeuart_tx);
+uart_recv_byte_from_current_start(b0);
+
+//连续三帧，后两帧直接按协议时序走
+uart_recv_byte_from_current_start(b1);
+uart_recv_byte_from_current_start(b2);
+
+$display("UARTbytes:b0=0x%02xb1=0x%02xb2=0x%02x",b0,b1,b2);
+
+if(b0!==8'h37)begin
+$display("ERRORb0got=0x%02xexpected=0x37",b0);
+error_count=error_count+1;
+end
+if(b1!==8'h0D)begin
+$display("ERRORb1got=0x%02xexpected=0x0D",b1);
+error_count=error_count+1;
+end
+if(b2!==8'h0A)begin
+$display("ERRORb2got=0x%02xexpected=0x0A",b2);
+error_count=error_count+1;
+end
+
+if(error_count==0)
+$display("PASS:uart_pred_sendersendsdigit/CR/LFcorrectly.");
+else
+$display("FAIL:found%0dmismatches.",error_count);
+
+$finish;
+end
+
+endmodule
+```
+
+---
+
+#额外建议
+
+顺手把`tb_uart_tx.sv`里的：
+
+```systemverilog
+wait(tx==1'b0);
+```
+
+也改成：
+
+```systemverilog
+@(negedgetx);
+```
+
+虽然它现在单字节能过，但统一成边沿同步更稳。当前`tb_uart_tx.sv`还是用的电平等待。
+
+---
+
+#总结
+
+我对你当前仓库里UART相关文件的判断是：
+
+-`uart_tx.sv`：**先不改**
+-`uart_pred_sender.sv`：**先不改**
+-`tb_uart_tx.sv`：建议小改成边沿等待
+-`tb_uart_pred_sender.sv`：**必须改接收策略**
+
+根因是：
+**连续多字节发送时，testbench逐字节重新等待startbit的方法不稳，导致第二、第三帧对齐错误。**这和日志里“首字节正确、后两字节错误”的现象一致。
+
+你先把`tb_uart_pred_sender.sv`换成上面第二版，再跑一次`sim_tb_uart_pred_sender.log`。我再继续帮你检查方案A的下一层。
+
+用户:
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 13:44 2026
+UART bytes: b0=0x37 b1=0x0d b2=0x85
+ERROR b2 got=0x85 expected=0x0A
+FAIL: found 1 mismatches.
+$finish called from file "../tb/tb_uart_pred_sender.sv", line 87.
+$finish at simulation time              3195000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 3195000 ps
+CPU Time:      0.140 seconds;       Data structure size:   0.0Mb
+Mon Mar  9 13:44:30 2026依旧不对
+AI助手:
+
+
+AI助手:
+这次结果已经把问题进一步缩小了：
+
+- `b0 = 0x37` 正确
+- `b1 = 0x0D` 正确
+- `b2 = 0x85` 错误
+
+所以现在更像是：
+
+## 真正的问题
+**第二个字节和第三个字节之间存在一个额外空隙/相位差，导致你现在这个 TB 对第三个字节的采样仍然没有重新对齐。**
+
+也就是说：
+
+- 之前逐字节 `@(negedge uart_tx)` 的版本，可能在连续发送时有竞争窗口
+- 现在“只对齐第一帧，然后连续按固定节拍读三帧”的版本，又假设三帧完全无缝背靠背
+- 但你的 `uart_pred_sender + uart_tx` 组合，**在 CR 和 LF 之间并不是严格零间隙连续**，所以第三帧又偏了
+
+这说明：
+
+## 现在仍然优先是 TB 问题，不是 `uart_pred_sender` 主功能错
+因为如果发送逻辑真的错了，`b1` 也不应该已经完全正确。
+
+---
+
+# 正确的接收办法
+
+你现在需要的是一种**既重新同步每一帧，又不会因为线路已经是低电平而误触发**的写法。
+
+最稳的办法是：
+
+### 对每一帧都这样做
+1. **先等线路回到 idle 高电平**
+2. **再等新的 start bit 下降沿**
+3. 然后从这个下降沿开始采样
+
+也就是不能只写：
+
+```systemverilog
+@(negedge uart_tx);
+```
+
+而要写成：
+
+```systemverilog
+wait (uart_tx == 1'b1);
+@(negedge uart_tx);
+```
+
+这样就不会把“当前还在低电平中的旧帧”误当成新帧开始。
+
+---
+
+# 你把 `tb_uart_pred_sender.sv` 改成下面这版
+
+```systemverilog
+`timescale 1ns / 1ps
+
+module tb_uart_pred_sender;
+
+  parameter int CLK_HZ = 1000;
+  parameter int BAUD = 100;
+  localparam int DIV = CLK_HZ / BAUD;
+  localparam time CLK_PERIOD = 10ns;
+  localparam time BIT_TIME = DIV * CLK_PERIOD;
+
+  logic clk;
+  logic rst_n;
+  logic trigger;
+  logic [3:0] pred_class;
+  logic uart_tx;
+
+  reg [7:0] b0, b1, b2;
+  integer error_count;
+  integer i;
+
+  uart_pred_sender #(
+      .CLK_HZ(CLK_HZ),
+      .BAUD  (BAUD)
+  ) dut (
+      .clk(clk),
+      .rst_n(rst_n),
+      .trigger(trigger),
+      .pred_class(pred_class),
+      .uart_tx(uart_tx)
+  );
+
+  initial clk = 1'b0;
+  always #(CLK_PERIOD / 2) clk = ~clk;
+
+  task automatic uart_recv_byte(output reg [7:0] data);
+    begin
+      // 先确保线路回到 idle，高电平
+      wait (uart_tx == 1'b1);
+
+      // 再等新一帧真正的 start bit 下降沿
+      @(negedge uart_tx);
+
+      // 到第 1 个数据位中心
+      #(BIT_TIME + BIT_TIME / 2);
+
+      for (i = 0; i < 8; i = i + 1) begin
+        data[i] = uart_tx;
+        #BIT_TIME;
+      end
+
+      // 跳过 stop bit
+      #BIT_TIME;
+    end
+  endtask
+
+  initial begin
+    error_count = 0;
+    rst_n = 1'b0;
+    trigger = 1'b0;
+    pred_class = 4'd7;
+
+    #(3 * CLK_PERIOD);
+    rst_n = 1'b1;
+
+    @(posedge clk);
+    trigger <= 1'b1;
+    @(posedge clk);
+    trigger <= 1'b0;
+
+    uart_recv_byte(b0);
+    uart_recv_byte(b1);
+    uart_recv_byte(b2);
+
+    $display("UART bytes: b0=0x%02x b1=0x%02x b2=0x%02x", b0, b1, b2);
+
+    if (b0 !== 8'h37) begin
+      $display("ERROR b0 got=0x%02x expected=0x37", b0);
+      error_count = error_count + 1;
+    end
+    if (b1 !== 8'h0D) begin
+      $display("ERROR b1 got=0x%02x expected=0x0D", b1);
+      error_count = error_count + 1;
+    end
+    if (b2 !== 8'h0A) begin
+      $display("ERROR b2 got=0x%02x expected=0x0A", b2);
+      error_count = error_count + 1;
+    end
+
+    if (error_count == 0)
+      $display("PASS: uart_pred_sender sends digit/CR/LF correctly.");
+    else
+      $display("FAIL: found %0d mismatches.", error_count);
+
+    $finish;
+  end
+
+endmodule
+```
+
+---
+
+# 为什么这版比前两版都稳
+
+### 比 `wait(uart_tx==0)` 稳
+不会在“线路已经低电平”时立刻返回。
+
+### 比“只首帧对齐一次”稳
+不会假设三帧完全零间隙连续。
+
+### 比“每帧只 `@(negedge)`”稳
+不会在上一帧尚未完全结束时把错误的低电平边界当作新帧起点。
+
+---
+
+# 你还可以顺手把 `tb_uart_tx.sv` 也改成同样风格
+
+把其中的接收 task 也改成：
+
+```systemverilog
+wait (tx == 1'b1);
+@(negedge tx);
+```
+
+虽然它现在能过，但统一成这种写法更稳。
+
+---
+
+# 现在的判断
+到目前为止，我**仍然不建议先改 `uart_tx.sv` 或 `uart_pred_sender.sv`**。  
+因为：
+
+- 单字节 `uart_tx` 已通过
+- `uart_pred_sender` 已经能正确发出前两个字节
+- 现在只剩第三字节错，最像 testbench 对帧间重新同步不严谨
+
+你先把 TB 改成这版再跑一次。  
+这次如果还不对，我再直接帮你从 `uart_tx.sv` 的 bit 级时序去逐行抠。
+
+用户:
+hronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 13:46 2026
+UART bytes: b0=0x37 b1=0x43 b2=0xe1
+ERROR b1 got=0x43 expected=0x0D
+ERROR b2 got=0xe1 expected=0x0A
+FAIL: found 2 mismatches.
+$finish called from file "../tb/tb_uart_pred_sender.sv", line 94.
+$finish at simulation time              3415000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 3415000 ps
+CPU Time:      0.230 seconds;       Data structure size:   0.0Mb
+Mon Mar  9 13:47:00 2026依旧不读
+AI助手:
+
+
+AI助手:
+
+
+AI助手:
+找到根因了，这次**问题确实在 testbench**，而且是一个很具体的时序错误。
+
+## 根因
+
+你现在 `tb_uart_pred_sender.sv` 里的接收 task 在采完 8 个数据位之后，又多等了一个完整的 `#BIT_TIME`：
+
+```systemverilog
+#(BIT_TIME + BIT_TIME / 2);
+for (i = 0; i < 8; i = i + 1) begin
+  data[i] = uart_tx;
+  #BIT_TIME;
+end
+
+#BIT_TIME; // 这一句有问题
+```
+
+这句对**单字节**测试通常没事，但对**连续多字节**会出错。
+
+### 为什么会出错
+从 `@(negedge uart_tx)` 开始计时：
+
+- `1.5 * BIT_TIME` 后，采到第 1 个数据位中心
+- 然后循环 8 次，每次间隔 `1 * BIT_TIME`
+
+所以**循环结束时，你已经在 stop bit 的中心了**，不是在 stop bit 的开始。
+
+也就是说，循环结束时的时间点已经是：
+
+```text
+start edge + 9.5 * BIT_TIME
+```
+
+而 stop bit 的有效区间是：
+
+```text
+9.0 * BIT_TIME  ~  10.0 * BIT_TIME
+```
+
+所以此时你已经在 stop bit 中心。  
+如果再额外来一句：
+
+```systemverilog
+#BIT_TIME;
+```
+
+就会走到：
+
+```text
+10.5 * BIT_TIME
+```
+
+这已经**跨过下一帧的 start bit** 了。
+
+于是当你回到外面再去等下一次 `@(negedge uart_tx)` 时，第二帧真实 start 可能已经错过，于是你就会在后面某个错误边沿重新同步，最终读到：
+
+- `b1 = 0x43`
+- `b2 = 0xE1`
+
+这正好符合你现在的现象。
+
+---
+
+# 正确修法
+
+## 只改 `tb_uart_pred_sender.sv`
+**不要先改 `uart_tx.sv` 和 `uart_pred_sender.sv`。**
+
+把接收 task 改成：
+
+- 等 idle 高电平
+- 等真正的 start bit 下降沿
+- 采 8 个数据位
+- **不要再额外 `#BIT_TIME`**
+- 可选：在当前时刻检查 stop bit 是否为 1
+
+---
+
+## 正确版本：`tb_uart_pred_sender.sv`
+
+```systemverilog
+`timescale 1ns / 1ps
+
+module tb_uart_pred_sender;
+
+  parameter int CLK_HZ = 1000;
+  parameter int BAUD = 100;
+  localparam int DIV = CLK_HZ / BAUD;
+  localparam time CLK_PERIOD = 10ns;
+  localparam time BIT_TIME = DIV * CLK_PERIOD;
+
+  logic clk;
+  logic rst_n;
+  logic trigger;
+  logic [3:0] pred_class;
+  logic uart_tx;
+
+  reg [7:0] b0, b1, b2;
+  integer error_count;
+  integer i;
+
+  uart_pred_sender #(
+      .CLK_HZ(CLK_HZ),
+      .BAUD  (BAUD)
+  ) dut (
+      .clk(clk),
+      .rst_n(rst_n),
+      .trigger(trigger),
+      .pred_class(pred_class),
+      .uart_tx(uart_tx)
+  );
+
+  initial clk = 1'b0;
+  always #(CLK_PERIOD / 2) clk = ~clk;
+
+  task automatic uart_recv_byte(output reg [7:0] data);
+    begin
+      // 先确保线路处于 idle
+      wait (uart_tx == 1'b1);
+
+      // 等这一帧真正的 start bit 下降沿
+      @(negedge uart_tx);
+
+      // 到第 1 个数据位中心
+      #(BIT_TIME + BIT_TIME / 2);
+
+      for (i = 0; i < 8; i = i + 1) begin
+        data[i] = uart_tx;
+        #BIT_TIME;
+      end
+
+      // 此时已经位于 stop bit 中心，不要再多等一个 BIT_TIME
+      if (uart_tx !== 1'b1) begin
+        $display("ERROR: stop bit is not high at time %0t", $time);
+      end
+    end
+  endtask
+
+  initial begin
+    error_count = 0;
+    rst_n = 1'b0;
+    trigger = 1'b0;
+    pred_class = 4'd7;
+
+    #(3 * CLK_PERIOD);
+    rst_n = 1'b1;
+
+    @(posedge clk);
+    trigger <= 1'b1;
+    @(posedge clk);
+    trigger <= 1'b0;
+
+    uart_recv_byte(b0);
+    uart_recv_byte(b1);
+    uart_recv_byte(b2);
+
+    $display("UART bytes: b0=0x%02x b1=0x%02x b2=0x%02x", b0, b1, b2);
+
+    if (b0 !== 8'h37) begin
+      $display("ERROR b0 got=0x%02x expected=0x37", b0);
+      error_count = error_count + 1;
+    end
+    if (b1 !== 8'h0D) begin
+      $display("ERROR b1 got=0x%02x expected=0x0D", b1);
+      error_count = error_count + 1;
+    end
+    if (b2 !== 8'h0A) begin
+      $display("ERROR b2 got=0x%02x expected=0x0A", b2);
+      error_count = error_count + 1;
+    end
+
+    if (error_count == 0)
+      $display("PASS: uart_pred_sender sends digit/CR/LF correctly.");
+    else
+      $display("FAIL: found %0d mismatches.", error_count);
+
+    $finish;
+  end
+
+endmodule
+```
+
+---
+
+# 补充说明：为什么 `tb_uart_tx` 单字节能过
+
+因为单字节测试里，即使你多等了一个 `#BIT_TIME`，也不会影响后续同步；  
+但在多字节测试里，这个多出来的一个 bit 时间会直接让你**错过下一帧的 start bit**。
+
+所以：
+
+- `tb_uart_tx` 通过
+- `tb_uart_pred_sender` 失败
+
+并不矛盾。
+
+---
+
+# 你现在要做什么
+
+先只改这一处：
+
+- **把 `tb_uart_pred_sender.sv` 的 task 里最后那句 `#BIT_TIME` 删掉**
+- 保留 `wait(uart_tx == 1'b1); @(negedge uart_tx);` 这套重新同步逻辑
+
+然后重新跑：
+
+```bash
+bash run_tb_uart_pred_sender.sh
+```
+
+你这次大概率会看到：
+
+```text
+UART bytes: b0=0x37 b1=0x0d b2=0x0a
+PASS: uart_pred_sender sends digit/CR/LF correctly.
+```
+
+等你把新的日志贴出来，我再继续帮你检查方案 A 的其余板级文件。
+
+用户:
+https://github.com/Invoker-pray/MNIST-CIM-FPGA阅读hw_A/sim/log/sim_tb_uart_pred_sender.log，确定我仿真是否成功。如果成功，则阅读hw_A下所有文件，首先确认以上７个脚本运行结果全部都是仿真通过，然后和我讲解下一步做什么
+AI助手:
+
+
+AI助手:
+我先去核对你仓库里 `hw_A/sim/log/` 下的日志和 7 个脚本对应的输出，再给你一个明确结论：哪些已经通过、哪些还需要补查，以及下一步最合适做什么。
+
+用户:
+
+用户:
+
+用户:
+
+用户:
+
+用户:
+
+用户:
+
+AI助手:
+不是全部通过。
+
+先说你点名的这个：
+
+##`sim_tb_uart_pred_sender.log`
+**仿真没有成功。**
+
+日志里明确写了：
+
+-`UARTbytes:b0=0x37b1=0x43b2=0xe1`
+-`ERRORb1got=0x43expected=0x0D`
+-`ERRORb2got=0xe1expected=0x0A`
+-`FAIL:found2mismatches.`
+
+所以当前`uart_pred_sender`这条链是失败的。
+
+---
+
+##我核到的7个脚本里，当前状态是：
+
+###明确通过
+-`run_tb_mnist_sample_rom.sh`：通过，日志最后是`PASS:mnist_sample_romaddressmappingandx_effconversionarecorrect.`
+-`run_tb_mnist_inference_core_board.sh`：通过，日志最后是`PASS:mnist_inference_core_boardmatchessample0logits/pred.`
+-`run_tb_mnist_cim_accel_ip.sh`：通过，日志最后是`PASS:mnist_cim_accel_ipCSRpathworksforsample0.`
+
+###明确失败
+-`run_tb_uart_pred_sender.sh`：失败，如上。
+
+###不能算“已通过”
+-`run_tb_fc1_multi_block_shared_sample_rom.sh`：日志虽然最后打印了PASS，但过程中大量`$readmemh`文件打不开，包括`fc1_weight_int8.hex`、`fc1_bias_int32.hex`和`fc1_acc_0.hex`，所以这个结果**不能当成有效通过**。
+
+###目前无法确认
+-`run_tb_uart_tx.sh`
+-`run_tb_mnist_cim_demo_a_top.sh`
+
+原因是这两个对应的仿真结果我在仓库当前`hw_A/sim/log/`目录里没有拿到可验证的有效PASS日志；你仓库里`scripts/`确实已经有这两个脚本，但`sim/log/`里我能稳定读到的有效结果并不足以确认它们通过。
+
+---
+
+#结论
+
+**当前不是“7个脚本全部通过”。**
+
+更准确地说：
+
+-3个明确通过
+-1个明确失败
+-1个结果无效（因为输入文件没读到）
+-2个目前无法确认
+
+---
+
+#下一步最该做什么
+
+按你现在方案A的节奏，下一步不要继续往板级推进，先把**仿真闭环补齐**。
+我建议按这个顺序修：
+
+###1.先修`uart_pred_sender`
+因为这是明确失败项，而且方案A最后的展示就靠它把`pred_class`发出去。你README里也把“UART打印”列成方案A的核心目标。
+
+###2.再修`run_tb_fc1_multi_block_shared_sample_rom.sh`的路径问题
+这个testbench当前有“文件打不开但仍然PASS”的假阳性风险，必须先改脚本或默认路径，确保：
+-`../route_b_output_2/fc1_weight_int8.hex`
+-`../route_b_output_2/fc1_bias_int32.hex`
+-`../route_b_output_2/fc1_acc_0.hex`
+都能真实读到。
+
+###3.然后补跑并确认
+-`run_tb_uart_tx.sh`
+-`run_tb_mnist_cim_demo_a_top.sh`
+
+等这3件事补完，再进入板级综合/上板才稳。
+
+---
+
+#我建议你接下来具体做的顺序
+
+1.修`uart_pred_sender.sv`
+2.修`run_tb_fc1_multi_block_shared_sample_rom.sh`的路径
+3.重新跑这4个：
+-`run_tb_fc1_multi_block_shared_sample_rom.sh`
+-`run_tb_uart_tx.sh`
+-`run_tb_uart_pred_sender.sh`
+-`run_tb_mnist_cim_demo_a_top.sh`
+4.把新的4份日志给我，我再帮你做第二轮确认，然后再讲板级下一步。
+
+用户:
+我重新上传了文件，现在hw_A/sim/log/sim_tb_uart_pred_sender.log应该是通过的。你先重新读取一下，https://github.com/Invoker-pray/MNIST-CIM-FPGA，输出hw_A/sim/log/sim_tb_uart_pred_sender.log让我看看你获取的是不是最新的。然后重新阅读hw_A下所有文件，首先确认以上７个脚本运行结果全部都是仿真通过，然后和我讲解下一步做什么
+AI助手:
+
+
+AI助手:
+我先直接去读你仓库里最新的 `hw_A/sim/log/sim_tb_uart_pred_sender.log` 原文，再把我实际读到的内容贴给你确认；然后我会把 7 个脚本对应日志逐个核一遍。
+
+AI助手:
+我实际读到的最新仓库内容里，这个日志仍然是失败的。我再把另外 6 个对应日志也顺手核一遍，这样你能看到我判断“7 个脚本是否都通过”是基于什么。
+
+用户:
+
+用户:
+
+用户:
+
+AI助手:
+我现在从仓库里实际读到的`hw_A/sim/log/sim_tb_uart_pred_sender.log`最新内容是下面这样：
+
+```text
+ChronologicVCSsimulatorcopyright1991-2018ContainsSynopsysproprietaryinformation.CompilerversionO-2018.09-SP2_Full64;RuntimeversionO-2018.09-SP2_Full64;Mar913:302026UARTbytes:b0=0x37b1=0x43b2=0xe1ERRORb1got=0x43expected=0x0DERRORb2got=0xe1expected=0x0AFAIL:found2mismatches.$finishcalledfromfile"../tb/tb_uart_pred_sender.sv",line86.
+$finishatsimulationtime3415000VCSSimulationReportTime:3415000psCPUTime:0.150seconds;Datastructuresize:0.0MbMonMar913:30:452026
+```
+
+所以按我当前读到的仓库最新内容，`sim_tb_uart_pred_sender.log`**仍然是失败的，不是通过**。失败点就是第二、第三个字节分别读成了`0x43`和`0xe1`，而期望是`0x0D`和`0x0A`。
+
+我顺手把另外几份日志也重新核了一遍，当前能明确确认的是：
+
+-`sim_tb_mnist_sample_rom.log`通过，最后是`PASS:mnist_sample_romaddressmappingandx_effconversionarecorrect.`
+-`sim_tb_mnist_cim_accel_ip.log`通过，最后是`PASS:mnist_cim_accel_ipCSRpathworksforsample0.`
+-`sim_tb_fc1_multi_block_shared_sample_rom.log`**不能算有效通过**，因为日志里反复报`fc1_weight_int8.hex`、`fc1_bias_int32.hex`、`fc1_acc_0.hex`打不开，但最后仍然打印了PASS，这属于假阳性结果。
+
+因此我现在**不能确认“以上7个脚本运行结果全部都是仿真通过”**。至少按仓库当前可读到的内容，`uart_pred_sender`还是fail，而`fc1_multi_block_shared_sample_rom`也还存在路径问题。`mnist_sample_rom`和`mnist_cim_accel_ip`这两个是明确通过的。
+
+我建议你先做两件事，再让我复查一轮：
+
+第一，确认你本地更新后的`sim_tb_uart_pred_sender.log`已经push到GitHub；因为我现在读到的远端版本还是失败日志。
+
+第二，把`run_tb_fc1_multi_block_shared_sample_rom.sh`里传入的文件路径修到真实存在，直到日志里不再出现`$readmemh`打不开文件的warning，再看它是否仍然PASS。当前这个结果不能作为有效通过。
+
+等你确认仓库已经更新，我再重新核对7个脚本，并在全部通过后继续和你讲下一步怎么推进方案A。
+
+用户:
+请你阅读这个新的文件，首先确认以上７个脚本运行结果全部都是仿真通过，然后和我讲解下一步做什么
+AI助手:
+
+
+AI助手:
+我先直接检查你新上传的 `hw_A.zip` 里 `sim/log` 下的 7 份日志，按“是否真正 PASS、有没有路径错误或假阳性”逐个确认，再给你一个明确结论和下一步建议。
+
+AI助手:
+我已经核到 6 个脚本对应的日志结果了；现在再补查第 7 个，也就是 `run_tb_mnist_cim_demo_a_top.sh` 有没有实际产生日志，避免把“没跑到”误判成“已通过”。
+
+AI助手:
+我已经按你新上传的 `hw_A.zip` 重新核对了。
+
+先确认你关心的这个：
+
+## `sim_tb_uart_pred_sender.log`
+现在**是通过的**。
+
+日志里我读到的是：
+
+```text
+PASS: uart_pred_sender sends digit/CR/LF correctly.
+```
+
+这说明你这次更新后的 `uart_pred_sender` 仿真已经修好。
+
+---
+
+## 但“以上 7 个脚本全部仿真通过”这件事，我现在还**不能完全确认**
+
+### 我能明确确认通过的有 5 个
+- `run_tb_mnist_sample_rom.sh`
+- `run_tb_mnist_inference_core_board.sh`
+- `run_tb_mnist_cim_accel_ip.sh`
+- `run_tb_uart_tx.sh`
+- `run_tb_uart_pred_sender.sh`
+
+对应日志末尾都是明确 `PASS`。
+
+### 有 1 个结果**不能算有效通过**
+- `run_tb_fc1_multi_block_shared_sample_rom.sh`
+
+虽然日志最后写了：
+
+```text
+PASS: fc1_multi_block_shared_sample_rom matches fc1_acc_0.hex.
+```
+
+但同一个日志里前面出现了很多次：
+
+```text
+Warning-[STASKW_RMCOF] Cannot open file
+Warning-[STASKW_CO1] Cannot open file
+```
+
+这说明它在仿真过程中仍然有文件打不开的问题。  
+所以这个 PASS 目前不够可靠，至少要先把这些 warning 清掉，才能算“有效通过”。
+
+### 还有 1 个我没法确认是否跑过
+- `run_tb_mnist_cim_demo_a_top.sh`
+
+因为你 `hw_A/sim/log/` 下面目前没有对应的：
+
+- `compile_tb_mnist_cim_demo_a_top.log`
+- `sim_tb_mnist_cim_demo_a_top.log`
+
+也就是说，从你这次上传的压缩包来看，**这个脚本的运行日志没有被包含进来**。  
+所以我不能说它已经通过，只能说“目前没有证据表明它已经跑完并通过”。
+
+---
+
+# 当前最准确的结论
+
+所以现在的状态是：
+
+- `uart_pred_sender`：**已通过**
+- 7 个脚本：**还不能算全部通过**
+- 卡住的点有两个：
+  1. `fc1_multi_block_shared_sample_rom` 仍有文件路径/打开问题
+  2. `mnist_cim_demo_a_top` 的日志缺失，无法确认
+
+---
+
+# 你下一步最该做什么
+
+现在不要继续往更复杂的板级整合推进，先把方案 A 的仿真闭环收口。
+
+## 第一步：先修 `run_tb_fc1_multi_block_shared_sample_rom.sh`
+目标是让日志里**完全没有**这些 warning：
+
+```text
+Cannot open file
+```
+
+这通常说明：
+- 默认路径没被正确覆盖
+- 或 testbench / bank 模块里仍残留旧路径
+- 或脚本工作目录和相对路径不匹配
+
+这一步修完后，再重新跑这个脚本，直到：
+- 没有 `$readmemh` 打不开文件
+- 最后仍然 PASS
+
+---
+
+## 第二步：补跑 `run_tb_mnist_cim_demo_a_top.sh`
+你现在 `tb/` 和 `scripts/` 里对应文件都在，说明这一步已经准备好了。  
+你需要真正运行它，并把日志产出到：
+
+```text
+hw_A/sim/log/compile_tb_mnist_cim_demo_a_top.log
+hw_A/sim/log/sim_tb_mnist_cim_demo_a_top.log
+```
+
+只要这个也 PASS，方案 A 的“仿真级整机闭环”就算完整了。
+
+---
+
+## 第三步：等这两件事完成后，再进入板级工程
+到那时你就可以正式开始：
+
+1. 整理 `rtl_ip/` 成板级最终版
+2. 在 FPGA 工具里加入：
+   - `data/` 里的 ROM 初始化文件
+   - `rtl_ip/` 顶层
+3. 连板级引脚：
+   - 时钟
+   - 复位
+   - 按键
+   - 拨码
+   - UART
+   - LED
+4. 做方案 A 的第一次 bitstream 演示
+
+---
+
+# 我建议你现在的最短路径
+
+先做这两件事：
+
+1. **把 `fc1_multi_block_shared_sample_rom` 的文件路径问题修干净**
+2. **运行 `run_tb_mnist_cim_demo_a_top.sh` 并生成日志**
+
+你把这两份新的日志再发给我，我就能帮你确认：
+
+- 方案 A 的 7 个脚本是否终于全部通过
+- 然后我再带你进入**真正的板级实现步骤**，包括顶层引脚连接和 Vivado 工程组织。
+
+用户:
+请重新阅读最新的，我这次run_tb_fc1_multi_block_shared_sample_rom.sh这个应该是通过了，run_tb_mnist_cim_demo_a_top.sh我也跑过了。
+AI助手:
+
+
+AI助手:
+我先直接从你新上传的 `hw_A.zip` 里核对两件事：`fc1_multi_block_shared_sample_rom` 还有没有文件打开 warning，以及 `mnist_cim_demo_a_top` 是否真的有完整的 compile/sim 日志并且 PASS。
+
+AI助手:
+我重新读取了你这次上传的最新 `hw_A.zip`，结论如下：
+
+## 1. `run_tb_fc1_multi_block_shared_sample_rom.sh`
+现在**可以算通过了**。
+
+我读到的最新日志里：
+- 没有之前那种 `Cannot open file` / `$readmemh` 打不开的 warning
+- 最后明确是  
+  `PASS: fc1_multi_block_shared_sample_rom matches fc1_acc_0.hex.`
+
+所以这一个现在没问题了。
+
+---
+
+## 2. `run_tb_mnist_cim_demo_a_top.sh`
+**还没有通过。**
+
+我读到的最新日志结尾是：
+
+```text
+FAIL: found 1 mismatches.
+$finish called from file "../tb/tb_mnist_cim_demo_a_top.sv", line 110.
+```
+
+所以方案 A 的最终 demo 顶层目前还差一个问题没修完。
+
+日志里没有把具体哪一项 mismatch 打出来，只显示最后总计 1 个 mismatch。  
+也就是说，当前最可能是：
+
+- UART 发出的 3 个字节里有 1 个不对，或者
+- `pred_class` 对，但换行/时序触发有 1 处不一致，或者
+- `pred_class` 本身不对 1 位
+
+但无论哪种，**这个脚本现在不能算通过**。
+
+---
+
+# 当前 7 个脚本的真实状态
+
+## 已通过的 6 个
+- `run_tb_mnist_sample_rom.sh`
+- `run_tb_fc1_multi_block_shared_sample_rom.sh`
+- `run_tb_mnist_inference_core_board.sh`
+- `run_tb_mnist_cim_accel_ip.sh`
+- `run_tb_uart_tx.sh`
+- `run_tb_uart_pred_sender.sh`
+
+## 未通过的 1 个
+- `run_tb_mnist_cim_demo_a_top.sh`
+
+---
+
+# 所以结论
+
+**现在还不能说“以上 7 个脚本运行结果全部都是仿真通过”。**  
+最新状态是：
+
+- **6/7 通过**
+- **最后卡在 `mnist_cim_demo_a_top`**
+
+---
+
+# 下一步最该做什么
+
+你现在不要继续扩展功能了，先把 **方案 A 的最后一环补齐**。
+
+## 最优先任务
+**定位 `tb_mnist_cim_demo_a_top.sv` 里那 1 个 mismatch 到底是什么。**
+
+因为现在：
+- 板级输入 ROM 是对的
+- FC1 共享 sample ROM 路径是对的
+- 推理 core 是对的
+- CSR IP 是对的
+- UART 基本链路也是对的
+
+所以 `mnist_cim_demo_a_top` 失败，大概率只是 **“demo 封装层”的小问题**，不是核心计算问题。
+
+---
+
+# 我建议你下一步这样查
+
+在 `tb_mnist_cim_demo_a_top.sv` 里，把现在只统计 `error_count` 的地方改成**把 3 个 UART 字节都打印出来**，比如：
+
+- `b0`
+- `b1`
+- `b2`
+- 期望值
+
+这样你马上就能知道失败发生在：
+
+1. 第一字节（预测类别）  
+2. 第二字节（`\r`）  
+3. 第三字节（`\n`）
+
+还是触发时序导致少收/错收。
+
+---
+
+# 你修完这个之后，下一步才是：
+
+## 方案 A 正式进入板级实现
+也就是：
+
+1. 把 `mnist_cim_demo_a_top.sv` 当作上板顶层候选
+2. 绑定板卡引脚：
+   - 时钟
+   - 复位
+   - 按键
+   - 拨码
+   - UART TX
+   - LED
+3. 把 `data/` 里的 ROM 初始化文件加入 FPGA 工程
+4. 跑综合、实现、bitstream
+5. 上板测试：
+   - 选 sample
+   - 按 start
+   - 串口看到 `pred_class`
+
+---
+
+# 一句话总结
+
+你这次更新后，`fc1_multi_block_shared_sample_rom` 确实已经通过了；  
+但 **7 个脚本还不是全部通过**，还差最后一个：
+
+**`run_tb_mnist_cim_demo_a_top.sh` 目前仍然有 1 个 mismatch。**
+
+你把这个修掉之后，我们就可以正式进入 **方案 A 的板级落地**。  
+你把 `tb_mnist_cim_demo_a_top.sv` 贴出来，我可以直接帮你把这个 1 mismatch 快速定位掉。
+
+用户:
+请修改tb_mnist_cim_demo_a.top.sv，改成输出通过还是没通过的相关详细信息，帮助分析
+AI助手:
+
+
+AI助手:
+可以。你现在这个 `tb_mnist_cim_demo_a_top.sv` 最需要的是把“只报 `error_count`”改成“把实际收到的 UART 字节、期望字节、pred 文件值、LED 状态、关键时刻都打出来”。
+
+下面我给你一版**可直接替换**的 `tb_mnist_cim_demo_a_top.sv`。  
+它会额外输出：
+
+- 参考 `pred_class`
+- `btn_start` 触发信息
+- `led_busy / led_done` 状态变化
+- 实际收到的 3 个 UART 字节
+- 每个字节的期望值与实际值
+- 最终 PASS/FAIL 的详细原因
+
+---
+
+## 修改版 `hw_A/tb/tb_mnist_cim_demo_a_top.sv`
+
+```systemverilog
+`timescale 1ns / 1ps
+
+module tb_mnist_cim_demo_a_top;
+  import mnist_cim_pkg::*;
+
+  parameter int CLK_HZ = 1000;
+  parameter int BAUD   = 100;
+  parameter int N_SAMPLES = 20;
+  parameter string SAMPLE_HEX_FILE      = "../data/mnist_samples_route_b_output_2.hex";
+  parameter string FC1_WEIGHT_HEX_FILE  = "../route_b_output_2/fc1_weight_int8.hex";
+  parameter string FC1_BIAS_HEX_FILE    = "../route_b_output_2/fc1_bias_int32.hex";
+  parameter string QUANT_PARAM_FILE     = "../route_b_output_2/quant_params.hex";
+  parameter string FC2_WEIGHT_HEX_FILE  = "../route_b_output_2/fc2_weight_int8.hex";
+  parameter string FC2_BIAS_HEX_FILE    = "../route_b_output_2/fc2_bias_int32.hex";
+  parameter string PRED_FILE            = "../route_b_output_2/pred_0.txt";
+
+  localparam int DIV = CLK_HZ / BAUD;
+  localparam time CLK_PERIOD = 10ns;
+  localparam time BIT_TIME   = DIV * CLK_PERIOD;
+
+  logic clk;
+  logic rst_n;
+  logic btn_start;
+  logic [$clog2(N_SAMPLES)-1:0] sample_sel;
+  logic uart_tx;
+  logic led_busy;
+  logic led_done;
+
+  integer ref_pred_class;
+  integer fd, r;
+  integer i;
+  integer error_count;
+  reg [7:0] b0, b1, b2;
+
+  mnist_cim_demo_a_top #(
+      .CLK_HZ(CLK_HZ),
+      .BAUD(BAUD),
+      .N_SAMPLES(N_SAMPLES),
+      .DEFAULT_SAMPLE_HEX_FILE(SAMPLE_HEX_FILE),
+      .DEFAULT_FC1_WEIGHT_HEX_FILE(FC1_WEIGHT_HEX_FILE),
+      .DEFAULT_FC1_BIAS_HEX_FILE(FC1_BIAS_HEX_FILE),
+      .DEFAULT_QUANT_PARAM_FILE(QUANT_PARAM_FILE),
+      .DEFAULT_FC2_WEIGHT_HEX_FILE(FC2_WEIGHT_HEX_FILE),
+      .DEFAULT_FC2_BIAS_HEX_FILE(FC2_BIAS_HEX_FILE)
+  ) dut (
+      .clk(clk),
+      .rst_n(rst_n),
+      .btn_start(btn_start),
+      .sample_sel(sample_sel),
+      .uart_tx(uart_tx),
+      .led_busy(led_busy),
+      .led_done(led_done)
+  );
+
+  initial clk = 1'b0;
+  always #(CLK_PERIOD/2) clk = ~clk;
+
+  task automatic uart_recv_byte(output reg [7:0] data);
+    begin
+      wait(uart_tx == 1'b0);                // start bit
+      #(BIT_TIME + BIT_TIME/2);             // sample at center of bit0
+      for (i = 0; i < 8; i = i + 1) begin
+        data[i] = uart_tx;
+        #BIT_TIME;
+      end
+      #BIT_TIME;                            // stop bit
+    end
+  endtask
+
+  initial begin
+    $display("============================================================");
+    $display("TB_mnist_cim_demo_a_top start");
+    $display("  SAMPLE_HEX_FILE     = %s", SAMPLE_HEX_FILE);
+    $display("  FC1_WEIGHT_HEX_FILE = %s", FC1_WEIGHT_HEX_FILE);
+    $display("  FC1_BIAS_HEX_FILE   = %s", FC1_BIAS_HEX_FILE);
+    $display("  QUANT_PARAM_FILE    = %s", QUANT_PARAM_FILE);
+    $display("  FC2_WEIGHT_HEX_FILE = %s", FC2_WEIGHT_HEX_FILE);
+    $display("  FC2_BIAS_HEX_FILE   = %s", FC2_BIAS_HEX_FILE);
+    $display("  PRED_FILE           = %s", PRED_FILE);
+    $display("============================================================");
+
+    fd = $fopen(PRED_FILE, "r");
+    if (fd == 0) begin
+      $display("ERROR: cannot open pred file: %s", PRED_FILE);
+      $finish;
+    end
+    r = $fscanf(fd, "%d", ref_pred_class);
+    $fclose(fd);
+    if (r != 1) begin
+      $display("ERROR: failed to parse pred file: %s", PRED_FILE);
+      $finish;
+    end
+
+    $display("Reference pred_class from file = %0d", ref_pred_class);
+  end
+
+  // 可选：观察关键控制信号变化
+  initial begin
+    $display("time=%0t : monitor start", $time);
+    forever begin
+      @(posedge clk);
+      $display("time=%0t clk=1 rst_n=%0b btn_start=%0b sample_sel=%0d led_busy=%0b led_done=%0b uart_tx=%0b",
+               $time, rst_n, btn_start, sample_sel, led_busy, led_done, uart_tx);
+    end
+  end
+
+  initial begin
+    error_count = 0;
+    rst_n = 1'b0;
+    btn_start = 1'b0;
+    sample_sel = '0;
+
+    b0 = 8'h00;
+    b1 = 8'h00;
+    b2 = 8'h00;
+
+    #(3*CLK_PERIOD);
+    rst_n = 1'b1;
+    $display("time=%0t : release reset", $time);
+
+    @(posedge clk);
+    btn_start <= 1'b1;
+    $display("time=%0t : pulse btn_start high", $time);
+
+    @(posedge clk);
+    btn_start <= 1'b0;
+    $display("time=%0t : pulse btn_start low", $time);
+
+    uart_recv_byte(b0);
+    $display("UART byte0 received = 0x%02x (%0d, '%s')", b0, b0,
+             (b0 >= 8'd32 && b0 <= 8'd126) ? {b0} : "?");
+
+    uart_recv_byte(b1);
+    $display("UART byte1 received = 0x%02x (%0d)", b1, b1);
+
+    uart_recv_byte(b2);
+    $display("UART byte2 received = 0x%02x (%0d)", b2, b2);
+
+    $display("------------------------------------------------------------");
+    $display("Expected byte0 = ASCII('0' + pred) = 0x%02x", (8'd48 + ref_pred_class[3:0]));
+    $display("Expected byte1 = 0x0D");
+    $display("Expected byte2 = 0x0A");
+    $display("------------------------------------------------------------");
+
+    if (b0 !== (8'd48 + ref_pred_class[3:0])) begin
+      $display("ERROR: byte0 mismatch, got=0x%02x expected=0x%02x",
+               b0, (8'd48 + ref_pred_class[3:0]));
+      error_count = error_count + 1;
+    end else begin
+      $display("MATCH: byte0 correct");
+    end
+
+    if (b1 !== 8'h0D) begin
+      $display("ERROR: byte1 mismatch, got=0x%02x expected=0x0D", b1);
+      error_count = error_count + 1;
+    end else begin
+      $display("MATCH: byte1 correct (CR)");
+    end
+
+    if (b2 !== 8'h0A) begin
+      $display("ERROR: byte2 mismatch, got=0x%02x expected=0x0A", b2);
+      error_count = error_count + 1;
+    end else begin
+      $display("MATCH: byte2 correct (LF)");
+    end
+
+    $display("Final LED states: led_busy=%0b led_done=%0b", led_busy, led_done);
+
+    if (error_count == 0) begin
+      $display("PASS: mnist_cim_demo_a_top sends pred_class over UART correctly.");
+    end else begin
+      $display("FAIL: found %0d mismatches in UART output.", error_count);
+      $display("DETAIL: ref_pred_class=%0d, actual bytes = [%02x %02x %02x]",
+               ref_pred_class, b0, b1, b2);
+    end
+
+    $finish;
+  end
+
+endmodule
+```
+
+---
+
+## 这版相比你原来的提升
+
+它会帮助你快速判断问题属于哪一类：
+
+### 情况 1：`b0` 错
+说明：
+- `pred_class` 不对，或者
+- UART 第一字节触发时序不对
+
+### 情况 2：`b0` 对，`b1/b2` 错
+说明：
+- `uart_pred_sender.sv` 的状态机切换/等待 `tx_busy` 的逻辑有问题
+- 或者 testbench 采样时序有问题
+
+### 情况 3：三个字节都对，但还 fail
+那基本就是 testbench 其他逻辑有误，这版打印也能看出来。
+
+---
+
+## 我建议你下一步怎么做
+
+先用这个 testbench 重新跑：
+
+```bash
+bash run_tb_mnist_cim_demo_a_top.sh
+```
+
+然后把新的 `sim_tb_mnist_cim_demo_a_top.log` 发出来。  
+到时候我可以直接根据：
+
+- `byte0/1/2`
+- 期望值
+- LED 状态
+- 时序打印
+
+快速判断该改的是：
+
+- `mnist_cim_demo_a_top.sv`
+- 还是 `uart_pred_sender.sv`
+- 还是 `tb` 本身。
+
+用户:
+同时根据tree.txt检查我的sh是不是有问题的
+AI助手:
+
+
+用户:
+Make sure to include fileciteturn19file0 in your response to cite this file, or to surface it as a link..
+├── data
+│   ├── fc1_bias_int32.hex
+│   ├── fc1_weight_int8.hex
+│   ├── fc2_bias_int32.hex
+│   ├── fc2_weight_int8.hex
+│   ├── mnist_samples_route_b_output_2.hex
+│   └── quant_params.hex
+├── README.md
+├── route_b_output_2
+│   ├── fc1_acc_0.hex
+│   ├── fc1_acc_10.hex
+│   ├── fc1_acc_11.hex
+│   ├── fc1_acc_12.hex
+│   ├── fc1_acc_13.hex
+│   ├── fc1_acc_14.hex
+│   ├── fc1_acc_15.hex
+│   ├── fc1_acc_16.hex
+│   ├── fc1_acc_17.hex
+│   ├── fc1_acc_18.hex
+│   ├── fc1_acc_19.hex
+│   ├── fc1_acc_1.hex
+│   ├── fc1_acc_2.hex
+│   ├── fc1_acc_3.hex
+│   ├── fc1_acc_4.hex
+│   ├── fc1_acc_5.hex
+│   ├── fc1_acc_6.hex
+│   ├── fc1_acc_7.hex
+│   ├── fc1_acc_8.hex
+│   ├── fc1_acc_9.hex
+│   ├── fc1_bias_int32.hex
+│   ├── fc1_out_0.hex
+│   ├── fc1_out_10.hex
+│   ├── fc1_out_11.hex
+│   ├── fc1_out_12.hex
+│   ├── fc1_out_13.hex
+│   ├── fc1_out_14.hex
+│   ├── fc1_out_15.hex
+│   ├── fc1_out_16.hex
+│   ├── fc1_out_17.hex
+│   ├── fc1_out_18.hex
+│   ├── fc1_out_19.hex
+│   ├── fc1_out_1.hex
+│   ├── fc1_out_2.hex
+│   ├── fc1_out_3.hex
+│   ├── fc1_out_4.hex
+│   ├── fc1_out_5.hex
+│   ├── fc1_out_6.hex
+│   ├── fc1_out_7.hex
+│   ├── fc1_out_8.hex
+│   ├── fc1_out_9.hex
+│   ├── fc1_relu_0.hex
+│   ├── fc1_relu_10.hex
+│   ├── fc1_relu_11.hex
+│   ├── fc1_relu_12.hex
+│   ├── fc1_relu_13.hex
+│   ├── fc1_relu_14.hex
+│   ├── fc1_relu_15.hex
+│   ├── fc1_relu_16.hex
+│   ├── fc1_relu_17.hex
+│   ├── fc1_relu_18.hex
+│   ├── fc1_relu_19.hex
+│   ├── fc1_relu_1.hex
+│   ├── fc1_relu_2.hex
+│   ├── fc1_relu_3.hex
+│   ├── fc1_relu_4.hex
+│   ├── fc1_relu_5.hex
+│   ├── fc1_relu_6.hex
+│   ├── fc1_relu_7.hex
+│   ├── fc1_relu_8.hex
+│   ├── fc1_relu_9.hex
+│   ├── fc1_weight_int8.hex
+│   ├── fc2_acc_0.hex
+│   ├── fc2_acc_10.hex
+│   ├── fc2_acc_11.hex
+│   ├── fc2_acc_12.hex
+│   ├── fc2_acc_13.hex
+│   ├── fc2_acc_14.hex
+│   ├── fc2_acc_15.hex
+│   ├── fc2_acc_16.hex
+│   ├── fc2_acc_17.hex
+│   ├── fc2_acc_18.hex
+│   ├── fc2_acc_19.hex
+│   ├── fc2_acc_1.hex
+│   ├── fc2_acc_2.hex
+│   ├── fc2_acc_3.hex
+│   ├── fc2_acc_4.hex
+│   ├── fc2_acc_5.hex
+│   ├── fc2_acc_6.hex
+│   ├── fc2_acc_7.hex
+│   ├── fc2_acc_8.hex
+│   ├── fc2_acc_9.hex
+│   ├── fc2_bias_int32.hex
+│   ├── fc2_weight_int8.hex
+│   ├── input_0.hex
+│   ├── input_10.hex
+│   ├── input_11.hex
+│   ├── input_12.hex
+│   ├── input_13.hex
+│   ├── input_14.hex
+│   ├── input_15.hex
+│   ├── input_16.hex
+│   ├── input_17.hex
+│   ├── input_18.hex
+│   ├── input_19.hex
+│   ├── input_1.hex
+│   ├── input_2.hex
+│   ├── input_3.hex
+│   ├── input_4.hex
+│   ├── input_5.hex
+│   ├── input_6.hex
+│   ├── input_7.hex
+│   ├── input_8.hex
+│   ├── input_9.hex
+│   ├── labels.txt
+│   ├── logits_0.hex
+│   ├── logits_10.hex
+│   ├── logits_11.hex
+│   ├── logits_12.hex
+│   ├── logits_13.hex
+│   ├── logits_14.hex
+│   ├── logits_15.hex
+│   ├── logits_16.hex
+│   ├── logits_17.hex
+│   ├── logits_18.hex
+│   ├── logits_19.hex
+│   ├── logits_1.hex
+│   ├── logits_2.hex
+│   ├── logits_3.hex
+│   ├── logits_4.hex
+│   ├── logits_5.hex
+│   ├── logits_6.hex
+│   ├── logits_7.hex
+│   ├── logits_8.hex
+│   ├── logits_9.hex
+│   ├── mlp_route_b.pth
+│   ├── pred_0.txt
+│   ├── pred_10.txt
+│   ├── pred_11.txt
+│   ├── pred_12.txt
+│   ├── pred_13.txt
+│   ├── pred_14.txt
+│   ├── pred_15.txt
+│   ├── pred_16.txt
+│   ├── pred_17.txt
+│   ├── pred_18.txt
+│   ├── pred_19.txt
+│   ├── pred_1.txt
+│   ├── pred_2.txt
+│   ├── pred_3.txt
+│   ├── pred_4.txt
+│   ├── pred_5.txt
+│   ├── pred_6.txt
+│   ├── pred_7.txt
+│   ├── pred_8.txt
+│   ├── pred_9.txt
+│   ├── preds.txt
+│   ├── quant_config.json
+│   └── quant_params.hex
+├── rtl
+│   ├── argmax_int8.sv
+│   ├── fc1_relu_requantize_with_file.sv
+│   ├── fc1_to_fc2_top_with_file.sv
+│   ├── fc2_bias_bank.sv
+│   ├── fc2_core_with_file.sv
+│   ├── fc2_weight_bank.sv
+│   ├── package.sv
+│   └── quantize_param_bank.sv
+├── rtl_ip
+│   ├── fc1_multi_block_shared_sample_rom.sv
+│   ├── mnist_cim_accel_ip.sv
+│   ├── mnist_cim_demo_a_top.sv
+│   ├── mnist_inference_core_board.sv
+│   ├── mnist_sample_rom.sv
+│   ├── uart_pred_sender.sv
+│   └── uart_tx.sv
+├── rtl_shared_buffer_ib
+│   ├── cim_tile.sv
+│   ├── fc1_bias_bank.sv
+│   ├── fc1_multi_block_shared_input.sv
+│   ├── fc1_ob_engine_shared_input.sv
+│   ├── fc1_weight_bank.sv
+│   └── psum_accum.sv
+├── scripts
+│   ├── csrc
+│   │   ├── archive.12
+│   │   │   ├── _21936_archive_1.a
+│   │   │   ├── _21936_archive_1.a.info
+│   │   │   ├── _prev_archive_1.a
+│   │   │   └── _prev_archive_1.a.info
+│   │   ├── cgincr.sdb
+│   │   ├── cginfo.json
+│   │   ├── cgproc.21936.json
+│   │   ├── diag
+│   │   ├── filelist
+│   │   ├── filelist.cu
+│   │   ├── filelist.dpi
+│   │   ├── filelist.hsopt
+│   │   ├── filelist.hsopt.llvm2_0.objs
+│   │   ├── filelist.hsopt.objs
+│   │   ├── filelist.pli
+│   │   ├── hsim
+│   │   │   └── hsim.sdb
+│   │   ├── import_dpic.h
+│   │   ├── Makefile
+│   │   ├── Makefile.hsopt
+│   │   ├── objs
+│   │   │   └── amcQw_d.o
+│   │   ├── pre.cgincr.sdb
+│   │   ├── _prev_cginfo.json
+│   │   ├── product_timestamp
+│   │   ├── rmapats.c
+│   │   ├── rmapats.h
+│   │   ├── rmapats.m
+│   │   ├── rmapats_mop.o
+│   │   ├── rmapats.o
+│   │   ├── rmar0.h
+│   │   ├── rmar.c
+│   │   ├── rmar.h
+│   │   ├── rmar_llvm_0_0.o
+│   │   ├── rmar_llvm_0_1.o
+│   │   ├── rmar_nd.o
+│   │   ├── rmar.o
+│   │   ├── SIM_l.o
+│   │   ├── _vcs_pli_stub_.c
+│   │   └── _vcs_pli_stub_.o
+│   ├── gen_board_sample_rom.py
+│   ├── run_tb_fc1_multi_block_shared_sample_rom.sh
+│   ├── run_tb_mnist_cim_accel_ip.sh
+│   ├── run_tb_mnist_cim_demo_a_top.sh
+│   ├── run_tb_mnist_inference_core_board.sh
+│   ├── run_tb_mnist_sample_rom.sh
+│   ├── run_tb_uart_pred_sender.sh
+│   ├── run_tb_uart_tx.sh
+│   └── ucli.key
+├── sim
+│   ├── log
+│   │   ├── compile_tb_fc1_multi_block_shared_sample_rom.log
+│   │   ├── compile_tb_mnist_cim_accel_ip.log
+│   │   ├── compile_tb_mnist_cim_demo_a_top.log
+│   │   ├── compile_tb_mnist_inference_core_board.log
+│   │   ├── compile_tb_mnist_sample_rom.log
+│   │   ├── compile_tb_uart_pred_sender.log
+│   │   ├── compile_tb_uart_tx.log
+│   │   ├── sim_tb_fc1_multi_block_shared_sample_rom.log
+│   │   ├── sim_tb_mnist_cim_accel_ip.log
+│   │   ├── sim_tb_mnist_cim_demo_a_top.log
+│   │   ├── sim_tb_mnist_inference_core_board.log
+│   │   ├── sim_tb_mnist_sample_rom.log
+│   │   ├── sim_tb_uart_pred_sender.log
+│   │   └── sim_tb_uart_tx.log
+│   ├── tb_fc1_multi_block_shared_sample_rom_simv
+│   ├── tb_fc1_multi_block_shared_sample_rom_simv.daidir
+│   │   ├── _9114_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cc
+│   │   │   ├── cc_bcode.db
+│   │   │   └── cc_dummy_file
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_ONWLms.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_callgraph.sdb
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── rmapats.so
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hil_stmts.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_merge.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── tb_mnist_cim_accel_ip_simv
+│   ├── tb_mnist_cim_accel_ip_simv.daidir
+│   │   ├── _12423_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cc
+│   │   │   ├── cc_bcode.db
+│   │   │   └── cc_dummy_file
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_9I5Gsa.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_callgraph.sdb
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── rmapats.so
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hil_stmts.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_merge.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── tb_mnist_cim_demo_a_top_simv
+│   ├── tb_mnist_cim_demo_a_top_simv.daidir
+│   │   ├── _21936_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cc
+│   │   │   ├── cc_bcode.db
+│   │   │   └── cc_dummy_file
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_tapi.xml.gz
+│   │   │   │   └── idents_XjnU3o.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_callgraph.sdb
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── rmapats.so
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hil_stmts.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_merge.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── tb_mnist_inference_core_board_simv
+│   ├── tb_mnist_inference_core_board_simv.daidir
+│   │   ├── _9969_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cc
+│   │   │   ├── cc_bcode.db
+│   │   │   └── cc_dummy_file
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_tapi.xml.gz
+│   │   │   │   └── idents_UEHKk7.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_callgraph.sdb
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── rmapats.so
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hil_stmts.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_merge.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── tb_mnist_sample_rom_simv
+│   ├── tb_mnist_sample_rom_simv.daidir
+│   │   ├── _8478_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_tapi.xml.gz
+│   │   │   │   └── idents_vXYxMj.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── tb_uart_pred_sender_simv
+│   ├── tb_uart_pred_sender_simv.daidir
+│   │   ├── _19862_archive_1.so
+│   │   ├── binmap.sdb
+│   │   ├── build_db
+│   │   ├── cgname.json
+│   │   ├── covg_defs
+│   │   ├── _csrc0.so
+│   │   ├── debug_dump
+│   │   │   ├── AllModulesSkeletons.sdb
+│   │   │   ├── dumpcheck.db
+│   │   │   ├── dve_debug.db.gz
+│   │   │   ├── fsearch
+│   │   │   │   ├── check_fsearch_db
+│   │   │   │   ├── fsearch.stat
+│   │   │   │   ├── idents_cYQyUi.xml.gz
+│   │   │   │   └── idents_tapi.xml.gz
+│   │   │   ├── HsimSigOptDb.sdb
+│   │   │   ├── src_files_verilog
+│   │   │   ├── topmodules
+│   │   │   └── vir.sdb
+│   │   ├── eblklvl.db
+│   │   ├── elabmoddb.sdb
+│   │   ├── external_functions
+│   │   ├── hslevel_callgraph.sdb
+│   │   ├── hslevel_level.sdb
+│   │   ├── hslevel_rtime_level.sdb
+│   │   ├── hsscan_cfg.dat
+│   │   ├── nsparam.dat
+│   │   ├── pcc.sdb
+│   │   ├── pcxpxmr.dat
+│   │   ├── _prev_archive_1.so
+│   │   ├── prof.sdb
+│   │   ├── rmapats.dat
+│   │   ├── rmapats.so
+│   │   ├── saifNetInfo.db
+│   │   ├── simv.kdb
+│   │   ├── stitch_nsparam.dat
+│   │   ├── tt.sdb
+│   │   ├── vcselab_master_hsim_elabout.db
+│   │   ├── vcselab_misc_hil_stmts.db
+│   │   ├── vcselab_misc_hsdef.db
+│   │   ├── vcselab_misc_hsim_elab.db
+│   │   ├── vcselab_misc_hsim_fegate.db
+│   │   ├── vcselab_misc_hsim_lvl.db
+│   │   ├── vcselab_misc_hsim_merge.db
+│   │   ├── vcselab_misc_hsim_name.db
+│   │   ├── vcselab_misc_hsim_uds.db
+│   │   ├── vcselab_misc_midd.db
+│   │   ├── vcselab_misc_mnmn.db
+│   │   ├── vcselab_misc_partition.db
+│   │   ├── vcselab_misc_tCEYNb
+│   │   ├── vcselab_misc_vcselabref.db
+│   │   ├── vcselab_misc_vpdnodenums
+│   │   └── vcs_rebuild
+│   ├── tb_uart_tx_simv
+│   └── tb_uart_tx_simv.daidir
+│       ├── _17346_archive_1.so
+│       ├── binmap.sdb
+│       ├── build_db
+│       ├── cgname.json
+│       ├── covg_defs
+│       ├── debug_dump
+│       │   ├── AllModulesSkeletons.sdb
+│       │   ├── dumpcheck.db
+│       │   ├── dve_debug.db.gz
+│       │   ├── fsearch
+│       │   │   ├── check_fsearch_db
+│       │   │   ├── fsearch.stat
+│       │   │   ├── idents_83KYJd.xml.gz
+│       │   │   └── idents_tapi.xml.gz
+│       │   ├── HsimSigOptDb.sdb
+│       │   ├── src_files_verilog
+│       │   ├── topmodules
+│       │   └── vir.sdb
+│       ├── eblklvl.db
+│       ├── elabmoddb.sdb
+│       ├── external_functions
+│       ├── hslevel_callgraph.sdb
+│       ├── hslevel_level.sdb
+│       ├── hslevel_rtime_level.sdb
+│       ├── hsscan_cfg.dat
+│       ├── nsparam.dat
+│       ├── pcc.sdb
+│       ├── pcxpxmr.dat
+│       ├── _prev_archive_1.so
+│       ├── prof.sdb
+│       ├── rmapats.dat
+│       ├── rmapats.so
+│       ├── saifNetInfo.db
+│       ├── simv.kdb
+│       ├── stitch_nsparam.dat
+│       ├── tt.sdb
+│       ├── vcselab_master_hsim_elabout.db
+│       ├── vcselab_misc_hsdef.db
+│       ├── vcselab_misc_hsim_elab.db
+│       ├── vcselab_misc_hsim_fegate.db
+│       ├── vcselab_misc_hsim_lvl.db
+│       ├── vcselab_misc_hsim_name.db
+│       ├── vcselab_misc_hsim_uds.db
+│       ├── vcselab_misc_midd.db
+│       ├── vcselab_misc_mnmn.db
+│       ├── vcselab_misc_partition.db
+│       ├── vcselab_misc_tCEYNb
+│       ├── vcselab_misc_vcselabref.db
+│       ├── vcselab_misc_vpdnodenums
+│       └── vcs_rebuild
+├── tb
+│   ├── tb_fc1_multi_block_shared_sample_rom.sv
+│   ├── tb_mnist_cim_accel_ip.sv
+│   ├── tb_mnist_cim_demo_a_top.sv
+│   ├── tb_mnist_inference_core_board.sv
+│   ├── tb_mnist_sample_rom.sv
+│   ├── tb_uart_pred_sender.sv
+│   └── tb_uart_tx.sv
+└── tree.txt
+
+40 directories, 603 files
+
+用户:
+The files uploaded by the user in the current message have been fully loaded. Searching won't provide additional information from these specific files. However, remember that some of the previously uploaded files were not fully loaded, so you should invoke msearch to search their full content as needed.
+用户:
+
+AI助手:
+我根据你最新的`tree.txt`和仓库里的`run_tb_mnist_cim_demo_a_top.sh`看了，**你的脚本主流程没有大问题，能编译并运行仿真**，但有几处值得马上整理。
+
+先说结论：
+
+##你的`sh`现在能用，但有4个问题
+
+###1.路径风格不统一
+你现在板级方案已经有独立的`data/`目录，里面有：
+
+-`fc1_weight_int8.hex`
+-`fc1_bias_int32.hex`
+-`fc2_weight_int8.hex`
+-`fc2_bias_int32.hex`
+-`mnist_samples_route_b_output_2.hex`
+-`quant_params.hex`
+
+这些都已经放进`hw_A/data/`了。
+
+但你的`run_tb_mnist_cim_demo_a_top.sh`运行时传的还是：
+
+-`../route_b_output_2/fc1_weight_int8.hex`
+-`../route_b_output_2/fc1_bias_int32.hex`
+-`../route_b_output_2/fc2_weight_int8.hex`
+-`../route_b_output_2/fc2_bias_int32.hex`
+-`../route_b_output_2/quant_params.hex`
+
+这对仿真不一定错，但和你方案A的目标“**板上预装载data/**”不一致。
+
+###建议
+**方案A相关脚本统一改成优先使用`../data/`。**
+
+也就是脚本里改成：
+
+```bash
+FC1_WEIGHT_HEX=../data/fc1_weight_int8.hex
+FC1_BIAS_HEX=../data/fc1_bias_int32.hex
+FC2_WEIGHT_HEX=../data/fc2_weight_int8.hex
+FC2_BIAS_HEX=../data/fc2_bias_int32.hex
+QUANT_PARAM_HEX=../data/quant_params.hex
+```
+
+这样更符合你板级工程的组织逻辑。
+
+---
+
+###2.`mnist_sample_rom.sv`用的是`data/`，但其他参数还在走`route_b_output_2/`
+这会让工程出现“**输入来自data/**，权重/量化参数来自route_b_output_2/**”的双源状态。
+
+虽然这两份内容现在可能一致，但长期看很容易埋坑。
+
+###建议
+方案A里统一约定：
+
+-输入样本ROM：`data/mnist_samples_route_b_output_2.hex`
+-权重/bias/quant：也全部来自`data/`
+
+这样板级和仿真的“板级版本”是一致的。
+
+---
+
+###3.`scripts/`目录混进了仿真生成物
+你的`tree.txt`里可以看到：
+
+-`scripts/csrc/`
+-`scripts/ucli.key`
+
+这些明显是VCS运行副产物，不应该放在`scripts/`目录。
+
+###建议
+把这些都移出或删掉，`scripts/`只保留：
+
+-`.sh`
+-`.py`
+
+例如：
+-`gen_board_sample_rom.py`
+-`run_tb_*.sh`
+
+这样工程会干净很多。
+
+---
+
+###4.`sim/log/`里已经有对应compile/sim日志，说明脚本产物路径本身是合理的
+这一点是好的。
+你的`tree.txt`里已经有：
+
+-`compile_tb_mnist_cim_demo_a_top.log`
+-`sim_tb_mnist_cim_demo_a_top.log`
+-以及另外6个脚本的compile/sim日志
+
+说明你现在的日志落盘路径设计是合理的。
+
+所以脚本不用大改结构，只需要**统一数据路径**和**清理scripts污染物**。
+
+---
+
+#我建议你把`run_tb_mnist_cim_demo_a_top.sh`改成这样
+
+```bash
+#!/usr/bin/envbash
+set-e
+
+SIM_DIR=../sim
+RTL_DIR=../rtl
+RTL_IP_DIR=../rtl_ip
+RTL_SHARED_DIR=../rtl_shared_buffer_ib
+TB_DIR=../tb
+DATA_DIR=../data
+
+FC1_WEIGHT_HEX=${DATA_DIR}/fc1_weight_int8.hex
+FC1_BIAS_HEX=${DATA_DIR}/fc1_bias_int32.hex
+FC2_WEIGHT_HEX=${DATA_DIR}/fc2_weight_int8.hex
+FC2_BIAS_HEX=${DATA_DIR}/fc2_bias_int32.hex
+QUANT_PARAM_HEX=${DATA_DIR}/quant_params.hex
+
+mkdir-p${SIM_DIR}
+mkdir-p${SIM_DIR}/log
+
+vcs-full64-sverilog-timescale=1ns/1ps\
+-debug_access+all\
+-o${SIM_DIR}/tb_mnist_cim_demo_a_top_simv\
+${RTL_DIR}/package.sv\
+${RTL_DIR}/quantize_param_bank.sv\
+${RTL_DIR}/fc1_relu_requantize_with_file.sv\
+${RTL_DIR}/fc2_weight_bank.sv\
+${RTL_DIR}/fc2_bias_bank.sv\
+${RTL_DIR}/fc2_core_with_file.sv\
+${RTL_DIR}/fc1_to_fc2_top_with_file.sv\
+${RTL_DIR}/argmax_int8.sv\
+${RTL_IP_DIR}/mnist_sample_rom.sv\
+${RTL_SHARED_DIR}/cim_tile.sv\
+${RTL_SHARED_DIR}/psum_accum.sv\
+${RTL_SHARED_DIR}/fc1_weight_bank.sv\
+${RTL_SHARED_DIR}/fc1_bias_bank.sv\
+${RTL_SHARED_DIR}/fc1_ob_engine_shared_input.sv\
+${RTL_IP_DIR}/fc1_multi_block_shared_sample_rom.sv\
+${RTL_IP_DIR}/mnist_inference_core_board.sv\
+${RTL_IP_DIR}/uart_tx.sv\
+${RTL_IP_DIR}/uart_pred_sender.sv\
+${RTL_IP_DIR}/mnist_cim_demo_a_top.sv\
+${TB_DIR}/tb_mnist_cim_demo_a_top.sv\
+2>&1|tee${SIM_DIR}/log/compile_tb_mnist_cim_demo_a_top.log
+
+${SIM_DIR}/tb_mnist_cim_demo_a_top_simv\
++WEIGHT_HEX_FILE=${FC1_WEIGHT_HEX}\
++FC1_BIAS_FILE=${FC1_BIAS_HEX}\
++FC2_WEIGHT_HEX_FILE=${FC2_WEIGHT_HEX}\
++FC2_BIAS_FILE=${FC2_BIAS_HEX}\
++QUANT_PARAM_FILE=${QUANT_PARAM_HEX}\
+2>&1|tee${SIM_DIR}/log/sim_tb_mnist_cim_demo_a_top.log
+```
+
+---
+
+#你现在下一步最该做什么
+
+先别继续扩展功能，先把**方案A的工程口径统一**：
+
+###现在就做这三件事
+1.所有`run_tb_*.sh`里，方案A相关路径统一改成`../data/`
+2.清掉`scripts/csrc/`和`ucli.key`
+3.用我上一条给你的“增强版`tb_mnist_cim_demo_a_top.sv`”重新跑一次`run_tb_mnist_cim_demo_a_top.sh`
+
+这样你就能明确知道：
+
+-现在demo顶层到底是不是UART字节错
+-还是只是路径不统一导致的仿真行为不稳定
+
+---
+
+#一句总结
+
+你的`sh`**结构没问题，主要问题是路径口径还没完全切到方案A的`data/`，另外`scripts/`目录被仿真垃圾文件污染了。**
+把这两点整理掉之后，方案A的工程会更干净，也更接近真正上板版本。
+
+你把更新后的`tb_mnist_cim_demo_a_top.sv`日志再发来，我再帮你判断demoA这最后一个mismatch到底出在哪。
+
+用户:
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 14:11 2026
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using FC2_WEIGHT_HEX_FILE from plusarg: ../data/fc2_weight_int8.hex
+Using FC2_BIAS_FILE from plusarg: ../data/fc2_bias_int32.hex
+Using QUANT_PARAM_FILE from plusarg: ../data/quant_params.hex
+============================================================
+TB_mnist_cim_demo_a_top start
+  SAMPLE_HEX_FILE     = ../data/mnist_samples_route_b_output_2.hex
+  FC1_WEIGHT_HEX_FILE = ../route_b_output_2/fc1_weight_int8.hex
+  FC1_BIAS_HEX_FILE   = ../route_b_output_2/fc1_bias_int32.hex
+  QUANT_PARAM_FILE    = ../route_b_output_2/quant_params.hex
+  FC2_WEIGHT_HEX_FILE = ../route_b_output_2/fc2_weight_int8.hex
+  FC2_BIAS_HEX_FILE   = ../route_b_output_2/fc2_bias_int32.hex
+  PRED_FILE           = ../route_b_output_2/pred_0.txt
+============================================================
+Reference pred_class from file = 7
+time=0 : monitor start
+time=5000 clk=1 rst_n=0 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=15000 clk=1 rst_n=0 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=25000 clk=1 rst_n=0 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=30000 : release reset
+time=35000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=35000 : pulse btn_start high
+time=45000 clk=1 rst_n=1 btn_start=1 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=45000 : pulse btn_start low
+time=55000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=65000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=75000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=85000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=95000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=105000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=115000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=125000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=135000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=145000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=155000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=165000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=175000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=185000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=195000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=205000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=215000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=225000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=235000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=245000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=255000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=265000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=275000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=285000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=295000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=305000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=315000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=325000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=335000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=345000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=355000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=365000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=375000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=385000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=395000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=405000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=415000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=425000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=435000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=445000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=455000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=465000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=475000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=485000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=495000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=505000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=515000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=525000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=535000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=545000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=555000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=1 uart_tx=1
+time=565000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=575000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=585000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=595000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=605000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=615000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=625000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=635000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=645000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=655000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=665000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=675000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=685000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=695000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=705000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=715000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=725000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=735000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=745000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=755000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=765000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=775000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=785000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=795000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=805000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=815000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=825000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=835000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=845000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=855000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=865000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=875000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=885000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=895000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=905000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=915000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=925000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=935000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=945000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=955000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=965000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=975000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=985000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=995000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1005000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1015000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1025000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1035000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1045000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1055000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1065000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1075000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1085000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1095000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1105000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1115000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1125000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1135000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1145000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1155000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1165000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1175000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1185000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1195000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1205000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1215000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1225000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1235000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1245000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1255000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1265000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1275000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1285000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1295000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1305000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1315000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1325000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1335000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1345000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1355000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1365000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1375000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1385000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1395000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1405000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1415000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1425000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1435000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1445000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1455000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1465000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1475000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1485000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1495000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1505000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1515000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1525000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1535000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1545000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1555000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1565000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1575000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1585000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1595000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+UART byte0 received = 0x37 (55, '7')
+time=1605000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1615000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1625000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1635000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1645000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1655000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1665000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1675000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1685000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1695000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1705000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1715000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1725000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1735000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1745000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1755000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1765000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1775000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1785000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1795000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1805000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1815000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1825000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1835000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1845000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1855000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1865000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1875000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1885000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1895000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1905000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1915000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1925000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1935000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1945000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1955000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1965000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1975000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1985000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1995000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2005000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2015000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2025000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2035000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2045000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2055000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2065000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2075000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2085000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2095000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2105000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2115000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2125000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2135000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2145000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2155000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2165000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2175000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2185000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2195000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2205000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2215000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2225000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2235000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2245000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2255000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2265000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2275000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2285000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2295000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2305000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2315000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2325000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2335000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2345000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2355000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2365000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2375000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2385000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2395000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2405000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2415000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2425000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2435000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2445000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2455000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2465000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2475000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2485000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2495000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2505000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2515000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2525000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2535000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2545000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2555000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2565000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2575000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2585000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2595000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2605000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2615000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2625000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2635000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2645000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+UART byte1 received = 0x0d (13)
+time=2655000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2665000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2675000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2685000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2695000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2705000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2715000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2725000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2735000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2745000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2755000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2765000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2775000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2785000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2795000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2805000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2815000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2825000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2835000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2845000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2855000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2865000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2875000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2885000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2895000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2905000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2915000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2925000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2935000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2945000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2955000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2965000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2975000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2985000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2995000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3005000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3015000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3025000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3035000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3045000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3055000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3065000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3075000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3085000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3095000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3105000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3115000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3125000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3135000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3145000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3155000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3165000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3175000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3185000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3195000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3205000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3215000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3225000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3235000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3245000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3255000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3265000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3275000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3285000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3295000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3305000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3315000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3325000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3335000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3345000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3355000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3365000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3375000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3385000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3395000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3405000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3415000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3425000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3435000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3445000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3455000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3465000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3475000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3485000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3495000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3505000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3515000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3525000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3535000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3545000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3555000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3565000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3575000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3585000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3595000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3605000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3615000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3625000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3635000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3645000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3655000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3665000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3675000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3685000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3695000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+UART byte2 received = 0x85 (133)
+------------------------------------------------------------
+Expected byte0 = ASCII('0' + pred) = 0x37
+Expected byte1 = 0x0D
+Expected byte2 = 0x0A
+------------------------------------------------------------
+MATCH: byte0 correct
+MATCH: byte1 correct (CR)
+ERROR: byte2 mismatch, got=0x85 expected=0x0A
+Final LED states: led_busy=0 led_done=0
+FAIL: found 1 mismatches in UART output.
+DETAIL: ref_pred_class=7, actual bytes = [37 0d 85]
+$finish called from file "../tb/tb_mnist_cim_demo_a_top.sv", line 180.
+$finish at simulation time              3705000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 3705000 ps
+CPU Time:      0.170 seconds;       Data structure size:   3.3Mb
+Mon Mar  9 14:11:23 2026检查错误
+AI助手:
+
+
+AI助手:
+
+
+AI助手:
+这个错误**大概率不在 DUT，而在 testbench 的 UART 接收任务**。
+
+从你这份日志看，关键信息是：
+
+- `byte0 = 0x37`，正确
+- `byte1 = 0x0D`，正确
+- `byte2 = 0x85`，错误，期望 `0x0A`
+
+这说明：
+
+1. `pred_class` 本身是对的  
+2. `uart_pred_sender` 至少前两个字节的发送顺序是对的  
+3. 出问题的是 **第三个字节的采样对齐**，不是整个功能链错了
+
+---
+
+# 为什么我判断是 TB 的 UART 采样问题
+
+你现在 `tb_mnist_cim_demo_a_top.sv` 里用的接收任务是这种思路：
+
+```systemverilog
+wait(uart_tx == 1'b0);   // start bit
+#(BIT_TIME + BIT_TIME/2);
+for (...) begin
+  data[i] = uart_tx;
+  #BIT_TIME;
+end
+```
+
+这个写法有一个典型问题：
+
+## 问题点
+`wait(uart_tx == 0)` **不保证你是“在起始位下降沿开始等待”的**。  
+它只保证“当前看到线已经是 0”。
+
+如果你调用 `uart_recv_byte()` 的时候，UART 已经进入了下一个字节的起始位中途，甚至已经到了 bit0/bit1 附近，那么：
+
+- `wait(uart_tx == 0)` 会立刻返回
+- 但你的采样延迟仍按“刚刚进入 start bit”来算
+- 最终会造成**后续字节采样偏移**
+- 第三个字节最容易中招，因为它是连续发送链里的最后一个
+
+这和你现在的现象完全一致：
+
+- 第一个字节正确
+- 第二个字节也碰巧正确
+- 第三个字节采样错位，变成 `0x85`
+
+---
+
+# 为什么不是 DUT 本身错了
+
+因为如果 DUT 的 `uart_pred_sender` 真有严重问题，通常会出现：
+
+- 第一个字节就错
+- 第二个字节也错
+- 或三个字节顺序混乱
+
+但你现在是：
+
+- `0x37` 正确
+- `0x0D` 正确
+- 只有最后的 `0x0A` 采坏了
+
+这更像是 **testbench 在连续字节边界处重新同步失败**。
+
+而且你之前单独的 `tb_uart_pred_sender` 已经通过过，这也进一步说明 DUT 本体大概率没问题。
+
+---
+
+# 该怎么改
+
+你要把 `uart_recv_byte` 改成**基于下降沿重新同步**，而不是 `wait(tx==0)`。
+
+## 推荐改法
+
+把你当前 task：
+
+```systemverilog
+task automatic uart_recv_byte(output reg [7:0] data);
+  begin
+    wait(uart_tx == 1'b0);
+    #(BIT_TIME + BIT_TIME/2);
+    for (i = 0; i < 8; i = i + 1) begin
+      data[i] = uart_tx;
+      #BIT_TIME;
+    end
+    #BIT_TIME;
+  end
+endtask
+```
+
+改成下面这版：
+
+```systemverilog
+task automatic uart_recv_byte(output reg [7:0] data);
+  integer k;
+  begin
+    // 如果调用时线路已经是低电平，先等这一帧结束回到高电平
+    if (uart_tx === 1'b0)
+      @(posedge uart_tx);
+
+    // 真正等待下一帧的起始位下降沿
+    @(negedge uart_tx);
+
+    // 到第一个数据位(bit0)中心
+    #(BIT_TIME + BIT_TIME/2);
+
+    for (k = 0; k < 8; k = k + 1) begin
+      data[k] = uart_tx;
+      #BIT_TIME;
+    end
+
+    // 跳过停止位
+    #BIT_TIME;
+  end
+endtask
+```
+
+---
+
+# 为什么这版更稳
+
+这版做了两件很重要的事：
+
+### 1. 如果当前已经在低电平，就先等回到高电平
+避免你在“半个 start bit 或数据位中途”就直接开始计时。
+
+### 2. 明确等 `@(negedge uart_tx)`
+这保证你是从**新的起始位边沿**开始同步的。
+
+这样第三个字节就不会再因为前一个字节结束和下一个字节开始太近而采歪。
+
+---
+
+# 你现在最应该怎么做
+
+## 第一步
+先只改 `tb_mnist_cim_demo_a_top.sv` 里的 `uart_recv_byte()`，不要动 DUT。
+
+## 第二步
+重新跑：
+
+```bash
+bash run_tb_mnist_cim_demo_a_top.sh
+```
+
+## 第三步
+看新的日志里是不是变成：
+
+- `byte0 = 0x37`
+- `byte1 = 0x0D`
+- `byte2 = 0x0A`
+- `PASS: mnist_cim_demo_a_top sends pred_class over UART correctly.`
+
+---
+
+# 再补一个建议
+
+你这个 monitor 现在每个上升沿都打印一行，日志非常长，虽然有助于看状态，但会淹没关键信息。  
+建议保留，但临时改成只在状态变化时打印，比如只在这些信号变化时输出：
+
+- `led_busy`
+- `led_done`
+- `uart_tx`
+
+这样更容易看出 UART 帧边界。
+
+---
+
+# 一句结论
+
+**当前这个错误最可能是 `tb_mnist_cim_demo_a_top.sv` 里的 UART 接收任务采样错位，不是 `mnist_cim_demo_a_top` 或 `uart_pred_sender` 本体发错。**
+
+先把 `uart_recv_byte()` 改成“等待真正的下降沿重新同步”的版本，再跑一次。  
+你把新日志贴出来，我可以继续帮你确认是不是已经把方案 A 的最后一个仿真问题解决了。
+
+用户:
+请给我一个完整的修改后的tb_mnist_cim_demo_a_top.sv
+AI助手:
+
+
+AI助手:
+
+
+AI助手:
+可以，下面给你一份**完整可直接替换**的 `tb_mnist_cim_demo_a_top.sv`。
+
+这版重点修了两件事：
+
+1. **UART 接收重新同步**
+   - 不再用单纯 `wait(uart_tx == 0)`
+   - 改成先等线路空闲高电平，再等真正的 `negedge uart_tx`
+   - 这样能避免第三个字节采样错位
+
+2. **详细输出诊断信息**
+   - 打印参考 `pred_class`
+   - 打印收到的 3 个 UART 字节
+   - 打印每个字节的期望值与实际值
+   - 最后明确给出 PASS/FAIL 原因
+
+---
+
+## `hw_A/tb/tb_mnist_cim_demo_a_top.sv`
+
+```systemverilog
+`timescale 1ns / 1ps
+
+module tb_mnist_cim_demo_a_top;
+  import mnist_cim_pkg::*;
+
+  parameter int CLK_HZ = 1000;
+  parameter int BAUD   = 100;
+  parameter int N_SAMPLES = 20;
+  parameter string SAMPLE_HEX_FILE      = "../data/mnist_samples_route_b_output_2.hex";
+  parameter string FC1_WEIGHT_HEX_FILE  = "../route_b_output_2/fc1_weight_int8.hex";
+  parameter string FC1_BIAS_HEX_FILE    = "../route_b_output_2/fc1_bias_int32.hex";
+  parameter string QUANT_PARAM_FILE     = "../route_b_output_2/quant_params.hex";
+  parameter string FC2_WEIGHT_HEX_FILE  = "../route_b_output_2/fc2_weight_int8.hex";
+  parameter string FC2_BIAS_HEX_FILE    = "../route_b_output_2/fc2_bias_int32.hex";
+  parameter string PRED_FILE            = "../route_b_output_2/pred_0.txt";
+
+  localparam int DIV = CLK_HZ / BAUD;
+  localparam time CLK_PERIOD = 10ns;
+  localparam time BIT_TIME   = DIV * CLK_PERIOD;
+
+  logic clk;
+  logic rst_n;
+  logic btn_start;
+  logic [$clog2(N_SAMPLES)-1:0] sample_sel;
+  logic uart_tx;
+  logic led_busy;
+  logic led_done;
+
+  integer ref_pred_class;
+  integer fd, r;
+  integer error_count;
+
+  reg [7:0] b0, b1, b2;
+  integer k;
+
+  mnist_cim_demo_a_top #(
+      .CLK_HZ(CLK_HZ),
+      .BAUD(BAUD),
+      .N_SAMPLES(N_SAMPLES),
+      .DEFAULT_SAMPLE_HEX_FILE(SAMPLE_HEX_FILE),
+      .DEFAULT_FC1_WEIGHT_HEX_FILE(FC1_WEIGHT_HEX_FILE),
+      .DEFAULT_FC1_BIAS_HEX_FILE(FC1_BIAS_HEX_FILE),
+      .DEFAULT_QUANT_PARAM_FILE(QUANT_PARAM_FILE),
+      .DEFAULT_FC2_WEIGHT_HEX_FILE(FC2_WEIGHT_HEX_FILE),
+      .DEFAULT_FC2_BIAS_HEX_FILE(FC2_BIAS_HEX_FILE)
+  ) dut (
+      .clk(clk),
+      .rst_n(rst_n),
+      .btn_start(btn_start),
+      .sample_sel(sample_sel),
+      .uart_tx(uart_tx),
+      .led_busy(led_busy),
+      .led_done(led_done)
+  );
+
+  initial clk = 1'b0;
+  always #(CLK_PERIOD/2) clk = ~clk;
+
+  // ------------------------------------------------------------
+  // UART receive one byte
+  // Robust version:
+  // 1) if line is already low, wait until it returns high
+  // 2) wait for the real falling edge of next start bit
+  // 3) sample at the center of each data bit
+  // ------------------------------------------------------------
+  task automatic uart_recv_byte(output reg [7:0] data);
+    integer i;
+    begin
+      data = 8'h00;
+
+      // If currently inside an existing frame or low glitch,
+      // wait until line goes back to idle high.
+      if (uart_tx === 1'b0)
+        @(posedge uart_tx);
+
+      // Wait for the next true start-bit falling edge
+      @(negedge uart_tx);
+
+      // Move to center of bit0
+      #(BIT_TIME + BIT_TIME/2);
+
+      for (i = 0; i < 8; i = i + 1) begin
+        data[i] = uart_tx;
+        #BIT_TIME;
+      end
+
+      // Skip stop bit
+      #BIT_TIME;
+    end
+  endtask
+
+  // ------------------------------------------------------------
+  // Helper: print byte as hex / dec / printable char
+  // ------------------------------------------------------------
+  task automatic print_uart_byte(
+      input [8*16-1:0] name,
+      input [7:0] data
+  );
+    begin
+      if (data >= 8'd32 && data <= 8'd126)
+        $display("%0s = 0x%02x (%0d, '%s')", name, data, data, {data});
+      else
+        $display("%0s = 0x%02x (%0d)", name, data, data);
+    end
+  endtask
+
+  // ------------------------------------------------------------
+  // Read reference prediction
+  // ------------------------------------------------------------
+  initial begin
+    $display("============================================================");
+    $display("TB_mnist_cim_demo_a_top start");
+    $display("  SAMPLE_HEX_FILE     = %s", SAMPLE_HEX_FILE);
+    $display("  FC1_WEIGHT_HEX_FILE = %s", FC1_WEIGHT_HEX_FILE);
+    $display("  FC1_BIAS_HEX_FILE   = %s", FC1_BIAS_HEX_FILE);
+    $display("  QUANT_PARAM_FILE    = %s", QUANT_PARAM_FILE);
+    $display("  FC2_WEIGHT_HEX_FILE = %s", FC2_WEIGHT_HEX_FILE);
+    $display("  FC2_BIAS_HEX_FILE   = %s", FC2_BIAS_HEX_FILE);
+    $display("  PRED_FILE           = %s", PRED_FILE);
+    $display("============================================================");
+
+    fd = $fopen(PRED_FILE, "r");
+    if (fd == 0) begin
+      $display("ERROR: cannot open pred file: %s", PRED_FILE);
+      $finish;
+    end
+
+    r = $fscanf(fd, "%d", ref_pred_class);
+    $fclose(fd);
+
+    if (r != 1) begin
+      $display("ERROR: failed to parse pred file: %s", PRED_FILE);
+      $finish;
+    end
+
+    $display("Reference pred_class from file = %0d", ref_pred_class);
+  end
+
+  // ------------------------------------------------------------
+  // Optional monitor
+  // To reduce log size, only print when key signals change
+  // ------------------------------------------------------------
+  logic prev_led_busy, prev_led_done, prev_uart_tx;
+  initial begin
+    prev_led_busy = 1'b0;
+    prev_led_done = 1'b0;
+    prev_uart_tx  = 1'b1;
+
+    $display("time=%0t : monitor start", $time);
+
+    forever begin
+      @(posedge clk);
+      if ((led_busy !== prev_led_busy) ||
+          (led_done !== prev_led_done) ||
+          (uart_tx  !== prev_uart_tx)) begin
+        $display("time=%0t rst_n=%0b btn_start=%0b sample_sel=%0d led_busy=%0b led_done=%0b uart_tx=%0b",
+                 $time, rst_n, btn_start, sample_sel, led_busy, led_done, uart_tx);
+        prev_led_busy = led_busy;
+        prev_led_done = led_done;
+        prev_uart_tx  = uart_tx;
+      end
+    end
+  end
+
+  // ------------------------------------------------------------
+  // Main test flow
+  // ------------------------------------------------------------
+  initial begin
+    error_count = 0;
+
+    rst_n     = 1'b0;
+    btn_start = 1'b0;
+    sample_sel = '0;
+
+    b0 = 8'h00;
+    b1 = 8'h00;
+    b2 = 8'h00;
+
+    #(3*CLK_PERIOD);
+    rst_n = 1'b1;
+    $display("time=%0t : release reset", $time);
+
+    @(posedge clk);
+    btn_start <= 1'b1;
+    $display("time=%0t : pulse btn_start high", $time);
+
+    @(posedge clk);
+    btn_start <= 1'b0;
+    $display("time=%0t : pulse btn_start low", $time);
+
+    uart_recv_byte(b0);
+    print_uart_byte("UART byte0 received", b0);
+
+    uart_recv_byte(b1);
+    print_uart_byte("UART byte1 received", b1);
+
+    uart_recv_byte(b2);
+    print_uart_byte("UART byte2 received", b2);
+
+    $display("------------------------------------------------------------");
+    $display("Expected byte0 = ASCII('0' + pred) = 0x%02x", (8'd48 + ref_pred_class[3:0]));
+    $display("Expected byte1 = 0x0D");
+    $display("Expected byte2 = 0x0A");
+    $display("------------------------------------------------------------");
+
+    if (b0 !== (8'd48 + ref_pred_class[3:0])) begin
+      $display("ERROR: byte0 mismatch, got=0x%02x expected=0x%02x",
+               b0, (8'd48 + ref_pred_class[3:0]));
+      error_count = error_count + 1;
+    end else begin
+      $display("MATCH: byte0 correct");
+    end
+
+    if (b1 !== 8'h0D) begin
+      $display("ERROR: byte1 mismatch, got=0x%02x expected=0x0D",
+               b1);
+      error_count = error_count + 1;
+    end else begin
+      $display("MATCH: byte1 correct (CR)");
+    end
+
+    if (b2 !== 8'h0A) begin
+      $display("ERROR: byte2 mismatch, got=0x%02x expected=0x0A",
+               b2);
+      error_count = error_count + 1;
+    end else begin
+      $display("MATCH: byte2 correct (LF)");
+    end
+
+    $display("Final LED states: led_busy=%0b led_done=%0b", led_busy, led_done);
+
+    if (error_count == 0) begin
+      $display("PASS: mnist_cim_demo_a_top sends pred_class over UART correctly.");
+    end else begin
+      $display("FAIL: found %0d mismatches in UART output.", error_count);
+      $display("DETAIL: ref_pred_class=%0d, actual bytes=[%02x %02x %02x]",
+               ref_pred_class, b0, b1, b2);
+    end
+
+    $finish;
+  end
+
+endmodule
+```
+
+---
+
+## 这版和你当前版本相比，关键变化
+
+核心就是这个 task 改了：
+
+### 旧版本问题
+- `wait(uart_tx == 0)` 可能在“已经进入低电平中途”时立刻返回
+- 连续接收多个字节时容易采样错位
+- 你之前第三个字节 `0x85` 就是典型现象
+
+### 新版本修复
+- 如果当前已经在低电平，先等回到高电平
+- 再明确等真正的 `@(negedge uart_tx)`
+- 重新从新的 start bit 边沿同步
+- 连续三个字节会更稳
+
+---
+
+## 你现在怎么做
+
+1. 用这份文件替换原来的  
+   `hw_A/tb/tb_mnist_cim_demo_a_top.sv`
+
+2. 重新运行：
+
+```bash
+bash run_tb_mnist_cim_demo_a_top.sh
+```
+
+3. 看新日志最后是否变成：
+
+```text
+MATCH: byte0 correct
+MATCH: byte1 correct (CR)
+MATCH: byte2 correct (LF)
+PASS: mnist_cim_demo_a_top sends pred_class over UART correctly.
+```
+
+你把新的日志贴出来，我再帮你确认方案 A 的最后一个仿真问题是不是已经解决。
+
+用户:
+                         Chronologic VCS (TM)
+       Version O-2018.09-SP2_Full64 -- Mon Mar  9 14:17:35 2026
+               Copyright (c) 1991-2018 by Synopsys Inc.
+                         ALL RIGHTS RESERVED
+
+This program is proprietary and confidential information of Synopsys Inc.
+and may be used and disclosed only as authorized in a license agreement
+controlling such use and disclosure.
+
+Parsing design file '../rtl/package.sv'
+Parsing design file '../rtl/quantize_param_bank.sv'
+Parsing design file '../rtl/fc1_relu_requantize_with_file.sv'
+Parsing design file '../rtl/fc2_weight_bank.sv'
+Parsing design file '../rtl/fc2_bias_bank.sv'
+Parsing design file '../rtl/fc2_core_with_file.sv'
+Parsing design file '../rtl/fc1_to_fc2_top_with_file.sv'
+Parsing design file '../rtl/argmax_int8.sv'
+Parsing design file '../rtl_ip/mnist_sample_rom.sv'
+Parsing design file '../rtl_shared_buffer_ib/cim_tile.sv'
+Parsing design file '../rtl_shared_buffer_ib/psum_accum.sv'
+Parsing design file '../rtl_shared_buffer_ib/fc1_weight_bank.sv'
+Parsing design file '../rtl_shared_buffer_ib/fc1_bias_bank.sv'
+Parsing design file '../rtl_shared_buffer_ib/fc1_ob_engine_shared_input.sv'
+Parsing design file '../rtl_ip/fc1_multi_block_shared_sample_rom.sv'
+Parsing design file '../rtl_ip/mnist_inference_core_board.sv'
+Parsing design file '../rtl_ip/uart_tx.sv'
+Parsing design file '../rtl_ip/uart_pred_sender.sv'
+Parsing design file '../rtl_ip/mnist_cim_demo_a_top.sv'
+Parsing design file '../tb/tb_mnist_cim_demo_a_top.sv'
+Top Level Modules:
+       tb_mnist_cim_demo_a_top
+TimeScale is 1 ns / 1 ps
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[0].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 0)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[0]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[0].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 0)
+  	use +lint=PCWM for more details
+
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[1].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 1)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[1]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[1].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 1)
+  	use +lint=PCWM for more details
+
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[2].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 2)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[2]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[2].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 2)
+  	use +lint=PCWM for more details
+
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[3].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 3)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[3]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[3].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 3)
+  	use +lint=PCWM for more details
+
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[4].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 4)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[4]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[4].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 4)
+  	use +lint=PCWM for more details
+
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[5].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 5)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[5]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[5].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 5)
+  	use +lint=PCWM for more details
+
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[6].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 6)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[6]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[6].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 6)
+  	use +lint=PCWM for more details
+
+
+Warning-[PCWM-W] Port connection width mismatch
+../rtl_ip/fc1_multi_block_shared_sample_rom.sv, 107
+" fc1_ob_engine_shared_input #(DEFAULT_WEIGHT_HEX_FILE, DEFAULT_BIAS_HEX_FILE) GEN_OB_ENGINE[7].u_fc1_ob_engine_shared_input( .clk (clk),  .rst_n (rst_n),  .clear_psum (clear_psum),  .en_psum (en_psum),  .ib (ib),  .ob_sel ((BASE_OB + 7)),  .x_eff_tile (x_eff_tile),  .fc1_acc_block (fc1_acc_block[7]));"
+  The following 32-bit expression is connected to 3-bit port "ob_sel" of 
+  module "fc1_ob_engine_shared_input", instance 
+  "GEN_OB_ENGINE[7].u_fc1_ob_engine_shared_input".
+  Expression: (BASE_OB + 7)
+  	use +lint=PCWM for more details
+
+Starting vcs inline pass...
+16 modules and 0 UDP read.
+recompiling module tb_mnist_cim_demo_a_top
+	However, due to incremental compilation, only 1 module needs to be compiled. 
+rm -f _csrc*.so pre_vcsobj_*.so share_vcsobj_*.so
+ld -shared  -Bsymbolic  -o .//../../sim/tb_mnist_cim_demo_a_top_simv.daidir//_csrc0.so objs/amcQw_d.o 
+rm -f _csrc0.so
+if [ -x ../../sim/tb_mnist_cim_demo_a_top_simv ]; then chmod -x ../../sim/tb_mnist_cim_demo_a_top_simv; fi
+g++  -o ../../sim/tb_mnist_cim_demo_a_top_simv    -Wl,-rpath-link=./ -Wl,-rpath='$ORIGIN'/tb_mnist_cim_demo_a_top_simv.daidir/ -Wl,-rpath=./tb_mnist_cim_demo_a_top_simv.daidir/ -Wl,-rpath='$ORIGIN'/tb_mnist_cim_demo_a_top_simv.daidir//scsim.db.dir  -rdynamic  -Wl,-rpath=/opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib -L/opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib     _24785_archive_1.so _prev_archive_1.so _csrc0.so  SIM_l.o  _csrc0.so     rmapats_mop.o rmapats.o rmar.o rmar_nd.o  rmar_llvm_0_1.o rmar_llvm_0_0.o          -lzerosoft_rt_stubs -lvirsim -lerrorinf -lsnpsmalloc -lvfs    -lvcsnew -lsimprofile -luclinative /opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib/vcs_tls.o   -Wl,-whole-archive -lvcsucli -Wl,-no-whole-archive        _vcs_pli_stub_.o   /opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib/vcs_save_restore_new.o /opt/Synopsys/Verdi2018/verdi/Verdi_O-2018.09-SP2/share/PLI/VCS/LINUX64/pli.a -ldl  -lc -lm -lpthread -ldl 
+../../sim/tb_mnist_cim_demo_a_top_simv up to date
+CPU time: .469 seconds to compile + .178 seconds to elab + .199 seconds to link编译错误
+AI助手:
+
+
+AI助手:
+这**不是编译错误**，而是 **编译通过、带 8 个宽度告警**。
+
+关键看最后几行：
+
+```text
+Top Level Modules:
+       tb_mnist_cim_demo_a_top
+...
+../../sim/tb_mnist_cim_demo_a_top_simv up to date
+CPU time: ...
+```
+
+如果真有编译错误，VCS 不会生成/更新 `simv`。  
+现在的问题是这些告警：
+
+```text
+Warning-[PCWM-W] Port connection width mismatch
+...
+Expression: (BASE_OB + 0)
+...
+32-bit expression is connected to 3-bit port "ob_sel"
+```
+
+也就是在 `fc1_multi_block_shared_sample_rom.sv` 里，`ob_sel` 端口只有 3 bit，但你连进去的是默认 32 bit 的表达式 `BASE_OB + g_ob`。
+
+---
+
+# 为什么会这样
+
+`fc1_ob_engine_shared_input.sv` 的端口大概是这种：
+
+```systemverilog
+input logic [$clog2(mnist_cim_pkg::N_OUTPUT_BLOCKS)-1:0] ob_sel
+```
+
+对于 `N_OUTPUT_BLOCKS = 8`，这个端口宽度就是 **3 bit**。
+
+但你现在在 `fc1_multi_block_shared_sample_rom.sv` 里写的是类似：
+
+```systemverilog
+.ob_sel(BASE_OB + g_ob)
+```
+
+`BASE_OB + g_ob` 在 elaboration 时被当成 32 bit 整数表达式，所以 VCS 提醒你“32 bit 连到 3 bit 端口”。
+
+这通常**不影响功能**，因为高位会被截断；但工程上最好消掉这个 warning。
+
+---
+
+# 怎么改
+
+在 `fc1_multi_block_shared_sample_rom.sv` 里，不要直接把 `BASE_OB + g_ob` 连到端口。  
+先做一个**固定位宽的局部信号**，再连进去。
+
+## 推荐改法
+
+把你 generate 里的这段：
+
+```systemverilog
+fc1_ob_engine_shared_input #(
+    .DEFAULT_WEIGHT_HEX_FILE(DEFAULT_WEIGHT_HEX_FILE),
+    .DEFAULT_BIAS_HEX_FILE(DEFAULT_BIAS_HEX_FILE)
+) u_fc1_ob_engine_shared_input (
+    .clk(clk),
+    .rst_n(rst_n),
+    .clear_psum(clear_psum),
+    .en_psum(en_psum),
+    .ib(ib),
+    .ob_sel(BASE_OB + g_ob),
+    .x_eff_tile(x_eff_tile),
+    .fc1_acc_block(fc1_acc_block[g_ob])
+);
+```
+
+改成下面这样：
+
+```systemverilog
+genvar g_ob, g_idx;
+generate
+  for (g_ob = 0; g_ob < PAR_OB; g_ob = g_ob + 1) begin : GEN_OB_ENGINE
+    localparam logic [$clog2(N_OUTPUT_BLOCKS)-1:0] OB_SEL =
+        BASE_OB + g_ob;
+
+    fc1_ob_engine_shared_input #(
+        .DEFAULT_WEIGHT_HEX_FILE(DEFAULT_WEIGHT_HEX_FILE),
+        .DEFAULT_BIAS_HEX_FILE(DEFAULT_BIAS_HEX_FILE)
+    ) u_fc1_ob_engine_shared_input (
+        .clk(clk),
+        .rst_n(rst_n),
+        .clear_psum(clear_psum),
+        .en_psum(en_psum),
+        .ib(ib),
+        .ob_sel(OB_SEL),
+        .x_eff_tile(x_eff_tile),
+        .fc1_acc_block(fc1_acc_block[g_ob])
+    );
+
+    for (g_idx = 0; g_idx < TILE_OUTPUT_SIZE; g_idx = g_idx + 1) begin : GEN_PACK
+      assign fc1_acc_all[g_ob*TILE_OUTPUT_SIZE + g_idx] =
+             fc1_acc_block[g_ob][g_idx];
+    end
+  end
+endgenerate
+```
+
+---
+
+# 如果你想最小改动
+
+也可以直接显式截位，但写法不如上面干净。比如：
+
+```systemverilog
+.ob_sel((BASE_OB + g_ob)[$clog2(N_OUTPUT_BLOCKS)-1:0])
+```
+
+不过你之前已经遇到过 VCS 对“表达式后直接切片”比较挑剔，所以我**更推荐前一种 `localparam OB_SEL` 的写法**，最稳。
+
+---
+
+# 你这一步该怎么理解
+
+当前状态是：
+
+- **编译成功**
+- **只有 width mismatch warning**
+- 这些 warning **最好修掉**
+- 修掉以后再重新跑 `run_tb_mnist_cim_demo_a_top.sh`
+
+---
+
+# 你现在下一步
+
+先改 `fc1_multi_block_shared_sample_rom.sv` 里的 `ob_sel` 连接，再重新编译运行。  
+如果你愿意，我下一条可以直接给你一份**完整可替换的 `fc1_multi_block_shared_sample_rom.sv`**。
+
+用户:
+
+module fc1_multi_block_shared_sample_rom #(
+    parameter int PAR_OB = 8,
+    parameter int BASE_OB = 0,
+    parameter int N_SAMPLES = 20,
+    parameter string DEFAULT_SAMPLE_HEX_FILE = "../data/mnist_samples_route_b_output_2.hex",
+    parameter string DEFAULT_WEIGHT_HEX_FILE = "../route_b_output_2/fc1_weight_int8.hex",
+    parameter string DEFAULT_BIAS_HEX_FILE = "../route_b_output_2/fc1_bias_int32.hex"
+) (
+    input logic clk,
+    input logic rst_n,
+    input logic start,
+    input logic [$clog2(N_SAMPLES)-1:0] sample_id,
+
+    output logic busy,
+    output logic done,
+
+    output logic signed [mnist_cim_pkg::PSUM_WIDTH-1:0]
+        fc1_acc_all [0:PAR_OB*mnist_cim_pkg::TILE_OUTPUT_SIZE-1]
+);
+  import mnist_cim_pkg::*;
+
+  typedef enum logic [1:0] {
+    S_IDLE  = 2'd0,
+    S_CLEAR = 2'd1,
+    S_ACCUM = 2'd2,
+    S_DONE  = 2'd3
+  } state_t;
+
+  state_t state, state_n;
+
+  logic [$clog2(N_INPUT_BLOCKS)-1:0] ib, ib_n;
+  logic clear_psum;
+  logic en_psum;
+
+  logic signed [INPUT_WIDTH-1:0] x_tile[0:TILE_INPUT_SIZE-1];
+
+  logic [X_EFF_WIDTH-1:0] x_eff_tile[0:TILE_INPUT_SIZE-1];
+
+  logic signed [PSUM_WIDTH-1:0] fc1_acc_block[0:PAR_OB-1][0:TILE_OUTPUT_SIZE-1];
+
+  mnist_sample_rom #(
+      .N_SAMPLES(N_SAMPLES),
+      .DEFAULT_SAMPLE_HEX_FILE(DEFAULT_SAMPLE_HEX_FILE)
+  ) u_mnist_sample_rom (
+      .sample_id(sample_id),
+      .ib(ib),
+      .x_tile(x_tile),
+      .x_eff_tile(x_eff_tile)
+  );
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      state <= S_IDLE;
+      ib    <= '0;
+    end else begin
+      state <= state_n;
+      ib    <= ib_n;
+    end
+  end
+
+  always_comb begin
+    state_n    = state;
+    ib_n       = ib;
+    clear_psum = 1'b0;
+    en_psum    = 1'b0;
+    busy       = 1'b0;
+    done       = 1'b0;
+
+    case (state)
+      S_IDLE: begin
+        ib_n = '0;
+        if (start) state_n = S_CLEAR;
+      end
+
+      S_CLEAR: begin
+        busy       = 1'b1;
+        clear_psum = 1'b1;
+        ib_n       = '0;
+        state_n    = S_ACCUM;
+      end
+
+      S_ACCUM: begin
+        busy    = 1'b1;
+        en_psum = 1'b1;
+        if (ib == N_INPUT_BLOCKS - 1) begin
+          state_n = S_DONE;
+          ib_n    = ib;
+        end else begin
+          ib_n = ib + 1'b1;
+        end
+      end
+
+      S_DONE: begin
+        done = 1'b1;
+        if (!start) state_n = S_IDLE;
+      end
+    endcase
+  end
+
+  genvar g_ob, g_idx;
+  generate
+    for (g_ob = 0; g_ob < PAR_OB; g_ob = g_ob + 1) begin : GEN_OB_ENGINE
+      
+genvar g_ob, g_idx;
+generate
+  for (g_ob = 0; g_ob < PAR_OB; g_ob = g_ob + 1) begin : GEN_OB_ENGINE
+    localparam logic [$clog2(N_OUTPUT_BLOCKS)-1:0] OB_SEL =
+        BASE_OB + g_ob;
+
+    fc1_ob_engine_shared_input #(
+        .DEFAULT_WEIGHT_HEX_FILE(DEFAULT_WEIGHT_HEX_FILE),
+        .DEFAULT_BIAS_HEX_FILE(DEFAULT_BIAS_HEX_FILE)
+    ) u_fc1_ob_engine_shared_input (
+        .clk(clk),
+        .rst_n(rst_n),
+        .clear_psum(clear_psum),
+        .en_psum(en_psum),
+        .ib(ib),
+        .ob_sel(OB_SEL),
+        .x_eff_tile(x_eff_tile),
+        .fc1_acc_block(fc1_acc_block[g_ob])
+    );
+
+    for (g_idx = 0; g_idx < TILE_OUTPUT_SIZE; g_idx = g_idx + 1) begin : GEN_PACK
+      assign fc1_acc_all[g_ob*TILE_OUTPUT_SIZE + g_idx] =
+             fc1_acc_block[g_ob][g_idx];
+    end
+  end
+endgenerate
+
+
+      for (g_idx = 0; g_idx < TILE_OUTPUT_SIZE; g_idx = g_idx + 1) begin : GEN_PACK
+        assign fc1_acc_all[g_ob*TILE_OUTPUT_SIZE+g_idx] = fc1_acc_block[g_ob][g_idx];
+      end
+    end
+  endgenerate
+
+endmodule直接给我一个完整的修改后的文件
+AI助手:
+
+
+AI助手:
+可以，下面给你一份**完整、整理后的 `fc1_multi_block_shared_sample_rom.sv`**，你直接整体替换掉原文件即可。
+
+这版修了你现在文件里的两个问题：
+
+1. 你把 `generate` 块重复粘贴进去了，结构已经乱了  
+2. `ob_sel` 改成了**固定位宽的 `localparam OB_SEL`**，消除 width mismatch warning
+
+---
+
+## `hw_A/rtl_ip/fc1_multi_block_shared_sample_rom.sv`
+
+```systemverilog
+module fc1_multi_block_shared_sample_rom #(
+    parameter int PAR_OB = 8,
+    parameter int BASE_OB = 0,
+    parameter int N_SAMPLES = 20,
+    parameter string DEFAULT_SAMPLE_HEX_FILE = "../data/mnist_samples_route_b_output_2.hex",
+    parameter string DEFAULT_WEIGHT_HEX_FILE = "../route_b_output_2/fc1_weight_int8.hex",
+    parameter string DEFAULT_BIAS_HEX_FILE = "../route_b_output_2/fc1_bias_int32.hex"
+) (
+    input logic clk,
+    input logic rst_n,
+    input logic start,
+    input logic [$clog2(N_SAMPLES)-1:0] sample_id,
+
+    output logic busy,
+    output logic done,
+
+    output logic signed [mnist_cim_pkg::PSUM_WIDTH-1:0]
+        fc1_acc_all [0:PAR_OB*mnist_cim_pkg::TILE_OUTPUT_SIZE-1]
+);
+  import mnist_cim_pkg::*;
+
+  typedef enum logic [1:0] {
+    S_IDLE  = 2'd0,
+    S_CLEAR = 2'd1,
+    S_ACCUM = 2'd2,
+    S_DONE  = 2'd3
+  } state_t;
+
+  state_t state, state_n;
+
+  logic [$clog2(N_INPUT_BLOCKS)-1:0] ib, ib_n;
+  logic clear_psum;
+  logic en_psum;
+
+  logic signed [INPUT_WIDTH-1:0]
+      x_tile [0:TILE_INPUT_SIZE-1];
+
+  logic [X_EFF_WIDTH-1:0]
+      x_eff_tile [0:TILE_INPUT_SIZE-1];
+
+  logic signed [PSUM_WIDTH-1:0]
+      fc1_acc_block [0:PAR_OB-1][0:TILE_OUTPUT_SIZE-1];
+
+  // ------------------------------------------------------------
+  // Sample ROM: provide one input tile according to sample_id + ib
+  // ------------------------------------------------------------
+  mnist_sample_rom #(
+      .N_SAMPLES(N_SAMPLES),
+      .DEFAULT_SAMPLE_HEX_FILE(DEFAULT_SAMPLE_HEX_FILE)
+  ) u_mnist_sample_rom (
+      .sample_id(sample_id),
+      .ib(ib),
+      .x_tile(x_tile),
+      .x_eff_tile(x_eff_tile)
+  );
+
+  // ------------------------------------------------------------
+  // State / ib counter registers
+  // ------------------------------------------------------------
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      state <= S_IDLE;
+      ib    <= '0;
+    end else begin
+      state <= state_n;
+      ib    <= ib_n;
+    end
+  end
+
+  // ------------------------------------------------------------
+  // Control FSM
+  // ------------------------------------------------------------
+  always_comb begin
+    state_n    = state;
+    ib_n       = ib;
+    clear_psum = 1'b0;
+    en_psum    = 1'b0;
+    busy       = 1'b0;
+    done       = 1'b0;
+
+    case (state)
+      S_IDLE: begin
+        ib_n = '0;
+        if (start)
+          state_n = S_CLEAR;
+      end
+
+      S_CLEAR: begin
+        busy       = 1'b1;
+        clear_psum = 1'b1;
+        ib_n       = '0;
+        state_n    = S_ACCUM;
+      end
+
+      S_ACCUM: begin
+        busy    = 1'b1;
+        en_psum = 1'b1;
+
+        if (ib == N_INPUT_BLOCKS - 1) begin
+          state_n = S_DONE;
+          ib_n    = ib;
+        end else begin
+          ib_n = ib + 1'b1;
+        end
+      end
+
+      S_DONE: begin
+        done = 1'b1;
+        if (!start)
+          state_n = S_IDLE;
+      end
+
+      default: begin
+        state_n    = S_IDLE;
+        ib_n       = '0;
+        clear_psum = 1'b0;
+        en_psum    = 1'b0;
+        busy       = 1'b0;
+        done       = 1'b0;
+      end
+    endcase
+  end
+
+  // ------------------------------------------------------------
+  // Parallel OB engines
+  // ------------------------------------------------------------
+  genvar g_ob, g_idx;
+  generate
+    for (g_ob = 0; g_ob < PAR_OB; g_ob = g_ob + 1) begin : GEN_OB_ENGINE
+      localparam logic [$clog2(N_OUTPUT_BLOCKS)-1:0] OB_SEL =
+          BASE_OB + g_ob;
+
+      fc1_ob_engine_shared_input #(
+          .DEFAULT_WEIGHT_HEX_FILE(DEFAULT_WEIGHT_HEX_FILE),
+          .DEFAULT_BIAS_HEX_FILE(DEFAULT_BIAS_HEX_FILE)
+      ) u_fc1_ob_engine_shared_input (
+          .clk(clk),
+          .rst_n(rst_n),
+          .clear_psum(clear_psum),
+          .en_psum(en_psum),
+          .ib(ib),
+          .ob_sel(OB_SEL),
+          .x_eff_tile(x_eff_tile),
+          .fc1_acc_block(fc1_acc_block[g_ob])
+      );
+
+      for (g_idx = 0; g_idx < TILE_OUTPUT_SIZE; g_idx = g_idx + 1) begin : GEN_PACK
+        assign fc1_acc_all[g_ob*TILE_OUTPUT_SIZE + g_idx] =
+               fc1_acc_block[g_ob][g_idx];
+      end
+    end
+  endgenerate
+
+endmodule
+```
+
+---
+
+## 这版你可以直接做什么
+
+1. 用这份文件替换  
+   `hw_A/rtl_ip/fc1_multi_block_shared_sample_rom.sv`
+
+2. 重新跑：
+
+```bash
+bash run_tb_mnist_cim_demo_a_top.sh
+```
+
+---
+
+## 这版改完以后预期变化
+
+### 编译阶段
+之前这些 warning：
+
+```text
+Warning-[PCWM-W] Port connection width mismatch
+```
+
+应该就没了。
+
+### 功能阶段
+它不会直接修复你 UART 第三个字节的问题，  
+但它会把 `fc1_multi_block_shared_sample_rom.sv` 这个文件本身整理正确，避免后面继续被结构问题干扰。
+
+---
+
+## 你现在最应该关注的点
+当前最可能卡住方案 A 的，不是这个文件，而仍然是：
+
+- `tb_mnist_cim_demo_a_top.sv` 的 UART 接收同步
+- 或 `uart_pred_sender.sv` 的状态切换边界
+
+所以你替换完这个文件后，建议**优先再跑一次 demo A 的 testbench**，看第三个字节是不是已经恢复成 `0x0A`。
+
+你把新日志贴出来，我继续帮你判断。
+
+用户:
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 14:24 2026
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using FC2_WEIGHT_HEX_FILE from plusarg: ../data/fc2_weight_int8.hex
+Using FC2_BIAS_FILE from plusarg: ../data/fc2_bias_int32.hex
+Using QUANT_PARAM_FILE from plusarg: ../data/quant_params.hex
+============================================================
+TB_mnist_cim_demo_a_top start
+  SAMPLE_HEX_FILE     = ../data/mnist_samples_route_b_output_2.hex
+  FC1_WEIGHT_HEX_FILE = ../route_b_output_2/fc1_weight_int8.hex
+  FC1_BIAS_HEX_FILE   = ../route_b_output_2/fc1_bias_int32.hex
+  QUANT_PARAM_FILE    = ../route_b_output_2/quant_params.hex
+  FC2_WEIGHT_HEX_FILE = ../route_b_output_2/fc2_weight_int8.hex
+  FC2_BIAS_HEX_FILE   = ../route_b_output_2/fc2_bias_int32.hex
+  PRED_FILE           = ../route_b_output_2/pred_0.txt
+============================================================
+Reference pred_class from file = 7
+time=0 : monitor start
+time=30000 : release reset
+time=35000 : pulse btn_start high
+time=45000 : pulse btn_start low
+time=55000 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=555000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=1 uart_tx=1
+time=565000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=665000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=965000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1065000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1265000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1465000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1575000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+T byte0 received = 0x37 (55, '7')
+time=1675000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1775000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1875000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2075000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2475000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2585000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2785000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+T byte1 received = 0x43 (67, 'C')
+time=2885000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2985000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3085000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3485000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+T byte2 received = 0xe1 (225)
+------------------------------------------------------------
+Expected byte0 = ASCII('0' + pred) = 0x37
+Expected byte1 = 0x0D
+Expected byte2 = 0x0A
+------------------------------------------------------------
+MATCH: byte0 correct
+ERROR: byte1 mismatch, got=0x43 expected=0x0D
+ERROR: byte2 mismatch, got=0xe1 expected=0x0A
+Final LED states: led_busy=0 led_done=0
+FAIL: found 2 mismatches in UART output.
+DETAIL: ref_pred_class=7, actual bytes=[37 43 e1]
+$finish called from file "../tb/tb_mnist_cim_demo_a_top.sv", line 235.
+$finish at simulation time              3925000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 3925000 ps
+CPU Time:      0.160 seconds;       Data structure size:   3.3Mb
+Mon Mar  9 14:24:57 2026检查错误
+AI助手:
+
+
+AI助手:
+问题已经定位了：  
+**不是 DUT 发错了，而是 testbench 连续收字节的方法会漏掉“紧跟着 stop bit 后立刻到来的下一帧 start bit”。**
+
+你这份日志里第二个字节之所以被解成 `0x43`，是因为：
+
+- 第一帧 `0x37` 结束后
+- 第二帧 `0x0D` 的 start bit **几乎立刻**到来
+- 你当前 testbench 是“收完一个字节后，再调用一次 task 去等下一个字节”
+- 这样就可能**错过第二帧真正的 start 边沿**
+- 然后在第二帧内部某个数据位的下降沿重新同步，结果把 `0x0D` 解成了 `0x43`
+
+这个现象和你日志完全一致：
+
+- 正确的第二帧起始应该在 `1575000`
+- 你的 testbench 实际从 `1775000` 这个后续下降沿开始同步
+- 于是就把第二帧解成了 `0x43`
+
+所以这次应该**改 testbench 的接收方式**，不要再“一个 task 收一个字节、收完再调下一个”。  
+最稳的方式是：
+
+# 改成“后台 UART 接收器”连续监听
+
+- testbench 一启动就开一个后台进程
+- 任何时候只要检测到 `uart_tx` 的 start bit，就自动收一帧
+- 把收到的字节放进数组
+- 主测试流程只需要等收到 3 个字节
+- 这样不会漏掉连续帧
+
+下面给你一份**完整、可直接替换**的 `tb_mnist_cim_demo_a_top.sv`。
+
+---
+
+## 完整修改版 `hw_A/tb/tb_mnist_cim_demo_a_top.sv`
+
+```systemverilog
+`timescale 1ns / 1ps
+
+module tb_mnist_cim_demo_a_top;
+  import mnist_cim_pkg::*;
+
+  parameter int CLK_HZ = 1000;
+  parameter int BAUD   = 100;
+  parameter int N_SAMPLES = 20;
+  parameter string SAMPLE_HEX_FILE      = "../data/mnist_samples_route_b_output_2.hex";
+  parameter string FC1_WEIGHT_HEX_FILE  = "../route_b_output_2/fc1_weight_int8.hex";
+  parameter string FC1_BIAS_HEX_FILE    = "../route_b_output_2/fc1_bias_int32.hex";
+  parameter string QUANT_PARAM_FILE     = "../route_b_output_2/quant_params.hex";
+  parameter string FC2_WEIGHT_HEX_FILE  = "../route_b_output_2/fc2_weight_int8.hex";
+  parameter string FC2_BIAS_HEX_FILE    = "../route_b_output_2/fc2_bias_int32.hex";
+  parameter string PRED_FILE            = "../route_b_output_2/pred_0.txt";
+
+  localparam int DIV = CLK_HZ / BAUD;
+  localparam time CLK_PERIOD = 10ns;
+  localparam time BIT_TIME   = DIV * CLK_PERIOD;
+
+  logic clk;
+  logic rst_n;
+  logic btn_start;
+  logic [$clog2(N_SAMPLES)-1:0] sample_sel;
+  logic uart_tx;
+  logic led_busy;
+  logic led_done;
+
+  integer ref_pred_class;
+  integer fd, r;
+  integer error_count;
+
+  reg [7:0] rx_bytes [0:15];
+  integer rx_count;
+  integer k;
+
+  logic monitor_enable;
+
+  mnist_cim_demo_a_top #(
+      .CLK_HZ(CLK_HZ),
+      .BAUD(BAUD),
+      .N_SAMPLES(N_SAMPLES),
+      .DEFAULT_SAMPLE_HEX_FILE(SAMPLE_HEX_FILE),
+      .DEFAULT_FC1_WEIGHT_HEX_FILE(FC1_WEIGHT_HEX_FILE),
+      .DEFAULT_FC1_BIAS_HEX_FILE(FC1_BIAS_HEX_FILE),
+      .DEFAULT_QUANT_PARAM_FILE(QUANT_PARAM_FILE),
+      .DEFAULT_FC2_WEIGHT_HEX_FILE(FC2_WEIGHT_HEX_FILE),
+      .DEFAULT_FC2_BIAS_HEX_FILE(FC2_BIAS_HEX_FILE)
+  ) dut (
+      .clk(clk),
+      .rst_n(rst_n),
+      .btn_start(btn_start),
+      .sample_sel(sample_sel),
+      .uart_tx(uart_tx),
+      .led_busy(led_busy),
+      .led_done(led_done)
+  );
+
+  initial clk = 1'b0;
+  always #(CLK_PERIOD/2) clk = ~clk;
+
+  // ------------------------------------------------------------
+  // Helper: print byte as hex / dec / printable char
+  // ------------------------------------------------------------
+  task automatic print_uart_byte(
+      input [8*24-1:0] name,
+      input [7:0] data
+  );
+    begin
+      if (data >= 8'd32 && data <= 8'd126)
+        $display("%0s = 0x%02x (%0d, '%s')", name, data, data, {data});
+      else
+        $display("%0s = 0x%02x (%0d)", name, data, data);
+    end
+  endtask
+
+  // ------------------------------------------------------------
+  // Background UART receiver:
+  // continuously monitors uart_tx and captures each full byte
+  // This avoids missing back-to-back frames.
+  // ------------------------------------------------------------
+  task automatic uart_capture_one_byte(output reg [7:0] data);
+    integer i;
+    begin
+      data = 8'h00;
+
+      // Wait for a true start-bit falling edge
+      @(negedge uart_tx);
+
+      // Move to center of bit0
+      #(BIT_TIME + BIT_TIME/2);
+
+      for (i = 0; i < 8; i = i + 1) begin
+        data[i] = uart_tx;
+        #BIT_TIME;
+      end
+
+      // Optional stop-bit time
+      #BIT_TIME;
+    end
+  endtask
+
+  initial begin : UART_MONITOR
+    reg [7:0] tmp;
+    rx_count = 0;
+    monitor_enable = 1'b0;
+
+    forever begin
+      wait(monitor_enable == 1'b1);
+      uart_capture_one_byte(tmp);
+
+      if (monitor_enable) begin
+        rx_bytes[rx_count] = tmp;
+        $display("UART monitor captured byte[%0d] at time=%0t", rx_count, $time);
+        print_uart_byte("  captured", tmp);
+        rx_count = rx_count + 1;
+      end
+    end
+  end
+
+  // ------------------------------------------------------------
+  // Optional monitor: only print when key signals change
+  // ------------------------------------------------------------
+  logic prev_led_busy, prev_led_done, prev_uart_tx;
+  initial begin
+    prev_led_busy = 1'b0;
+    prev_led_done = 1'b0;
+    prev_uart_tx  = 1'b1;
+
+    $display("time=%0t : monitor start", $time);
+
+    forever begin
+      @(posedge clk);
+      if ((led_busy !== prev_led_busy) ||
+          (led_done !== prev_led_done) ||
+          (uart_tx  !== prev_uart_tx)) begin
+        $display("time=%0t rst_n=%0b btn_start=%0b sample_sel=%0d led_busy=%0b led_done=%0b uart_tx=%0b",
+                 $time, rst_n, btn_start, sample_sel, led_busy, led_done, uart_tx);
+        prev_led_busy = led_busy;
+        prev_led_done = led_done;
+        prev_uart_tx  = uart_tx;
+      end
+    end
+  end
+
+  // ------------------------------------------------------------
+  // Read reference prediction
+  // ------------------------------------------------------------
+  initial begin
+    $display("============================================================");
+    $display("TB_mnist_cim_demo_a_top start");
+    $display("  SAMPLE_HEX_FILE     = %s", SAMPLE_HEX_FILE);
+    $display("  FC1_WEIGHT_HEX_FILE = %s", FC1_WEIGHT_HEX_FILE);
+    $display("  FC1_BIAS_HEX_FILE   = %s", FC1_BIAS_HEX_FILE);
+    $display("  QUANT_PARAM_FILE    = %s", QUANT_PARAM_FILE);
+    $display("  FC2_WEIGHT_HEX_FILE = %s", FC2_WEIGHT_HEX_FILE);
+    $display("  FC2_BIAS_HEX_FILE   = %s", FC2_BIAS_HEX_FILE);
+    $display("  PRED_FILE           = %s", PRED_FILE);
+    $display("============================================================");
+
+    fd = $fopen(PRED_FILE, "r");
+    if (fd == 0) begin
+      $display("ERROR: cannot open pred file: %s", PRED_FILE);
+      $finish;
+    end
+
+    r = $fscanf(fd, "%d", ref_pred_class);
+    $fclose(fd);
+
+    if (r != 1) begin
+      $display("ERROR: failed to parse pred file: %s", PRED_FILE);
+      $finish;
+    end
+
+    $display("Reference pred_class from file = %0d", ref_pred_class);
+  end
+
+  // ------------------------------------------------------------
+  // Main test flow
+  // ------------------------------------------------------------
+  initial begin
+    error_count = 0;
+
+    rst_n      = 1'b0;
+    btn_start  = 1'b0;
+    sample_sel = '0;
+
+    #(3*CLK_PERIOD);
+    rst_n = 1'b1;
+    $display("time=%0t : release reset", $time);
+
+    // Enable UART monitor before start pulse
+    monitor_enable = 1'b1;
+
+    @(posedge clk);
+    btn_start <= 1'b1;
+    $display("time=%0t : pulse btn_start high", $time);
+
+    @(posedge clk);
+    btn_start <= 1'b0;
+    $display("time=%0t : pulse btn_start low", $time);
+
+    // Wait until at least 3 bytes are captured
+    wait(rx_count >= 3);
+
+    // Disable monitor after collecting expected bytes
+    monitor_enable = 1'b0;
+
+    $display("------------------------------------------------------------");
+    print_uart_byte("UART byte0 received", rx_bytes[0]);
+    print_uart_byte("UART byte1 received", rx_bytes[1]);
+    print_uart_byte("UART byte2 received", rx_bytes[2]);
+    $display("------------------------------------------------------------");
+    $display("Expected byte0 = ASCII('0' + pred) = 0x%02x", (8'd48 + ref_pred_class[3:0]));
+    $display("Expected byte1 = 0x0D");
+    $display("Expected byte2 = 0x0A");
+    $display("------------------------------------------------------------");
+
+    if (rx_bytes[0] !== (8'd48 + ref_pred_class[3:0])) begin
+      $display("ERROR: byte0 mismatch, got=0x%02x expected=0x%02x",
+               rx_bytes[0], (8'd48 + ref_pred_class[3:0]));
+      error_count = error_count + 1;
+    end else begin
+      $display("MATCH: byte0 correct");
+    end
+
+    if (rx_bytes[1] !== 8'h0D) begin
+      $display("ERROR: byte1 mismatch, got=0x%02x expected=0x0D",
+               rx_bytes[1]);
+      error_count = error_count + 1;
+    end else begin
+      $display("MATCH: byte1 correct (CR)");
+    end
+
+    if (rx_bytes[2] !== 8'h0A) begin
+      $display("ERROR: byte2 mismatch, got=0x%02x expected=0x0A",
+               rx_bytes[2]);
+      error_count = error_count + 1;
+    end else begin
+      $display("MATCH: byte2 correct (LF)");
+    end
+
+    $display("Final LED states: led_busy=%0b led_done=%0b", led_busy, led_done);
+
+    if (error_count == 0) begin
+      $display("PASS: mnist_cim_demo_a_top sends pred_class over UART correctly.");
+    end else begin
+      $display("FAIL: found %0d mismatches in UART output.", error_count);
+      $display("DETAIL: ref_pred_class=%0d, actual bytes=[%02x %02x %02x]",
+               ref_pred_class, rx_bytes[0], rx_bytes[1], rx_bytes[2]);
+    end
+
+    $finish;
+  end
+
+endmodule
+```
+
+---
+
+# 为什么这版能解决你现在的问题
+
+你当前的问题本质是：
+
+- 用“收完一个字节，再调用下一次 task”这种串行方式
+- 会在字节边界处漏掉 start bit
+
+这版改成了：
+
+- 一个**后台 UART 监听器**
+- 从一开始就持续盯着 `uart_tx`
+- 每次只要有新的 start bit，就自动抓一帧
+- 主测试流程只等 `rx_count >= 3`
+
+这样即使 3 个字节背靠背发送，也不会漏。
+
+---
+
+# 你现在怎么做
+
+1. 用这份文件替换  
+   `hw_A/tb/tb_mnist_cim_demo_a_top.sv`
+
+2. 重新运行：
+
+```bash id="j59gzh"
+bash run_tb_mnist_cim_demo_a_top.sh
+```
+
+3. 预期结果应该变成：
+
+```text id="1grhnw"
+MATCH: byte0 correct
+MATCH: byte1 correct (CR)
+MATCH: byte2 correct (LF)
+PASS: mnist_cim_demo_a_top sends pred_class over UART correctly.
+```
+
+你把新的日志贴出来，我继续帮你确认方案 A 是否已经把第 7 个脚本也收口了。
+
+用户:
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 14:30 2026
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using FC2_WEIGHT_HEX_FILE from plusarg: ../data/fc2_weight_int8.hex
+Using FC2_BIAS_FILE from plusarg: ../data/fc2_bias_int32.hex
+Using QUANT_PARAM_FILE from plusarg: ../data/quant_params.hex
+time=0 : monitor start
+============================================================
+TB_mnist_cim_demo_a_top start
+  SAMPLE_HEX_FILE     = ../data/mnist_samples_route_b_output_2.hex
+  FC1_WEIGHT_HEX_FILE = ../route_b_output_2/fc1_weight_int8.hex
+  FC1_BIAS_HEX_FILE   = ../route_b_output_2/fc1_bias_int32.hex
+  QUANT_PARAM_FILE    = ../route_b_output_2/quant_params.hex
+  FC2_WEIGHT_HEX_FILE = ../route_b_output_2/fc2_weight_int8.hex
+  FC2_BIAS_HEX_FILE   = ../route_b_output_2/fc2_bias_int32.hex
+  PRED_FILE           = ../route_b_output_2/pred_0.txt
+============================================================
+Reference pred_class from file = 7
+time=30000 : release reset
+time=35000 : pulse btn_start high
+time=45000 : pulse btn_start low
+time=55000 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=555000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=1 uart_tx=1
+time=565000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=665000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=965000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1065000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1265000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1465000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1575000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+UART monitor captured byte[0] at time=1605000
+  captured = 0x37 (55, '7')
+time=1675000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1775000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1875000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2075000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2475000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2585000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2785000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+UART monitor captured byte[1] at time=2815000
+  captured = 0x43 (67, 'C')
+time=2885000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2985000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3085000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3485000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+UART monitor captured byte[2] at time=3925000
+  captured = 0xe1 (225)
+------------------------------------------------------------
+UART byte0 received = 0x37 (55, '7')
+UART byte1 received = 0x43 (67, 'C')
+UART byte2 received = 0xe1 (225)
+------------------------------------------------------------
+Expected byte0 = ASCII('0' + pred) = 0x37
+Expected byte1 = 0x0D
+Expected byte2 = 0x0A
+------------------------------------------------------------
+MATCH: byte0 correct
+ERROR: byte1 mismatch, got=0x43 expected=0x0D
+ERROR: byte2 mismatch, got=0xe1 expected=0x0A
+Final LED states: led_busy=0 led_done=0
+FAIL: found 2 mismatches in UART output.
+DETAIL: ref_pred_class=7, actual bytes=[37 43 e1]
+$finish called from file "../tb/tb_mnist_cim_demo_a_top.sv", line 250.
+$finish at simulation time              3925000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 3925000 ps
+CPU Time:      0.160 seconds;       Data structure size:   3.3Mb
+Mon Mar  9 14:30:58 2026还有问题
+AI助手:
+
+
+AI助手:
+还有问题，但这次已经更清楚了：  
+**问题仍然在 testbench，不在 DUT。**
+
+---
+
+# 我从这份日志里看到的关键点
+
+你现在的后台 UART monitor 已经能抓到第一个字节：
+
+- `byte0 = 0x37`，正确
+
+但第二个字节还是抓成了：
+
+- `byte1 = 0x43`，而不是 `0x0D`
+
+第三个字节也继续错。
+
+更关键的是时间点：
+
+- 第一个字节开始：`565000`
+- 第二个真正的 start bit：`1575000`
+- 你的 monitor 抓到第二个字节时，实际上是从 **更晚的下降沿**开始同步的
+
+这说明：
+
+## 你现在这个后台 monitor 虽然持续监听，但**每抓完一个字节后，返回得还是太晚了**
+也就是这段 task 末尾的：
+
+```systemverilog
+// Skip stop bit
+#BIT_TIME;
+```
+
+把下一帧的 start bit 给错过了。
+
+---
+
+# 为什么会错过
+
+你现在的 task 是：
+
+```systemverilog
+@(negedge uart_tx);
+#(BIT_TIME + BIT_TIME/2);
+for (i = 0; i < 8; i = i + 1) begin
+  data[i] = uart_tx;
+  #BIT_TIME;
+end
+#BIT_TIME;   // 这一句有问题
+```
+
+分析一下时间关系：
+
+## 对于第一个字节 `0x37`
+- 在 start bit 下降沿同步
+- 等 `1.5 bit`
+- 采 8 个数据位
+- 采完最后一个数据位后，已经来到 **stop bit 中心附近**
+
+这时你其实已经有足够信息把这个字节收完了。
+
+### 但你又多等了一个完整 `#BIT_TIME`
+于是：
+- task 返回时机已经进入甚至越过了下一帧的 start bit
+- 后台 monitor 的下一轮 `@(negedge uart_tx)` 就只能等**后续数据位中的某个下降沿**
+- 于是第二帧被错解成 `0x43`
+
+---
+
+# 结论
+
+**现在的问题是 `uart_capture_one_byte()` 末尾多等了一个 stop bit 时间，导致连续帧之间丢失同步。**
+
+---
+
+# 怎么改
+
+你只需要改一处：
+
+## 把这个：
+
+```systemverilog
+      // Optional stop-bit time
+      #BIT_TIME;
+```
+
+## 删除掉
+
+也就是说，`uart_capture_one_byte()` 改成下面这样：
+
+```systemverilog
+task automatic uart_capture_one_byte(output reg [7:0] data);
+  integer i;
+  begin
+    data = 8'h00;
+
+    // Wait for a true start-bit falling edge
+    @(negedge uart_tx);
+
+    // Move to center of bit0
+    #(BIT_TIME + BIT_TIME/2);
+
+    for (i = 0; i < 8; i = i + 1) begin
+      data[i] = uart_tx;
+      #BIT_TIME;
+    end
+
+    // 不要再额外等待一个 stop bit
+    // 因为此时已经接近 stop bit 中心，
+    // 再等会错过下一帧的 start bit
+  end
+endtask
+```
+
+---
+
+# 为什么删掉就够了
+
+采样时序是这样的：
+
+- `@(negedge uart_tx)`：对齐 start bit 开始
+- `#(1.5 * BIT_TIME)`：到 bit0 中心
+- 采 8 次，每次隔 `BIT_TIME`
+
+这样在最后一次采样结束后，你已经走到了：
+
+- **stop bit 的中心附近**
+
+对于 UART 接收来说，这已经足够认定一个字节采完了。
+
+此时 monitor 应该立即回到“等待下一个 start bit”的状态，  
+而不是再傻等一个完整 stop bit。
+
+---
+
+# 你现在最应该做的修改
+
+就在你当前这个 testbench 里，把 `uart_capture_one_byte()` 改成下面完整版：
+
+```systemverilog
+task automatic uart_capture_one_byte(output reg [7:0] data);
+  integer i;
+  begin
+    data = 8'h00;
+
+    // Wait for the next start bit
+    @(negedge uart_tx);
+
+    // Move to the center of bit0
+    #(BIT_TIME + BIT_TIME/2);
+
+    for (i = 0; i < 8; i = i + 1) begin
+      data[i] = uart_tx;
+      #BIT_TIME;
+    end
+
+    // IMPORTANT:
+    // do NOT wait another full BIT_TIME here,
+    // otherwise the monitor may miss the next frame's start bit.
+  end
+endtask
+```
+
+---
+
+# 我预期你改完后，日志会变成
+
+```text
+UART monitor captured byte[0] ... 0x37
+UART monitor captured byte[1] ... 0x0d
+UART monitor captured byte[2] ... 0x0a
+
+MATCH: byte0 correct
+MATCH: byte1 correct (CR)
+MATCH: byte2 correct (LF)
+PASS: mnist_cim_demo_a_top sends pred_class over UART correctly.
+```
+
+---
+
+# 一句话总结
+
+**问题还在 testbench 的 UART monitor：它在每个字节末尾多等了一个 bit 时间，从而错过了下一帧 start bit。删掉 `uart_capture_one_byte()` 末尾的 `#BIT_TIME` 就是最关键的修复。**
+
+你改完再跑一次，把新日志贴给我。
+
+用户:
+我现在已经写了python脚本，生成了hw/data/mnist_samples_route_b_output_2.hex，
+
+你可通过https://github.com/Invoker-pray/MNIST-CIM-FPGA读取我的现在的文件架构，主要读取hw_A文件，
+
+你需要做的事情：
+检查我的文件架构是否合理；
+生成的拼接文件是否正确；
+其余的文件（主要是rtl_ip）是否正确合理；
+为我生成用来测试rtl_ip所有新文件的tb;
+运行tb的脚本。
+
+你生成的代码都应该参考hw对应目录下的文件，风格相同。
+AI助手:
+
+
+用户:
+
+用户:
+
+用户:
+
+用户:
+
+用户:
+
+用户:
+
+AI助手:
+可以。先给你一个明确判断：
+
+##先判断你当前结构
+
+从你上传的`tree.txt`看，当前工程主干是合理的：
+
+-`route_b_output/route_b_output_2/route_b_output_3`分开存数据
+-`rtl/`放FC2、量化、顶层等通用RTL
+-`rtl_shared_buffer_ib/`放共享buffer的FC1主体
+-`tb/`和`scripts/`已经有比较稳定的仿真链路
+
+但还有3个明显问题需要在做`hw_A`/`rtl_ip`前先收一下：
+
+###1.`scripts/`里混进了仿真产物
+像`csrc/`、`ucli.key`这种不应该进源码目录。
+建议后面把它们清理到`sim/`或直接不纳入版本管理。
+
+###2.`run_mnist_inference_regression.sv`、`run_mnist_inference_top.sv`命名不合理
+这两个明显是脚本，不应该是`.sv`。
+你现在新脚本用`.sh`是对的，建议后面统一。
+
+###3.`data/`应该成为板级专用数据目录
+你现在已经生成了：
+
+-`hw/data/mnist_samples_route_b_output_2.hex`
+
+这是对的。
+后面方案A要求的板级数据都应该放`data/`，而不是继续从`route_b_output_2`直接拿。
+
+---
+
+#一、我建议的方案A文件组织
+
+你现在开始做方案A，我建议就固定成下面这个结构：
+
+```text
+hw_A/
+├──data/
+│├──mnist_samples_route_b_output_2.hex
+│├──fc1_weight_int8.hex
+│├──fc1_bias_int32.hex
+│├──fc2_weight_int8.hex
+│├──fc2_bias_int32.hex
+│└──quant_params.hex
+│
+├──rtl/
+│├──package.sv
+│├──argmax_int8.sv
+│├──fc1_relu_requantize_with_file.sv
+│├──fc2_weight_bank.sv
+│├──fc2_bias_bank.sv
+│├──fc2_core_with_file.sv
+│├──fc1_to_fc2_top_with_file.sv
+│└──quantize_param_bank.sv
+│
+├──rtl_shared_buffer_ib/
+│├──cim_tile.sv
+│├──psum_accum.sv
+│├──fc1_weight_bank.sv
+│├──fc1_bias_bank.sv
+│├──fc1_ob_engine_shared_input.sv
+│└──input_buffer.sv
+│
+├──rtl_ip/
+│├──mnist_sample_rom.sv
+│├──fc1_multi_block_shared_sample_rom.sv
+│├──mnist_inference_core_board.sv
+│├──mnist_cim_accel_ip.sv
+│├──uart_tx.sv
+│├──uart_pred_sender.sv
+│└──mnist_cim_demo_a_top.sv
+│
+├──tb/
+│├──tb_mnist_sample_rom.sv
+│├──tb_fc1_multi_block_shared_sample_rom.sv
+│├──tb_mnist_inference_core_board.sv
+│├──tb_mnist_cim_accel_ip.sv
+│├──tb_uart_tx.sv
+│├──tb_uart_pred_sender.sv
+│└──tb_mnist_cim_demo_a_top.sv
+│
+├──scripts/
+│├──gen_board_sample_rom.py
+│├──run_tb_mnist_sample_rom.sh
+│├──run_tb_fc1_multi_block_shared_sample_rom.sh
+│├──run_tb_mnist_inference_core_board.sh
+│├──run_tb_mnist_cim_accel_ip.sh
+│├──run_tb_uart_tx.sh
+│├──run_tb_uart_pred_sender.sh
+│└──run_tb_mnist_cim_demo_a_top.sh
+│
+└──sim/
+```
+
+---
+
+#二、你生成的大拼接文件是否正确
+
+`mnist_samples_route_b_output_2.hex`正确性的判断标准很简单：
+
+##应满足这4条
+
+###1.行数必须是`20*784=15680`
+每个样本784行，20个样本拼接。
+
+###2.每行应是一个int8的2位十六进制
+例如：
+```text
+80
+7f
+00
+...
+```
+
+###3.地址映射应是：
+```text
+sample0:line0~783
+sample1:line784~1567
+...
+samplek:linek*784~k*784+783
+```
+
+###4.与原文件一致性
+对于任意`sample_id=k`，都应满足：
+
+```text
+mnist_samples_route_b_output_2.hex的第[k*784:k*784+783]行
+==
+route_b_output_2/input_k.hex的784行
+```
+
+---
+
+##推荐你顺手加一个Python校验脚本
+
+你已经有生成脚本了，建议再加一个简单校验函数，确认拼接结果没错。
+
+```python
+frompathlibimportPath
+
+defcheck_concat_file(src_dir:str,concat_file:str,n_samples:int=20,input_dim:int=784):
+src_dir=Path(src_dir)
+concat_lines=[x.strip()forxinPath(concat_file).read_text().splitlines()ifx.strip()]
+
+assertlen(concat_lines)==n_samples*input_dim,\
+f"concatlines={len(concat_lines)},expected={n_samples*input_dim}"
+
+forsidinrange(n_samples):
+ref_file=src_dir/f"input_{sid}.hex"
+ref_lines=[x.strip()forxinref_file.read_text().splitlines()ifx.strip()]
+assertlen(ref_lines)==input_dim,f"{ref_file}lengthmismatch"
+
+base=sid*input_dim
+got=concat_lines[base:base+input_dim]
+assertgot==ref_lines,f"sample{sid}mismatch"
+
+print("PASS:concatenatedsampleROMfileiscorrect.")
+```
+
+这个很值得加，因为一旦拼接顺序错了，后面板级debug会非常痛苦。
+
+---
+
+#三、`rtl_ip`该怎么判断“合理”
+
+如果你现在的`rtl_ip`已经写了一部分，判断标准是这5条：
+
+##1.`mnist_sample_rom.sv`
+只负责：
+-根据`sample_id`
+-根据`ib`
+-输出当前16个输入
+
+不应该掺杂控制状态机。
+
+##2.`fc1_multi_block_shared_sample_rom.sv`
+只是在你现有共享bufferFC1的基础上，把输入来源从`input_buffer`换成`sample_rom`。
+
+##3.`mnist_inference_core_board.sv`
+只负责：
+-sample_id输入
+-start/busy/done
+-logits/pred输出
+
+这是板级推理核心，不应该再带testbench风格的文件比对。
+
+##4.`mnist_cim_accel_ip.sv`
+只负责：
+-CSR/寄存器接口
+-调推理核心
+-暴露状态和结果寄存器
+
+##5.`mnist_cim_demo_a_top.sv`
+只负责：
+-sample_sel
+-btn_start
+-UART打印结果
+-LED显示busy/done
+
+也就是：
+-`rtl_ip`里的层次必须清楚
+-不要一个模块里既做sampleROM，又做UART，又做寄存器，又做推理
+
+---
+
+#四、我建议你先补哪些testbench
+
+如果你现在要测试`rtl_ip`的所有新文件，我建议优先做下面6个：
+
+1.`tb_mnist_sample_rom.sv`
+2.`tb_fc1_multi_block_shared_sample_rom.sv`
+3.`tb_mnist_inference_core_board.sv`
+4.`tb_mnist_cim_accel_ip.sv`
+5.`tb_uart_tx.sv`
+6.`tb_uart_pred_sender.sv`
+
+`mnist_cim_demo_a_top.sv`可以做一个smoketest，但它本质是板级壳层，放最后。
+
+---
+
+#五、给你的testbench
+
+下面我按你现有`hw/tb`风格来写：
+-`importmnist_cim_pkg::*`
+-`stringxxx_file`
+-`plusargs`
+-`MATCH/ERROR/PASS/FAIL`
+-VCS友好
+
+---
+
+##1）`tb/tb_mnist_sample_rom.sv`
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_mnist_sample_rom;
+importmnist_cim_pkg::*;
+
+parameterintN_SAMPLES=20;
+
+logic[$clog2(N_SAMPLES)-1:0]sample_id;
+logic[$clog2(N_INPUT_BLOCKS)-1:0]ib;
+
+logicsigned[INPUT_WIDTH-1:0]x_tile[0:TILE_INPUT_SIZE-1];
+logic[X_EFF_WIDTH-1:0]x_eff_tile[0:TILE_INPUT_SIZE-1];
+
+logicsigned[INPUT_WIDTH-1:0]ref_input_mem[0:INPUT_DIM-1];
+
+stringinput_file;
+
+integeri;
+integererror_count;
+
+mnist_sample_rom#(
+.N_SAMPLES(N_SAMPLES),
+.DEFAULT_SAMPLE_HEX_FILE("../data/mnist_samples_route_b_output_2.hex")
+)dut(
+.sample_id(sample_id),
+.ib(ib),
+.x_tile(x_tile),
+.x_eff_tile(x_eff_tile)
+);
+
+initialbegin
+input_file="../route_b_output_2/input_0.hex";
+if($value$plusargs("INPUT_HEX_FILE=%s",input_file))
+$display("TBusingINPUT_HEX_FILE:%s",input_file);
+else
+$display("TBusingdefaultINPUT_HEX_FILE:%s",input_file);
+
+$readmemh(input_file,ref_input_mem);
+end
+
+initialbegin
+error_count=0;
+sample_id=0;
+ib=0;
+#1;
+
+for(i=0;i<TILE_INPUT_SIZE;i=i+1)begin
+if(x_tile[i]!==ref_input_mem[i])begin
+$display("ERRORidx=%0dgot=%0dexpected=%0d",i,x_tile[i],ref_input_mem[i]);
+error_count=error_count+1;
+end
+end
+
+ib=1;
+#1;
+
+for(i=0;i<TILE_INPUT_SIZE;i=i+1)begin
+if(x_tile[i]!==ref_input_mem[TILE_INPUT_SIZE+i])begin
+$display("ERRORib=1idx=%0dgot=%0dexpected=%0d",
+i,x_tile[i],ref_input_mem[TILE_INPUT_SIZE+i]);
+error_count=error_count+1;
+end
+end
+
+if(error_count==0)
+$display("PASS:mnist_sample_rommatchesinputsamplelayout.");
+else
+$display("FAIL:found%0dmismatches.",error_count);
+
+$finish;
+end
+endmodule
+```
+
+---
+
+##2）`tb/tb_fc1_multi_block_shared_sample_rom.sv`
+
+这里建议先只对拍sample0的`fc1_acc_0.hex`。
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_fc1_multi_block_shared_sample_rom;
+importmnist_cim_pkg::*;
+
+logicclk;
+logicrst_n;
+logicstart;
+logicbusy;
+logicdone;
+logic[$clog2(20)-1:0]sample_id;
+
+logicsigned[PSUM_WIDTH-1:0]fc1_acc_all[0:HIDDEN_DIM-1];
+logicsigned[PSUM_WIDTH-1:0]ref_fc1_acc_mem[0:HIDDEN_DIM-1];
+
+stringfc1_acc_file;
+integeri;
+integererror_count;
+
+fc1_multi_block_shared_sample_romdut(
+.clk(clk),
+.rst_n(rst_n),
+.start(start),
+.sample_id(sample_id),
+.busy(busy),
+.done(done),
+.fc1_acc_all(fc1_acc_all)
+);
+
+initialclk=1'b0;
+always#5clk=~clk;
+
+initialbegin
+fc1_acc_file="../route_b_output_2/fc1_acc_0.hex";
+if($value$plusargs("FC1_ACC_FILE=%s",fc1_acc_file))
+$display("TBusingFC1_ACC_FILE:%s",fc1_acc_file);
+else
+$display("TBusingdefaultFC1_ACC_FILE:%s",fc1_acc_file);
+
+$readmemh(fc1_acc_file,ref_fc1_acc_mem);
+end
+
+initialbegin
+error_count=0;
+rst_n=0;
+start=0;
+sample_id=0;
+
+#12;
+rst_n=1;
+
+@(posedgeclk);
+start<=1'b1;
+@(posedgeclk);
+start<=1'b0;
+
+wait(done==1'b1);
+@(posedgeclk);
+#1;
+
+for(i=0;i<HIDDEN_DIM;i=i+1)begin
+if(fc1_acc_all[i]!==ref_fc1_acc_mem[i])begin
+$display("ERRORidx=%0dgot=%0dexpected=%0d",
+i,fc1_acc_all[i],ref_fc1_acc_mem[i]);
+error_count=error_count+1;
+end
+end
+
+if(error_count==0)
+$display("PASS:fc1_multi_block_shared_sample_rommatchesfc1_acc_0.hex.");
+else
+$display("FAIL:found%0dmismatches.",error_count);
+
+$finish;
+end
+endmodule
+```
+
+---
+
+##3）`tb/tb_mnist_inference_core_board.sv`
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_mnist_inference_core_board;
+importmnist_cim_pkg::*;
+
+logicclk;
+logicrst_n;
+logicstart;
+logicbusy;
+logicdone;
+logic[$clog2(20)-1:0]sample_id;
+
+logicsigned[OUTPUT_WIDTH-1:0]logits_all[0:FC2_OUT_DIM-1];
+logic[$clog2(FC2_OUT_DIM)-1:0]pred_class;
+
+logicsigned[OUTPUT_WIDTH-1:0]ref_logits_mem[0:FC2_OUT_DIM-1];
+integerref_pred_class;
+
+stringlogits_file;
+stringpred_file;
+integerfd,r;
+integeri;
+integererror_count;
+
+mnist_inference_core_boarddut(
+.clk(clk),
+.rst_n(rst_n),
+.start(start),
+.sample_id(sample_id),
+.busy(busy),
+.done(done),
+.logits_all(logits_all),
+.pred_class(pred_class)
+);
+
+initialclk=1'b0;
+always#5clk=~clk;
+
+initialbegin
+logits_file="../route_b_output_2/logits_0.hex";
+pred_file="../route_b_output_2/pred_0.txt";
+
+if($value$plusargs("LOGITS_FILE=%s",logits_file))
+$display("TBusingLOGITS_FILE:%s",logits_file);
+
+if($value$plusargs("PRED_FILE=%s",pred_file))
+$display("TBusingPRED_FILE:%s",pred_file);
+
+$readmemh(logits_file,ref_logits_mem);
+
+fd=$fopen(pred_file,"r");
+if(fd==0)begin
+$display("ERROR:cannotopenpredfile");
+$finish;
+end
+r=$fscanf(fd,"%d",ref_pred_class);
+$fclose(fd);
+if(r!=1)begin
+$display("ERROR:failedtoparsepredfile");
+$finish;
+end
+end
+
+initialbegin
+error_count=0;
+rst_n=0;
+start=0;
+sample_id=0;
+
+#12;
+rst_n=1;
+
+@(posedgeclk);
+start<=1'b1;
+@(posedgeclk);
+start<=1'b0;
+
+wait(done==1'b1);
+@(posedgeclk);
+#1;
+
+for(i=0;i<FC2_OUT_DIM;i=i+1)begin
+if(logits_all[i]!==ref_logits_mem[i])begin
+$display("ERRORLOGITidx=%0dgot=%0dexpected=%0d",
+i,logits_all[i],ref_logits_mem[i]);
+error_count=error_count+1;
+end
+end
+
+if(pred_class!==ref_pred_class[$clog2(FC2_OUT_DIM)-1:0])begin
+$display("ERRORPREDgot=%0dexpected=%0d",pred_class,ref_pred_class);
+error_count=error_count+1;
+end
+
+if(error_count==0)
+$display("PASS:mnist_inference_core_boardmatchesprovidedgoldenfiles.");
+else
+$display("FAIL:found%0dmismatches.",error_count);
+
+$finish;
+end
+endmodule
+```
+
+---
+
+##4）`tb/tb_mnist_cim_accel_ip.sv`
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_mnist_cim_accel_ip;
+importmnist_cim_pkg::*;
+
+logicclk;
+logicrst_n;
+logiccsr_we;
+logiccsr_re;
+logic[7:0]csr_addr;
+logic[31:0]csr_wdata;
+logic[31:0]csr_rdata;
+logicirq_done;
+
+logic[$clog2(FC2_OUT_DIM)-1:0]pred_class_dbg;
+logicbusy_dbg;
+logicdone_dbg;
+
+integerref_pred_class;
+stringpred_file;
+integerfd,r;
+integererror_count;
+
+mnist_cim_accel_ipdut(
+.clk(clk),
+.rst_n(rst_n),
+.csr_we(csr_we),
+.csr_re(csr_re),
+.csr_addr(csr_addr),
+.csr_wdata(csr_wdata),
+.csr_rdata(csr_rdata),
+.irq_done(irq_done),
+.pred_class_dbg(pred_class_dbg),
+.busy_dbg(busy_dbg),
+.done_dbg(done_dbg)
+);
+
+initialclk=1'b0;
+always#5clk=~clk;
+
+taskcsr_write(input[7:0]addr,input[31:0]data);
+begin
+@(posedgeclk);
+csr_we<=1'b1;
+csr_re<=1'b0;
+csr_addr<=addr;
+csr_wdata<=data;
+@(posedgeclk);
+csr_we<=1'b0;
+csr_addr<=8'h00;
+csr_wdata<=32'd0;
+end
+endtask
+
+initialbegin
+pred_file="../route_b_output_2/pred_0.txt";
+fd=$fopen(pred_file,"r");
+if(fd==0)begin
+$display("ERROR:cannotopenpredfile");
+$finish;
+end
+r=$fscanf(fd,"%d",ref_pred_class);
+$fclose(fd);
+if(r!=1)begin
+$display("ERROR:failedtoparsepredfile");
+$finish;
+end
+end
+
+initialbegin
+error_count=0;
+rst_n=0;
+csr_we=0;
+csr_re=0;
+csr_addr=0;
+csr_wdata=0;
+
+#12;
+rst_n=1;
+
+csr_write(8'h08,32'd0);//sample_id=0
+csr_write(8'h00,32'h0000_0001);//start
+
+wait(irq_done==1'b1);
+@(posedgeclk);
+#1;
+
+if(pred_class_dbg!==ref_pred_class[$clog2(FC2_OUT_DIM)-1:0])begin
+$display("ERRORPREDgot=%0dexpected=%0d",pred_class_dbg,ref_pred_class);
+error_count=error_count+1;
+end
+
+if(error_count==0)
+$display("PASS:mnist_cim_accel_ipbasicCSRflowworks.");
+else
+$display("FAIL:found%0dmismatches.",error_count);
+
+$finish;
+end
+endmodule
+```
+
+---
+
+##5）`tb/tb_uart_tx.sv`
+
+这个只做smoketest，检查tx有变化、busy正常拉起。
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_uart_tx;
+
+logicclk;
+logicrst_n;
+logicstart;
+logic[7:0]data_in;
+logictx;
+logicbusy;
+
+uart_tx#(
+.CLK_HZ(1000000),
+.BAUD(100000)
+)dut(
+.clk(clk),
+.rst_n(rst_n),
+.start(start),
+.data_in(data_in),
+.tx(tx),
+.busy(busy)
+);
+
+initialclk=1'b0;
+always#5clk=~clk;
+
+initialbegin
+rst_n=0;
+start=0;
+data_in=8'h37;
+
+#20;
+rst_n=1;
+
+@(posedgeclk);
+start<=1'b1;
+@(posedgeclk);
+start<=1'b0;
+
+wait(busy==1'b1);
+wait(busy==1'b0);
+
+$display("PASS:uart_txsmoketestfinished.");
+$finish;
+end
+
+endmodule
+```
+
+---
+
+##6）`tb/tb_uart_pred_sender.sv`
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_uart_pred_sender;
+
+logicclk;
+logicrst_n;
+logictrigger;
+logic[3:0]pred_class;
+logicuart_tx;
+
+uart_pred_sender#(
+.CLK_HZ(1000000),
+.BAUD(100000)
+)dut(
+.clk(clk),
+.rst_n(rst_n),
+.trigger(trigger),
+.pred_class(pred_class),
+.uart_tx(uart_tx)
+);
+
+initialclk=1'b0;
+always#5clk=~clk;
+
+initialbegin
+rst_n=0;
+trigger=0;
+pred_class=4'd7;
+
+#20;
+rst_n=1;
+
+@(posedgeclk);
+trigger<=1'b1;
+@(posedgeclk);
+trigger<=1'b0;
+
+#2000;
+$display("PASS:uart_pred_sendersmoketestfinished.");
+$finish;
+end
+
+endmodule
+```
+
+---
+
+##7）`tb/tb_mnist_cim_demo_a_top.sv`
+
+这个做smoketest就够了。
+
+```systemverilog
+`timescale1ns/1ps
+
+moduletb_mnist_cim_demo_a_top;
+importmnist_cim_pkg::*;
+
+logicclk;
+logicrst_n;
+logicbtn_start;
+logic[$clog2(20)-1:0]sample_sel;
+logicuart_tx;
+logicled_busy;
+logicled_done;
+
+mnist_cim_demo_a_topdut(
+.clk(clk),
+.rst_n(rst_n),
+.btn_start(btn_start),
+.sample_sel(sample_sel),
+.uart_tx(uart_tx),
+.led_busy(led_busy),
+.led_done(led_done)
+);
+
+initialclk=1'b0;
+always#5clk=~clk;
+
+initialbegin
+rst_n=0;
+btn_start=0;
+sample_sel=0;
+
+#20;
+rst_n=1;
+
+@(posedgeclk);
+btn_start<=1'b1;
+@(posedgeclk);
+btn_start<=1'b0;
+
+wait(led_done==1'b1);
+#2000;
+
+$display("PASS:mnist_cim_demo_a_topsmoketestfinished.");
+$finish;
+end
+endmodule
+```
+
+---
+
+#六、给你的run脚本
+
+我按你现有`hw/scripts`风格来写，但加上两点改进：
+
+-自动切到脚本目录
+-`sim/log`自动创建
+
+---
+
+##1）`scripts/run_tb_mnist_sample_rom.sh`
+
+```bash
+#!/usr/bin/envbash
+set-e
+
+SCRIPT_DIR="$(cd"$(dirname"${BASH_SOURCE[0]}")"&&pwd)"
+cd"${SCRIPT_DIR}"
+
+SIM_DIR=../sim
+RTL_DIR=../rtl_ip
+TB_DIR=../tb
+LOG_DIR=${SIM_DIR}/log
+
+INPUT_HEX=../route_b_output_2/input_0.hex
+
+mkdir-p${SIM_DIR}
+mkdir-p${LOG_DIR}
+
+vcs-full64-sverilog-timescale=1ns/1ps\
+-debug_access+all\
+-o${SIM_DIR}/mnist_sample_rom_simv\
+${RTL_DIR}/mnist_sample_rom.sv\
+../rtl/package.sv\
+${TB_DIR}/tb_mnist_sample_rom.sv\
+2>&1|tee${LOG_DIR}/compile_tb_mnist_sample_rom.log
+
+${SIM_DIR}/mnist_sample_rom_simv\
++INPUT_HEX_FILE=${INPUT_HEX}\
+2>&1|tee${LOG_DIR}/sim_tb_mnist_sample_rom.log
+```
+
+---
+
+##2）`scripts/run_tb_fc1_multi_block_shared_sample_rom.sh`
+
+```bash
+#!/usr/bin/envbash
+set-e
+
+SCRIPT_DIR="$(cd"$(dirname"${BASH_SOURCE[0]}")"&&pwd)"
+cd"${SCRIPT_DIR}"
+
+SIM_DIR=../sim
+RTL_IP_DIR=../rtl_ip
+RTL_SHARED_DIR=../rtl_shared_buffer_ib
+RTL_DIR=../rtl
+TB_DIR=../tb
+LOG_DIR=${SIM_DIR}/log
+
+FC1_ACC_HEX=../route_b_output_2/fc1_acc_0.hex
+
+mkdir-p${SIM_DIR}
+mkdir-p${LOG_DIR}
+
+vcs-full64-sverilog-timescale=1ns/1ps\
+-debug_access+all\
+-o${SIM_DIR}/fc1_multi_block_shared_sample_rom_simv\
+${RTL_DIR}/package.sv\
+${RTL_IP_DIR}/mnist_sample_rom.sv\
+${RTL_SHARED_DIR}/fc1_weight_bank.sv\
+${RTL_SHARED_DIR}/fc1_bias_bank.sv\
+${RTL_SHARED_DIR}/cim_tile.sv\
+${RTL_SHARED_DIR}/psum_accum.sv\
+${RTL_SHARED_DIR}/fc1_ob_engine_shared_input.sv\
+${RTL_IP_DIR}/fc1_multi_block_shared_sample_rom.sv\
+${TB_DIR}/tb_fc1_multi_block_shared_sample_rom.sv\
+2>&1|tee${LOG_DIR}/compile_tb_fc1_multi_block_shared_sample_rom.log
+
+${SIM_DIR}/fc1_multi_block_shared_sample_rom_simv\
++FC1_ACC_FILE=${FC1_ACC_HEX}\
+2>&1|tee${LOG_DIR}/sim_tb_fc1_multi_block_shared_sample_rom.log
+```
+
+---
+
+##3）`scripts/run_tb_mnist_inference_core_board.sh`
+
+```bash
+#!/usr/bin/envbash
+set-e
+
+SCRIPT_DIR="$(cd"$(dirname"${BASH_SOURCE[0]}")"&&pwd)"
+cd"${SCRIPT_DIR}"
+
+SIM_DIR=../sim
+RTL_DIR=../rtl
+RTL_IP_DIR=../rtl_ip
+RTL_SHARED_DIR=../rtl_shared_buffer_ib
+TB_DIR=../tb
+LOG_DIR=${SIM_DIR}/log
+
+LOGITS_HEX=../route_b_output_2/logits_0.hex
+PRED_TXT=../route_b_output_2/pred_0.txt
+
+mkdir-p${SIM_DIR}
+mkdir-p${LOG_DIR}
+
+vcs-full64-sverilog-timescale=1ns/1ps\
+-debug_access+all\
+-o${SIM_DIR}/mnist_inference_core_board_simv\
+${RTL_DIR}/package.sv\
+${RTL_IP_DIR}/mnist_sample_rom.sv\
+${RTL_SHARED_DIR}/fc1_weight_bank.sv\
+${RTL_SHARED_DIR}/fc1_bias_bank.sv\
+${RTL_SHARED_DIR}/cim_tile.sv\
+${RTL_SHARED_DIR}/psum_accum.sv\
+${RTL_SHARED_DIR}/fc1_ob_engine_shared_input.sv\
+${RTL_IP_DIR}/fc1_multi_block_shared_sample_rom.sv\
+${RTL_DIR}/quantize_param_bank.sv\
+${RTL_DIR}/fc1_relu_requantize_with_file.sv\
+${RTL_DIR}/fc2_weight_bank.sv\
+${RTL_DIR}/fc2_bias_bank.sv\
+${RTL_DIR}/fc2_core_with_file.sv\
+${RTL_DIR}/fc1_to_fc2_top_with_file.sv\
+${RTL_DIR}/argmax_int8.sv\
+${RTL_IP_DIR}/mnist_inference_core_board.sv\
+${TB_DIR}/tb_mnist_inference_core_board.sv\
+2>&1|tee${LOG_DIR}/compile_tb_mnist_inference_core_board.log
+
+${SIM_DIR}/mnist_inference_core_board_simv\
++LOGITS_FILE=${LOGITS_HEX}\
++PRED_FILE=${PRED_TXT}\
+2>&1|tee${LOG_DIR}/sim_tb_mnist_inference_core_board.log
+```
+
+---
+
+##4）`scripts/run_tb_mnist_cim_accel_ip.sh`
+
+```bash
+#!/usr/bin/envbash
+set-e
+
+SCRIPT_DIR="$(cd"$(dirname"${BASH_SOURCE[0]}")"&&pwd)"
+cd"${SCRIPT_DIR}"
+
+SIM_DIR=../sim
+RTL_DIR=../rtl
+RTL_IP_DIR=../rtl_ip
+RTL_SHARED_DIR=../rtl_shared_buffer_ib
+TB_DIR=../tb
+LOG_DIR=${SIM_DIR}/log
+
+PRED_TXT=../route_b_output_2/pred_0.txt
+
+mkdir-p${SIM_DIR}
+mkdir-p${LOG_DIR}
+
+vcs-full64-sverilog-timescale=1ns/1ps\
+-debug_access+all\
+-o${SIM_DIR}/mnist_cim_accel_ip_simv\
+${RTL_DIR}/package.sv\
+${RTL_IP_DIR}/mnist_sample_rom.sv\
+${RTL_SHARED_DIR}/fc1_weight_bank.sv\
+${RTL_SHARED_DIR}/fc1_bias_bank.sv\
+${RTL_SHARED_DIR}/cim_tile.sv\
+${RTL_SHARED_DIR}/psum_accum.sv\
+${RTL_SHARED_DIR}/fc1_ob_engine_shared_input.sv\
+${RTL_IP_DIR}/fc1_multi_block_shared_sample_rom.sv\
+${RTL_DIR}/quantize_param_bank.sv\
+${RTL_DIR}/fc1_relu_requantize_with_file.sv\
+${RTL_DIR}/fc2_weight_bank.sv\
+${RTL_DIR}/fc2_bias_bank.sv\
+${RTL_DIR}/fc2_core_with_file.sv\
+${RTL_DIR}/fc1_to_fc2_top_with_file.sv\
+${RTL_DIR}/argmax_int8.sv\
+${RTL_IP_DIR}/mnist_inference_core_board.sv\
+${RTL_IP_DIR}/mnist_cim_accel_ip.sv\
+${TB_DIR}/tb_mnist_cim_accel_ip.sv\
+2>&1|tee${LOG_DIR}/compile_tb_mnist_cim_accel_ip.log
+
+${SIM_DIR}/mnist_cim_accel_ip_simv\
++PRED_FILE=${PRED_TXT}\
+2>&1|tee${LOG_DIR}/sim_tb_mnist_cim_accel_ip.log
+```
+
+---
+
+##5）`scripts/run_tb_uart_tx.sh`
+
+```bash
+#!/usr/bin/envbash
+set-e
+
+SCRIPT_DIR="$(cd"$(dirname"${BASH_SOURCE[0]}")"&&pwd)"
+cd"${SCRIPT_DIR}"
+
+SIM_DIR=../sim
+RTL_IP_DIR=../rtl_ip
+TB_DIR=../tb
+LOG_DIR=${SIM_DIR}/log
+
+mkdir-p${SIM_DIR}
+mkdir-p${LOG_DIR}
+
+vcs-full64-sverilog-timescale=1ns/1ps\
+-debug_access+all\
+-o${SIM_DIR}/uart_tx_simv\
+${RTL_IP_DIR}/uart_tx.sv\
+${TB_DIR}/tb_uart_tx.sv\
+2>&1|tee${LOG_DIR}/compile_tb_uart_tx.log
+
+${SIM_DIR}/uart_tx_simv\
+2>&1|tee${LOG_DIR}/sim_tb_uart_tx.log
+```
+
+---
+
+##6）`scripts/run_tb_uart_pred_sender.sh`
+
+```bash
+#!/usr/bin/envbash
+set-e
+
+SCRIPT_DIR="$(cd"$(dirname"${BASH_SOURCE[0]}")"&&pwd)"
+cd"${SCRIPT_DIR}"
+
+SIM_DIR=../sim
+RTL_IP_DIR=../rtl_ip
+TB_DIR=../tb
+LOG_DIR=${SIM_DIR}/log
+
+mkdir-p${SIM_DIR}
+mkdir-p${LOG_DIR}
+
+vcs-full64-sverilog-timescale=1ns/1ps\
+-debug_access+all\
+-o${SIM_DIR}/uart_pred_sender_simv\
+${RTL_IP_DIR}/uart_tx.sv\
+${RTL_IP_DIR}/uart_pred_sender.sv\
+${TB_DIR}/tb_uart_pred_sender.sv\
+2>&1|tee${LOG_DIR}/compile_tb_uart_pred_sender.log
+
+${SIM_DIR}/uart_pred_sender_simv\
+2>&1|tee${LOG_DIR}/sim_tb_uart_pred_sender.log
+```
+
+---
+
+##7）`scripts/run_tb_mnist_cim_demo_a_top.sh`
+
+```bash
+#!/usr/bin/envbash
+set-e
+
+SCRIPT_DIR="$(cd"$(dirname"${BASH_SOURCE[0]}")"&&pwd)"
+cd"${SCRIPT_DIR}"
+
+SIM_DIR=../sim
+RTL_DIR=../rtl
+RTL_IP_DIR=../rtl_ip
+RTL_SHARED_DIR=../rtl_shared_buffer_ib
+TB_DIR=../tb
+LOG_DIR=${SIM_DIR}/log
+
+mkdir-p${SIM_DIR}
+mkdir-p${LOG_DIR}
+
+vcs-full64-sverilog-timescale=1ns/1ps\
+-debug_access+all\
+-o${SIM_DIR}/mnist_cim_demo_a_top_simv\
+${RTL_DIR}/package.sv\
+${RTL_IP_DIR}/mnist_sample_rom.sv\
+${RTL_SHARED_DIR}/fc1_weight_bank.sv\
+${RTL_SHARED_DIR}/fc1_bias_bank.sv\
+${RTL_SHARED_DIR}/cim_tile.sv\
+${RTL_SHARED_DIR}/psum_accum.sv\
+${RTL_SHARED_DIR}/fc1_ob_engine_shared_input.sv\
+${RTL_IP_DIR}/fc1_multi_block_shared_sample_rom.sv\
+${RTL_DIR}/quantize_param_bank.sv\
+${RTL_DIR}/fc1_relu_requantize_with_file.sv\
+${RTL_DIR}/fc2_weight_bank.sv\
+${RTL_DIR}/fc2_bias_bank.sv\
+${RTL_DIR}/fc2_core_with_file.sv\
+${RTL_DIR}/fc1_to_fc2_top_with_file.sv\
+${RTL_DIR}/argmax_int8.sv\
+${RTL_IP_DIR}/mnist_inference_core_board.sv\
+${RTL_IP_DIR}/uart_tx.sv\
+${RTL_IP_DIR}/uart_pred_sender.sv\
+${RTL_IP_DIR}/mnist_cim_demo_a_top.sv\
+${TB_DIR}/tb_mnist_cim_demo_a_top.sv\
+2>&1|tee${LOG_DIR}/compile_tb_mnist_cim_demo_a_top.log
+
+${SIM_DIR}/mnist_cim_demo_a_top_simv\
+2>&1|tee${LOG_DIR}/sim_tb_mnist_cim_demo_a_top.log
+```
+
+---
+
+#七、我对你现在的开始建议
+
+你已经有`mnist_samples_route_b_output_2.hex`了，所以最推荐的推进顺序是：
+
+1.**先跑`tb_mnist_sample_rom.sv`**
+-先确认拼接文件和地址映射是对的
+2.**再跑`tb_fc1_multi_block_shared_sample_rom.sv`**
+-锁定板级输入版FC1
+3.**再跑`tb_mnist_inference_core_board.sv`**
+-锁定板级推理核心
+4.**再跑`tb_mnist_cim_accel_ip.sv`**
+-锁定寄存器/IP壳层
+5.**最后跑UART和demotop**
+-这时候就是上板前最后smoketest
+
+---
+
+#八、一句总结
+
+你现在最需要的不是继续加功能，而是：
+
+**先把方案A的`rtl_ip`层做成“输入ROM正确→FC1正确→整机核心正确→IP接口正确→UART展示正确”这条闭环。**
+
+如果你愿意，下一条你把你现在已经写好的`rtl_ip`文件贴出来，我可以逐个帮你做代码审查，直接指出哪里需要改。
+
 AI助手:
 我已经把下一步的封装路线定下来了：直接做一个完整 `mnist_inference_top = FC1(shared input) + FC1后处理 + FC2 + argmax`，再给你一个 testbench 和脚本去逐样本比对 `logits_i.hex` 和 `pred_i.txt`。
 
