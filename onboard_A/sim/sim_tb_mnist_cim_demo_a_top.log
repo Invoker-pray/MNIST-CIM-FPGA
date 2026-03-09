@@ -1,6 +1,6 @@
 Chronologic VCS simulator copyright 1991-2018
 Contains Synopsys proprietary information.
-Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 19:35 2026
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 20:29 2026
 Using default INPUT_HEX_FILE: ../data/samples/input_0.hex
 Using WEIGHT_HEX_FILE from plusarg: ../data/weights/fc1_weight_int8.hex
 Using FC1_BIAS_FILE from plusarg: ../data/weights/fc1_bias_int32.hex
@@ -47,34 +47,35 @@ time=0 : monitor start
   FC2_BIAS_HEX_FILE   = ../data/weights/fc2_bias_int32.hex
 ============================================================
 Reference pred_class from file = 7
+[TOP] SIM_BYPASS_DEBOUNCE=1, bypass debounce
 time=30000 : release reset
 time=35000 : pulse btn_start high
 time=45000 : pulse btn_start low
-time=55000 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=555000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=1 uart_tx=1
-time=565000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=665000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=965000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1065000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1265000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1465000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-UART monitor captured byte[0] at time=1505000
+time=65000 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=565000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=1 uart_tx=1
+time=575000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=675000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=975000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1075000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1275000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1475000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+UART monitor captured byte[0] at time=1515000
   captured = 0x37 (55, '7')
-time=1575000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1675000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1775000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1875000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2075000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2475000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-UART monitor captured byte[1] at time=2515000
+time=1585000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1685000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1785000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1885000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2085000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2485000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+UART monitor captured byte[1] at time=2525000
   captured = 0x0d (13)
-time=2585000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2785000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2885000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2985000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3085000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3485000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-UART monitor captured byte[2] at time=3525000
+time=2595000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2795000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2895000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2995000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3095000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3495000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+UART monitor captured byte[2] at time=3535000
   captured = 0x0a (10)
 ------------------------------------------------------------
 UART byte0 received = 0x37 (55, '7')
@@ -90,9 +91,9 @@ MATCH: byte1 correct (CR)
 MATCH: byte2 correct (LF)
 Final LED states: led_busy=0 led_done=0
 PASS: mnist_cim_demo_a_top sends pred_class over UART correctly.
-$finish called from file "../tb/tb_mnist_cim_demo_a_top.sv", line 252.
-$finish at simulation time              3525000
+$finish called from file "../tb/tb_mnist_cim_demo_a_top.sv", line 253.
+$finish at simulation time              3535000
            V C S   S i m u l a t i o n   R e p o r t 
-Time: 3525000 ps
-CPU Time:      0.300 seconds;       Data structure size:   6.5Mb
-Mon Mar  9 19:35:39 2026
+Time: 3535000 ps
+CPU Time:      0.240 seconds;       Data structure size:   6.5Mb
+Mon Mar  9 20:29:52 2026

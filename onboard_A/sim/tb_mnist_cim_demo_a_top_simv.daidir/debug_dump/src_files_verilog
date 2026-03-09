@@ -8,6 +8,8 @@
 /home/icer/MNIST-CIM-FPGA/onboard_A/rtl/core/input_buffer.sv
 /home/icer/MNIST-CIM-FPGA/onboard_A/rtl/core/mnist_inference_core_board.sv
 /home/icer/MNIST-CIM-FPGA/onboard_A/rtl/core/psum_accum.sv
+/home/icer/MNIST-CIM-FPGA/onboard_A/rtl/ctrl/debounce.sv
+/home/icer/MNIST-CIM-FPGA/onboard_A/rtl/ctrl/onepulse.sv
 /home/icer/MNIST-CIM-FPGA/onboard_A/rtl/mem/fc1_bias_bank.sv
 /home/icer/MNIST-CIM-FPGA/onboard_A/rtl/mem/fc1_multi_block_shared_sample_rom.sv
 /home/icer/MNIST-CIM-FPGA/onboard_A/rtl/mem/fc1_weight_bank.sv

@@ -1,15 +1,9 @@
 {
-    "...MASTER...": [
-        "SIM",
-        "amcQw",
+    "input_buffer": [
+        "input_buffer",
+        "pbTwn",
         "module",
-        20
-    ],
-    "fc1_weight_bank": [
-        "fc1_weight_bank",
-        "rE4Cd",
-        "module",
-        6
+        5
     ],
     "std": [
         "std",
@@ -17,77 +11,11 @@
         "module",
         1
     ],
-    "fc1_to_fc2_top_with_file": [
-        "fc1_to_fc2_top_with_file",
-        "vKW3C",
-        "module",
-        17
-    ],
     "mnist_cim_pkg": [
         "mnist_cim_pkg",
         "ehn8j",
         "module",
         2
-    ],
-    "input_buffer": [
-        "input_buffer",
-        "pbTwn",
-        "module",
-        5
-    ],
-    "fc1_relu_requantize_with_file": [
-        "fc1_relu_requantize_with_file",
-        "ek4hc",
-        "module",
-        12
-    ],
-    "fc1_multi_block_shared_sample_rom_0000": [
-        "fc1_multi_block_shared_sample_rom_0000",
-        "jLq5H",
-        "module",
-        10
-    ],
-    "cim_tile": [
-        "cim_tile",
-        "Nb8n4",
-        "module",
-        3
-    ],
-    "fc2_bias_bank": [
-        "fc2_bias_bank",
-        "Dm76d",
-        "module",
-        14
-    ],
-    "psum_accum": [
-        "psum_accum",
-        "Zw2Gu",
-        "module",
-        4
-    ],
-    "mnist_sample_rom": [
-        "mnist_sample_rom",
-        "i6M4P",
-        "module",
-        9
-    ],
-    "fc1_ob_engine_shared_input_0000": [
-        "fc1_ob_engine_shared_input_0000",
-        "sJitK",
-        "module",
-        8
-    ],
-    "fc1_bias_bank": [
-        "fc1_bias_bank",
-        "Bg6nL",
-        "module",
-        7
-    ],
-    "argmax_int8": [
-        "argmax_int8",
-        "Wg902",
-        "module",
-        16
     ],
     "fc1_multi_block_shared_input": [
         "fc1_multi_block_shared_input",
@@ -95,11 +23,23 @@
         "module",
         11
     ],
-    "mnist_inference_core_board": [
-        "mnist_inference_core_board",
-        "sMH96",
+    "psum_accum": [
+        "psum_accum",
+        "Zw2Gu",
         "module",
-        18
+        4
+    ],
+    "fc1_to_fc2_top_with_file": [
+        "fc1_to_fc2_top_with_file",
+        "vKW3C",
+        "module",
+        17
+    ],
+    "cim_tile": [
+        "cim_tile",
+        "Nb8n4",
+        "module",
+        3
     ],
     "fc2_weight_bank": [
         "fc2_weight_bank",
@@ -107,11 +47,71 @@
         "module",
         13
     ],
+    "fc1_ob_engine_shared_input_0000": [
+        "fc1_ob_engine_shared_input_0000",
+        "sJitK",
+        "module",
+        8
+    ],
+    "fc1_weight_bank": [
+        "fc1_weight_bank",
+        "rE4Cd",
+        "module",
+        6
+    ],
+    "fc1_bias_bank": [
+        "fc1_bias_bank",
+        "Bg6nL",
+        "module",
+        7
+    ],
+    "mnist_sample_rom": [
+        "mnist_sample_rom",
+        "i6M4P",
+        "module",
+        9
+    ],
+    "argmax_int8": [
+        "argmax_int8",
+        "Wg902",
+        "module",
+        16
+    ],
+    "fc1_multi_block_shared_sample_rom_0000": [
+        "fc1_multi_block_shared_sample_rom_0000",
+        "jLq5H",
+        "module",
+        10
+    ],
+    "fc2_bias_bank": [
+        "fc2_bias_bank",
+        "Dm76d",
+        "module",
+        14
+    ],
+    "fc1_relu_requantize_with_file": [
+        "fc1_relu_requantize_with_file",
+        "ek4hc",
+        "module",
+        12
+    ],
     "fc2_core_with_file": [
         "fc2_core_with_file",
         "Paxhp",
         "module",
         15
+    ],
+    "...MASTER...": [
+        "SIM",
+        "amcQw",
+        "module",
+        20
+    ],
+    "mnist_inference_core_board": [
+        "mnist_inference_core_board",
+        "sMH96",
+        "module",
+        18
     ],
     "tb_mnist_cim_demo_a_top": [
         "tb_mnist_cim_demo_a_top",

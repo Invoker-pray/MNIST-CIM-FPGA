@@ -51,6 +51,8 @@ SRC_FILES=(
 	../rtl/uart/uart_pred_sender.sv
 	../rtl/top/mnist_cim_demo_a_top.sv
 	../tb/tb_mnist_cim_demo_a_top.sv
+	../rtl/ctrl/debounce.sv
+	../rtl/ctrl/onepulse.sv
 )
 
 echo "============================================================" | tee "${COMPILE_LOG}"
