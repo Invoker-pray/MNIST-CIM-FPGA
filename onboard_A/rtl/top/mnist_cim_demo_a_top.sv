@@ -1,7 +1,7 @@
 
 
 module mnist_cim_demo_a_top #(
-    parameter int CLK_HZ = 50_000_000,
+    parameter int CLK_HZ = 125_000_000,
     parameter int BAUD = 115200,
     parameter int N_SAMPLES = 20,
     parameter int BTN_DEBOUNCE_MS = 20,

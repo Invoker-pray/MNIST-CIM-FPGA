@@ -70,6 +70,8 @@ set_property IOSTANDARD LVCMOS33 [get_ports {sample_sel[3]}]
 set_property PACKAGE_PIN Y18 [get_ports {sample_sel[4]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {sample_sel[4]}]
 
+set_property PULLDOWN true [get_ports {sample_sel[4]}]
+
 ## -------------------------
 ## UART TX
 ## -------------------------
