@@ -12,7 +12,7 @@ module input_buffer #(
   import mnist_cim_pkg::*;
 
   // 运行时文件路径
-  string input_file;
+  //string input_file;
 
   // 完整输入缓存：784 x int8
   logic signed [INPUT_WIDTH-1:0] input_mem[0:INPUT_DIM-1];
@@ -21,19 +21,14 @@ module input_buffer #(
   integer in_idx;
   integer x_eff_tmp;
 
+
   initial begin
-    // 默认路径
-    input_file = DEFAULT_INPUT_HEX_FILE;
-
-    // 命令行覆盖
-    if ($value$plusargs("INPUT_HEX_FILE=%s", input_file)) begin
-      $display("Using INPUT_HEX_FILE from plusarg: %s", input_file);
-    end else begin
-      $display("Using default INPUT_HEX_FILE: %s", input_file);
-    end
-
-    $readmemh(input_file, input_mem);
+`ifndef SYNTHESIS
+    $display("Using default INPUT_HEX_FILE: %s", DEFAULT_INPUT_HEX_FILE);
+`endif
+    $readmemh(DEFAULT_INPUT_HEX_FILE, input_mem);
   end
+
 
   always_comb begin
     for (tc = 0; tc < TILE_INPUT_SIZE; tc = tc + 1) begin

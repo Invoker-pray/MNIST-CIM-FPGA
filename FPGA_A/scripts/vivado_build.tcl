@@ -1,12 +1,9 @@
 
 # ============================================================
-# Vivado batch build script for onboard_A
+# Vivado batch build script for FPGA_A
 #
 # Usage:
 #   vivado -mode batch -source scripts/vivado_build.tcl -tclargs <ROOT_DIR> <VIVADO_DIR>
-#
-# Example:
-#   vivado -mode batch -source scripts/vivado_build.tcl -tclargs ./ ./vivado
 # ============================================================
 
 if { $argc < 2 } {
@@ -31,18 +28,26 @@ puts "TOP_NAME   = $TOP_NAME"
 puts "============================================================"
 
 file mkdir $VIVADO_DIR
+
 if {[file exists $PROJ_DIR]} {
-    puts "[INFO] deleting old project dir: $PROJ_DIR"
+    puts "INFO: deleting old project dir: $PROJ_DIR"
     file delete -force $PROJ_DIR
 }
 
 create_project $PROJ_NAME $PROJ_DIR -part $PART_NAME
 
 # ------------------------------------------------------------
+# Source management
+# ------------------------------------------------------------
+set_property target_language Verilog [current_project]
+set_property simulator_language Mixed [current_project]
+set_property source_mgmt_mode All [current_project]
+
+# ------------------------------------------------------------
 # Add design sources
 # ------------------------------------------------------------
 
-# package
+# pkg
 add_files -norecurse [file join $ROOT_DIR rtl pkg package.sv]
 
 # ctrl
@@ -82,7 +87,7 @@ add_files -norecurse [file join $ROOT_DIR rtl top mnist_cim_demo_a_top.sv]
 add_files -fileset constrs_1 -norecurse [file join $ROOT_DIR constr top.xdc]
 
 # ------------------------------------------------------------
-# Add memory init / data files so project can track them
+# Add memory initialization/data files
 # ------------------------------------------------------------
 add_files -norecurse [file join $ROOT_DIR data quant quant_params.hex]
 add_files -norecurse [file join $ROOT_DIR data weights fc1_weight_int8.hex]
@@ -91,65 +96,77 @@ add_files -norecurse [file join $ROOT_DIR data weights fc2_weight_int8.hex]
 add_files -norecurse [file join $ROOT_DIR data weights fc2_bias_int32.hex]
 add_files -norecurse [file join $ROOT_DIR data samples mnist_samples_route_b_output_2.hex]
 
-# Optional single-sample debug file
-if {[file exists [file join $ROOT_DIR data samples input_0.hex]]} {
-    add_files -norecurse [file join $ROOT_DIR data samples input_0.hex]
+# Optional sample files
+for {set i 0} {$i < 20} {incr i} {
+    set f [file join $ROOT_DIR data samples [format "input_%d.hex" $i]]
+    if {[file exists $f]} {
+        add_files -norecurse $f
+    }
 }
 
 # ------------------------------------------------------------
-# Set top and compile order
+# Top and compile order
 # ------------------------------------------------------------
 set_property top $TOP_NAME [current_fileset]
 update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
 
-# Copy all non-HDL sources into project for safer batch rebuilds
-set_property source_mgmt_mode All [current_project]
-
 # ------------------------------------------------------------
-# Run synthesis
+# Launch synthesis
 # ------------------------------------------------------------
 launch_runs synth_1 -jobs 8
 wait_on_run synth_1
 
 set synth_status [get_property STATUS [get_runs synth_1]]
-puts "[INFO] synth_1 status = $synth_status"
+puts "INFO: synth_1 status = $synth_status"
+
+if {[string match "*ERROR*" $synth_status] || [string match "*failed*" $synth_status] || [string match "*Failed*" $synth_status]} {
+    puts "ERROR: synthesis failed"
+    exit 1
+}
 
 # ------------------------------------------------------------
-# Run implementation through bitstream
+# Launch implementation to bitstream
 # ------------------------------------------------------------
 launch_runs impl_1 -to_step write_bitstream -jobs 8
 wait_on_run impl_1
 
 set impl_status [get_property STATUS [get_runs impl_1]]
-puts "[INFO] impl_1 status = $impl_status"
+puts "INFO: impl_1 status = $impl_status"
+
+if {[string match "*ERROR*" $impl_status] || [string match "*failed*" $impl_status] || [string match "*Failed*" $impl_status]} {
+    puts "ERROR: implementation failed"
+    exit 1
+}
 
 # ------------------------------------------------------------
 # Reports
 # ------------------------------------------------------------
 open_run synth_1
-report_utilization -file [file join $VIVADO_DIR synth_utilization.rpt]
+report_utilization    -file [file join $VIVADO_DIR synth_utilization.rpt]
 report_timing_summary -file [file join $VIVADO_DIR synth_timing_summary.rpt]
 
 open_run impl_1
-report_utilization -file [file join $VIVADO_DIR impl_utilization.rpt]
+report_utilization    -file [file join $VIVADO_DIR impl_utilization.rpt]
 report_timing_summary -file [file join $VIVADO_DIR impl_timing_summary.rpt]
-report_io -file [file join $VIVADO_DIR impl_io.rpt]
-report_drc -file [file join $VIVADO_DIR impl_drc.rpt]
+report_io             -file [file join $VIVADO_DIR impl_io.rpt]
+report_drc            -file [file join $VIVADO_DIR impl_drc.rpt]
 
-# Copy bitstream to a stable top-level vivado path
+# ------------------------------------------------------------
+# Copy bitstream to a stable top-level path
+# ------------------------------------------------------------
 set bitfile_src [file join $PROJ_DIR "${PROJ_NAME}.runs" "impl_1" "${TOP_NAME}.bit"]
 set bitfile_dst [file join $VIVADO_DIR "${TOP_NAME}.bit"]
 
 if {[file exists $bitfile_src]} {
     file copy -force $bitfile_src $bitfile_dst
-    puts "[INFO] bitstream copied to: $bitfile_dst"
+    puts "INFO: bitstream copied to: $bitfile_dst"
 } else {
-    puts "[WARN] bitstream not found at: $bitfile_src"
+    puts "WARN: bitstream not found at: $bitfile_src"
 }
 
 puts "============================================================"
-puts "[DONE] Vivado batch build finished"
+puts "DONE: Vivado batch build finished"
 puts "Project dir : $PROJ_DIR"
 puts "Bitstream   : $bitfile_dst"
 puts "Reports dir : $VIVADO_DIR"

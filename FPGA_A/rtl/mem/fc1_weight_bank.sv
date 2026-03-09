@@ -12,23 +12,18 @@ module fc1_weight_bank #(
 
   import mnist_cim_pkg::*;
 
-  string weight_file;
+  //string weight_file;
 
   logic signed [WEIGHT_WIDTH-1:0] weight_mem[0:FC1_WEIGHT_DEPTH-1];
 
+
   initial begin
-    // 默认路径
-    weight_file = DEFAULT_WEIGHT_HEX_FILE;
-
-    // 从命令行读取
-    if ($value$plusargs("WEIGHT_HEX_FILE=%s", weight_file)) begin
-      $display("Using WEIGHT_HEX_FILE from plusarg: %s", weight_file);
-    end else begin
-      $display("Using default WEIGHT_HEX_FILE: %s", weight_file);
-    end
-
-    $readmemh(weight_file, weight_mem);
+`ifndef SYNTHESIS
+    $display("Using default WEIGHT_HEX_FILE: %s", DEFAULT_WEIGHT_HEX_FILE);
+`endif
+    $readmemh(DEFAULT_WEIGHT_HEX_FILE, weight_mem);
   end
+
 
   integer tr, tc;
   integer out_idx, in_idx;

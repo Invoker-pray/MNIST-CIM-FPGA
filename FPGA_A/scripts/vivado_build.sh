@@ -8,8 +8,8 @@ TCL_SCRIPT="${SCRIPT_DIR}/vivado_build.tcl"
 
 mkdir -p "${VIVADO_DIR}"
 
-echo "[INFO] ROOT_DIR   = ${ROOT_DIR}"
-echo "[INFO] VIVADO_DIR = ${VIVADO_DIR}"
-echo "[INFO] TCL_SCRIPT = ${TCL_SCRIPT}"
+echo "INFO: ROOT_DIR   = ${ROOT_DIR}"
+echo "INFO: VIVADO_DIR = ${VIVADO_DIR}"
+echo "INFO: TCL_SCRIPT = ${TCL_SCRIPT}"
 
 vivado -mode batch -source "${TCL_SCRIPT}" -tclargs "${ROOT_DIR}" "${VIVADO_DIR}"

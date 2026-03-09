@@ -8,23 +8,20 @@ module fc2_weight_bank #(
 );
   import mnist_cim_pkg::*;
 
-  string weight_file;
+  // string weight_file;
 
   logic signed [WEIGHT_WIDTH-1:0] weight_mem[0:FC2_WEIGHT_DEPTH-1];
 
   integer o, i, addr;
 
+
   initial begin
-    weight_file = DEFAULT_WEIGHT_HEX_FILE;
-
-    if ($value$plusargs("FC2_WEIGHT_HEX_FILE=%s", weight_file)) begin
-      $display("Using FC2_WEIGHT_HEX_FILE from plusarg: %s", weight_file);
-    end else begin
-      $display("Using default FC2_WEIGHT_HEX_FILE: %s", weight_file);
-    end
-
-    $readmemh(weight_file, weight_mem);
+`ifndef SYNTHESIS
+    $display("Using default FC2_WEIGHT_HEX_FILE: %s", DEFAULT_WEIGHT_HEX_FILE);
+`endif
+    $readmemh(DEFAULT_WEIGHT_HEX_FILE, weight_mem);
   end
+
 
   always_comb begin
     for (o = 0; o < FC2_OUT_DIM; o = o + 1) begin

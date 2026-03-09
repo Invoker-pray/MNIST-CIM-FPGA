@@ -8,16 +8,12 @@ module quantize_param_bank #(
     output logic [31:0] fc2_requant_shift
 );
   logic [31:0] param_mem[0:3];
-  string quant_param_file;
 
   initial begin
-    quant_param_file = DEFAULT_QUANT_PARAM_FILE;
-
-    if ($value$plusargs("QUANT_PARAM_FILE=%s", quant_param_file))
-      $display("Using QUANT_PARAM_FILE from plusarg: %s", quant_param_file);
-    else $display("Using default QUANT_PARAM_FILE: %s", quant_param_file);
-
-    $readmemh(quant_param_file, param_mem);
+`ifndef SYNTHESIS
+    $display("Using default QUANT_PARAM_FILE: %s", DEFAULT_QUANT_PARAM_FILE);
+`endif
+    $readmemh(DEFAULT_QUANT_PARAM_FILE, param_mem);
   end
 
   always_comb begin
@@ -28,3 +24,4 @@ module quantize_param_bank #(
   end
 
 endmodule
+

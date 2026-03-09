@@ -45,9 +45,17 @@ module mnist_cim_demo_a_top #(
   generate
     if (SIM_BYPASS_DEBOUNCE) begin : GEN_BYPASS_DEBOUNCE
       assign btn_start_db = btn_start;
+
+`ifndef SYNTHESIS
       initial $display("[TOP] SIM_BYPASS_DEBOUNCE=1, bypass debounce");
+`endif
+
     end else begin : GEN_REAL_DEBOUNCE
+
+`ifndef SYNTHESIS
       initial $display("[TOP] SIM_BYPASS_DEBOUNCE=0, use real debounce");
+`endif
+
       debounce #(
           .CLK_HZ(CLK_HZ),
           .DEBOUNCE_MS(BTN_DEBOUNCE_MS)
