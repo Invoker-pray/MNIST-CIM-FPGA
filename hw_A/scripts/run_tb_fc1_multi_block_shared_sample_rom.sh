@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -e
+
+SIM_DIR=../sim
+RTL_DIR=../rtl
+RTL_IP_DIR=../rtl_ip
+RTL_SHARED_DIR=../rtl_shared_buffer_ib
+TB_DIR=../tb
+
+mkdir -p ${SIM_DIR}
+mkdir -p ${SIM_DIR}/log
+
+vcs -full64 -sverilog -timescale=1ns/1ps \
+	-debug_access+all \
+	-o ${SIM_DIR}/tb_fc1_multi_block_shared_sample_rom_simv \
+	${RTL_DIR}/package.sv \
+	${RTL_IP_DIR}/mnist_sample_rom.sv \
+	${RTL_SHARED_DIR}/cim_tile.sv \
+	${RTL_SHARED_DIR}/psum_accum.sv \
+	${RTL_SHARED_DIR}/fc1_weight_bank.sv \
+	${RTL_SHARED_DIR}/fc1_bias_bank.sv \
+	${RTL_SHARED_DIR}/fc1_ob_engine_shared_input.sv \
+	${RTL_IP_DIR}/fc1_multi_block_shared_sample_rom.sv \
+	${TB_DIR}/tb_fc1_multi_block_shared_sample_rom.sv \
+	2>&1 | tee ${SIM_DIR}/log/compile_tb_fc1_multi_block_shared_sample_rom.log
+
+${SIM_DIR}/tb_fc1_multi_block_shared_sample_rom_simv \
+	+WEIGHT_HEX_FILE=../route_b_output_2/fc1_weight_int8.hex \
+	+FC1_BIAS_FILE=../route_b_output_2/fc1_bias_int32.hex \
+	2>&1 | tee ${SIM_DIR}/log/sim_tb_fc1_multi_block_shared_sample_rom.log
