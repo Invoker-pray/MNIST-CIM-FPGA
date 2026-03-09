@@ -8,7 +8,7 @@ VSRC=..
 TARGET_ARCH=
 
 # Choose name of executable 
-PRODUCTBASE=$(VSRC)/../sim/tb_uart_pred_sender_simv
+PRODUCTBASE=$(VSRC)/../sim/tb_mnist_cim_demo_a_top_simv
 
 PRODUCT=$(PRODUCTBASE)
 
@@ -41,7 +41,7 @@ STRIPFLAGS=
 PRE_LDFLAGS= # Loader Flags
 LDFLAGS= -rdynamic  -Wl,-rpath=/opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib -L/opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib 
 # Picarchive Flags
-PICLDFLAGS=-Wl,-rpath-link=./ -Wl,-rpath='$$ORIGIN'/tb_uart_pred_sender_simv.daidir/ -Wl,-rpath=./tb_uart_pred_sender_simv.daidir/ -Wl,-rpath='$$ORIGIN'/tb_uart_pred_sender_simv.daidir//scsim.db.dir 
+PICLDFLAGS=-Wl,-rpath-link=./ -Wl,-rpath='$$ORIGIN'/tb_mnist_cim_demo_a_top_simv.daidir/ -Wl,-rpath=./tb_mnist_cim_demo_a_top_simv.daidir/ -Wl,-rpath='$$ORIGIN'/tb_mnist_cim_demo_a_top_simv.daidir//scsim.db.dir 
 
 # C run time startup
 CRT0=

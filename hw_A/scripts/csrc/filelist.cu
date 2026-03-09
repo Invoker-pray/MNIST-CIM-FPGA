@@ -1,20 +1,20 @@
 PIC_LD=ld
 
 ARCHIVE_OBJS=
-ARCHIVE_OBJS += _19862_archive_1.so
-_19862_archive_1.so : archive.11/_19862_archive_1.a
+ARCHIVE_OBJS += _23454_archive_1.so
+_23454_archive_1.so : archive.13/_23454_archive_1.a
 	@$(AR) -s $<
-	@$(PIC_LD) -shared  -Bsymbolic  -o .//../../sim/tb_uart_pred_sender_simv.daidir//_19862_archive_1.so --whole-archive $< --no-whole-archive
+	@$(PIC_LD) -shared  -Bsymbolic  -o .//../../sim/tb_mnist_cim_demo_a_top_simv.daidir//_23454_archive_1.so --whole-archive $< --no-whole-archive
 	@rm -f $@
-	@ln -sf .//../../sim/tb_uart_pred_sender_simv.daidir//_19862_archive_1.so $@
+	@ln -sf .//../../sim/tb_mnist_cim_demo_a_top_simv.daidir//_23454_archive_1.so $@
 
 
 ARCHIVE_OBJS += _prev_archive_1.so
-_prev_archive_1.so : archive.11/_prev_archive_1.a
+_prev_archive_1.so : archive.13/_prev_archive_1.a
 	@$(AR) -s $<
-	@$(PIC_LD) -shared  -Bsymbolic  -o .//../../sim/tb_uart_pred_sender_simv.daidir//_prev_archive_1.so --whole-archive $< --no-whole-archive
+	@$(PIC_LD) -shared  -Bsymbolic  -o .//../../sim/tb_mnist_cim_demo_a_top_simv.daidir//_prev_archive_1.so --whole-archive $< --no-whole-archive
 	@rm -f $@
-	@ln -sf .//../../sim/tb_uart_pred_sender_simv.daidir//_prev_archive_1.so $@
+	@ln -sf .//../../sim/tb_mnist_cim_demo_a_top_simv.daidir//_prev_archive_1.so $@
 
 
 
@@ -33,9 +33,9 @@ $(O0_OBJS) : %.o: %.c
 	$(CC_CG) $(CFLAGS_CG) -c -o $@ $<
 
 $(VCS_ARC0) : $(VCS_OBJS0)
-	$(PIC_LD) -shared  -Bsymbolic  -o .//../../sim/tb_uart_pred_sender_simv.daidir//$(VCS_ARC0) $(VCS_OBJS0)
+	$(PIC_LD) -shared  -Bsymbolic  -o .//../../sim/tb_mnist_cim_demo_a_top_simv.daidir//$(VCS_ARC0) $(VCS_OBJS0)
 	rm -f $(VCS_ARC0)
-	@ln -sf .//../../sim/tb_uart_pred_sender_simv.daidir//$(VCS_ARC0) $(VCS_ARC0)
+	@ln -sf .//../../sim/tb_mnist_cim_demo_a_top_simv.daidir//$(VCS_ARC0) $(VCS_ARC0)
 
 CU_UDP_OBJS = \
 

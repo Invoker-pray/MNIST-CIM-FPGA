@@ -2434,16 +2434,37 @@ static inline U asm_bsf (U in)
 #ifdef __cplusplus
 extern "C" {
 #endif
-void  hs_0_M_0_21__tb_uart_pred_sender_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_0_0__tb_uart_pred_sender_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_0_1__tb_uart_pred_sender_simv_daidir (UB  * pcode, scalar  val, U  I677, scalar  * I1303, U  did);
-void  hs_0_M_0_2__tb_uart_pred_sender_simv_daidir (UB  * pcode);
-void  hs_0_M_0_11__tb_uart_pred_sender_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_1_21__tb_uart_pred_sender_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_1_0__tb_uart_pred_sender_simv_daidir (UB  * pcode, scalar  val);
-void  hs_0_M_1_1__tb_uart_pred_sender_simv_daidir (UB  * pcode, scalar  val, U  I677, scalar  * I1303, U  did);
-void  hs_0_M_1_2__tb_uart_pred_sender_simv_daidir (UB  * pcode);
-void  hs_0_M_1_11__tb_uart_pred_sender_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_0_21__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_0_0__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_0_1__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val, U  I677, scalar  * I1303, U  did);
+void  hs_0_M_0_2__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode);
+void  hs_0_M_0_11__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_1_21__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_1_0__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_1_1__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val, U  I677, scalar  * I1303, U  did);
+void  hs_0_M_1_2__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode);
+void  hs_0_M_1_11__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_2_21__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_2_0__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_2_1__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val, U  I677, scalar  * I1303, U  did);
+void  hs_0_M_2_2__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode);
+void  hs_0_M_2_11__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_3_21__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_3_0__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_3_1__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val, U  I677, scalar  * I1303, U  did);
+void  hs_0_M_3_2__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode);
+void  hs_0_M_3_11__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_4_21__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_4_0__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_4_1__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val, U  I677, scalar  * I1303, U  did);
+void  hs_0_M_4_2__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode);
+void  hs_0_M_4_11__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_5_21__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_5_0__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_5_1__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val, U  I677, scalar  * I1303, U  did);
+void  hs_0_M_5_2__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode);
+void  hs_0_M_5_11__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
+void  hs_0_M_6_0__tb_mnist_cim_demo_a_top_simv_daidir (UB  * pcode, scalar  val);
 void  hsG_0__0 (struct dummyq_struct * I1289, EBLK  * I1283, U  I685);
 #ifdef __cplusplus
 }

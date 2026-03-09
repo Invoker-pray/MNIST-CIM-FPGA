@@ -6,6 +6,13 @@ RTL_DIR=../rtl
 RTL_IP_DIR=../rtl_ip
 RTL_SHARED_DIR=../rtl_shared_buffer_ib
 TB_DIR=../tb
+DATA_DIR=../data
+
+FC1_WEIGHT_HEX=${DATA_DIR}/fc1_weight_int8.hex
+FC1_BIAS_HEX=${DATA_DIR}/fc1_bias_int32.hex
+FC2_WEIGHT_HEX=${DATA_DIR}/fc2_weight_int8.hex
+FC2_BIAS_HEX=${DATA_DIR}/fc2_bias_int32.hex
+QUANT_PARAM_HEX=${DATA_DIR}/quant_params.hex
 
 mkdir -p ${SIM_DIR}
 mkdir -p ${SIM_DIR}/log
@@ -36,9 +43,9 @@ vcs -full64 -sverilog -timescale=1ns/1ps \
 	2>&1 | tee ${SIM_DIR}/log/compile_tb_mnist_cim_demo_a_top.log
 
 ${SIM_DIR}/tb_mnist_cim_demo_a_top_simv \
-	+WEIGHT_HEX_FILE=../route_b_output_2/fc1_weight_int8.hex \
-	+FC1_BIAS_FILE=../route_b_output_2/fc1_bias_int32.hex \
-	+FC2_WEIGHT_HEX_FILE=../route_b_output_2/fc2_weight_int8.hex \
-	+FC2_BIAS_FILE=../route_b_output_2/fc2_bias_int32.hex \
-	+QUANT_PARAM_FILE=../route_b_output_2/quant_params.hex \
+	+WEIGHT_HEX_FILE=${FC1_WEIGHT_HEX} \
+	+FC1_BIAS_FILE=${FC1_BIAS_HEX} \
+	+FC2_WEIGHT_HEX_FILE=${FC2_WEIGHT_HEX} \
+	+FC2_BIAS_FILE=${FC2_BIAS_HEX} \
+	+QUANT_PARAM_FILE=${QUANT_PARAM_HEX} \
 	2>&1 | tee ${SIM_DIR}/log/sim_tb_mnist_cim_demo_a_top.log
