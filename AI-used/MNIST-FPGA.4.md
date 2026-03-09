@@ -58658,1215 +58658,201 @@ PASS: mnist_cim_demo_a_top sends pred_class over UART correctly.
 你改完再跑一次，把新日志贴给我。
 
 用户:
-我现在已经写了python脚本，生成了hw/data/mnist_samples_route_b_output_2.hex，
-
-你可通过https://github.com/Invoker-pray/MNIST-CIM-FPGA读取我的现在的文件架构，主要读取hw_A文件，
-
-你需要做的事情：
-检查我的文件架构是否合理；
-生成的拼接文件是否正确；
-其余的文件（主要是rtl_ip）是否正确合理；
-为我生成用来测试rtl_ip所有新文件的tb;
-运行tb的脚本。
-
-你生成的代码都应该参考hw对应目录下的文件，风格相同。
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 14:36 2026
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
+Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
+Using FC2_WEIGHT_HEX_FILE from plusarg: ../data/fc2_weight_int8.hex
+Using FC2_BIAS_FILE from plusarg: ../data/fc2_bias_int32.hex
+Using QUANT_PARAM_FILE from plusarg: ../data/quant_params.hex
+time=0 : monitor start
+============================================================
+TB_mnist_cim_demo_a_top start
+  SAMPLE_HEX_FILE     = ../data/mnist_samples_route_b_output_2.hex
+  FC1_WEIGHT_HEX_FILE = ../route_b_output_2/fc1_weight_int8.hex
+  FC1_BIAS_HEX_FILE   = ../route_b_output_2/fc1_bias_int32.hex
+  QUANT_PARAM_FILE    = ../route_b_output_2/quant_params.hex
+  FC2_WEIGHT_HEX_FILE = ../route_b_output_2/fc2_weight_int8.hex
+  FC2_BIAS_HEX_FILE   = ../route_b_output_2/fc2_bias_int32.hex
+  PRED_FILE           = ../route_b_output_2/pred_0.txt
+============================================================
+Reference pred_class from file = 7
+time=30000 : release reset
+time=35000 : pulse btn_start high
+time=45000 : pulse btn_start low
+time=55000 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=555000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=1 uart_tx=1
+time=565000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=665000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=965000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1065000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1265000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1465000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+UART monitor captured byte[0] at time=1505000
+  captured = 0x37 (55, '7')
+time=1575000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1675000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1775000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1875000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2075000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2475000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+UART monitor captured byte[1] at time=2515000
+  captured = 0x0d (13)
+time=2585000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2785000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2885000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2985000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3085000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3485000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+UART monitor captured byte[2] at time=3525000
+  captured = 0x0a (10)
+------------------------------------------------------------
+UART byte0 received = 0x37 (55, '7')
+UART byte1 received = 0x0d (13)
+UART byte2 received = 0x0a (10)
+------------------------------------------------------------
+Expected byte0 = ASCII('0' + pred) = 0x37
+Expected byte1 = 0x0D
+Expected byte2 = 0x0A
+------------------------------------------------------------
+MATCH: byte0 correct
+MATCH: byte1 correct (CR)
+MATCH: byte2 correct (LF)
+Final LED states: led_busy=0 led_done=0
+PASS: mnist_cim_demo_a_top sends pred_class over UART correctly.
+$finish called from file "../tb/tb_mnist_cim_demo_a_top.sv", line 250.
+$finish at simulation time              3525000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 3525000 ps
+CPU Time:      0.170 seconds;       Data structure size:   3.3Mb
+Mon Mar  9 14:36:38 2026成功了对吧
 AI助手:
 
 
-用户:
-
-用户:
-
-用户:
-
-用户:
-
-用户:
-
-用户:
-
 AI助手:
-可以。先给你一个明确判断：
+对，**成功了**。
 
-##先判断你当前结构
+这份日志已经把方案 A 最后一个仿真点跑通了，关键信息都对上了：
 
-从你上传的`tree.txt`看，当前工程主干是合理的：
+- `UART monitor captured byte[0] = 0x37`，对应预测类别 `7`
+- `UART monitor captured byte[1] = 0x0d`，对应 `CR`
+- `UART monitor captured byte[2] = 0x0a`，对应 `LF`
 
--`route_b_output/route_b_output_2/route_b_output_3`分开存数据
--`rtl/`放FC2、量化、顶层等通用RTL
--`rtl_shared_buffer_ib/`放共享buffer的FC1主体
--`tb/`和`scripts/`已经有比较稳定的仿真链路
-
-但还有3个明显问题需要在做`hw_A`/`rtl_ip`前先收一下：
-
-###1.`scripts/`里混进了仿真产物
-像`csrc/`、`ucli.key`这种不应该进源码目录。
-建议后面把它们清理到`sim/`或直接不纳入版本管理。
-
-###2.`run_mnist_inference_regression.sv`、`run_mnist_inference_top.sv`命名不合理
-这两个明显是脚本，不应该是`.sv`。
-你现在新脚本用`.sh`是对的，建议后面统一。
-
-###3.`data/`应该成为板级专用数据目录
-你现在已经生成了：
-
--`hw/data/mnist_samples_route_b_output_2.hex`
-
-这是对的。
-后面方案A要求的板级数据都应该放`data/`，而不是继续从`route_b_output_2`直接拿。
-
----
-
-#一、我建议的方案A文件组织
-
-你现在开始做方案A，我建议就固定成下面这个结构：
+最后明确给出：
 
 ```text
-hw_A/
-├──data/
-│├──mnist_samples_route_b_output_2.hex
-│├──fc1_weight_int8.hex
-│├──fc1_bias_int32.hex
-│├──fc2_weight_int8.hex
-│├──fc2_bias_int32.hex
-│└──quant_params.hex
-│
-├──rtl/
-│├──package.sv
-│├──argmax_int8.sv
-│├──fc1_relu_requantize_with_file.sv
-│├──fc2_weight_bank.sv
-│├──fc2_bias_bank.sv
-│├──fc2_core_with_file.sv
-│├──fc1_to_fc2_top_with_file.sv
-│└──quantize_param_bank.sv
-│
-├──rtl_shared_buffer_ib/
-│├──cim_tile.sv
-│├──psum_accum.sv
-│├──fc1_weight_bank.sv
-│├──fc1_bias_bank.sv
-│├──fc1_ob_engine_shared_input.sv
-│└──input_buffer.sv
-│
-├──rtl_ip/
-│├──mnist_sample_rom.sv
-│├──fc1_multi_block_shared_sample_rom.sv
-│├──mnist_inference_core_board.sv
-│├──mnist_cim_accel_ip.sv
-│├──uart_tx.sv
-│├──uart_pred_sender.sv
-│└──mnist_cim_demo_a_top.sv
-│
-├──tb/
-│├──tb_mnist_sample_rom.sv
-│├──tb_fc1_multi_block_shared_sample_rom.sv
-│├──tb_mnist_inference_core_board.sv
-│├──tb_mnist_cim_accel_ip.sv
-│├──tb_uart_tx.sv
-│├──tb_uart_pred_sender.sv
-│└──tb_mnist_cim_demo_a_top.sv
-│
-├──scripts/
-│├──gen_board_sample_rom.py
-│├──run_tb_mnist_sample_rom.sh
-│├──run_tb_fc1_multi_block_shared_sample_rom.sh
-│├──run_tb_mnist_inference_core_board.sh
-│├──run_tb_mnist_cim_accel_ip.sh
-│├──run_tb_uart_tx.sh
-│├──run_tb_uart_pred_sender.sh
-│└──run_tb_mnist_cim_demo_a_top.sh
-│
-└──sim/
+MATCH: byte0 correct
+MATCH: byte1 correct (CR)
+MATCH: byte2 correct (LF)
+PASS: mnist_cim_demo_a_top sends pred_class over UART correctly.
 ```
 
----
+所以现在可以确认：
 
-#二、你生成的大拼接文件是否正确
+## 方案 A 这 7 个仿真脚本已经全部收口
+你前面已经跑通的加上这次最后一个 `mnist_cim_demo_a_top`，说明现在这条链完整成立：
 
-`mnist_samples_route_b_output_2.hex`正确性的判断标准很简单：
+- 样本 ROM
+- 共享 buffer FC1
+- FC1→FC2 推理核心
+- IP 壳层
+- UART 单字节发送
+- UART `pred_class + CR/LF` 发送
+- Demo A 顶层
 
-##应满足这4条
-
-###1.行数必须是`20*784=15680`
-每个样本784行，20个样本拼接。
-
-###2.每行应是一个int8的2位十六进制
-例如：
-```text
-80
-7f
-00
-...
-```
-
-###3.地址映射应是：
-```text
-sample0:line0~783
-sample1:line784~1567
-...
-samplek:linek*784~k*784+783
-```
-
-###4.与原文件一致性
-对于任意`sample_id=k`，都应满足：
-
-```text
-mnist_samples_route_b_output_2.hex的第[k*784:k*784+783]行
-==
-route_b_output_2/input_k.hex的784行
-```
+也就是说，**方案 A 的仿真级闭环已经完成**。
 
 ---
 
-##推荐你顺手加一个Python校验脚本
+## 你现在下一步该做什么
 
-你已经有生成脚本了，建议再加一个简单校验函数，确认拼接结果没错。
+现在就该正式进入**板级落地**，也就是把仿真通过的方案 A 变成 FPGA 上真正可演示的版本。
 
-```python
-frompathlibimportPath
+最合理的顺序是：
 
-defcheck_concat_file(src_dir:str,concat_file:str,n_samples:int=20,input_dim:int=784):
-src_dir=Path(src_dir)
-concat_lines=[x.strip()forxinPath(concat_file).read_text().splitlines()ifx.strip()]
+### 1. 统一板级数据来源
+你现在日志里还能看到：
+- plusarg 传的是 `../data/...`
+- 但 TB 打印的参数字符串有些还是 `../route_b_output_2/...`
 
-assertlen(concat_lines)==n_samples*input_dim,\
-f"concatlines={len(concat_lines)},expected={n_samples*input_dim}"
+功能上已经没问题，但上板前建议统一口径：
 
-forsidinrange(n_samples):
-ref_file=src_dir/f"input_{sid}.hex"
-ref_lines=[x.strip()forxinref_file.read_text().splitlines()ifx.strip()]
-assertlen(ref_lines)==input_dim,f"{ref_file}lengthmismatch"
+- 板级版本全部用 `hw_A/data/`
+- 不再依赖 `route_b_output_2/` 作为板级来源
 
-base=sid*input_dim
-got=concat_lines[base:base+input_dim]
-assertgot==ref_lines,f"sample{sid}mismatch"
+### 2. 确认板级顶层
+你现在的板级候选顶层就是：
 
-print("PASS:concatenatedsampleROMfileiscorrect.")
-```
+- `mnist_cim_demo_a_top.sv`
 
-这个很值得加，因为一旦拼接顺序错了，后面板级debug会非常痛苦。
+它已经满足方案 A 的核心需求：
 
----
+- `sample_sel`
+- `btn_start`
+- `uart_tx`
+- `led_busy`
+- `led_done`
 
-#三、`rtl_ip`该怎么判断“合理”
+这就是你接下来放进 FPGA 工程的 top 候选。
 
-如果你现在的`rtl_ip`已经写了一部分，判断标准是这5条：
+### 3. 准备 FPGA 工程
+把这些加进工程：
 
-##1.`mnist_sample_rom.sv`
-只负责：
--根据`sample_id`
--根据`ib`
--输出当前16个输入
+- `rtl/`
+- `rtl_shared_buffer_ib/`
+- `rtl_ip/`
+- `data/` 下的所有 `.hex`
 
-不应该掺杂控制状态机。
+特别是：
+- `mnist_samples_route_b_output_2.hex`
+- `fc1_weight_int8.hex`
+- `fc1_bias_int32.hex`
+- `fc2_weight_int8.hex`
+- `fc2_bias_int32.hex`
+- `quant_params.hex`
 
-##2.`fc1_multi_block_shared_sample_rom.sv`
-只是在你现有共享bufferFC1的基础上，把输入来源从`input_buffer`换成`sample_rom`。
+### 4. 绑定板级引脚
+你下一步要做约束：
 
-##3.`mnist_inference_core_board.sv`
-只负责：
--sample_id输入
--start/busy/done
--logits/pred输出
+- `clk`
+- `rst_n`
+- `btn_start`
+- `sample_sel`
+- `uart_tx`
+- `led_busy`
+- `led_done`
 
-这是板级推理核心，不应该再带testbench风格的文件比对。
+### 5. 板上第一次演示
+目标很简单：
 
-##4.`mnist_cim_accel_ip.sv`
-只负责：
--CSR/寄存器接口
--调推理核心
--暴露状态和结果寄存器
-
-##5.`mnist_cim_demo_a_top.sv`
-只负责：
--sample_sel
--btn_start
--UART打印结果
--LED显示busy/done
-
-也就是：
--`rtl_ip`里的层次必须清楚
--不要一个模块里既做sampleROM，又做UART，又做寄存器，又做推理
+- 拨码选 `sample_id`
+- 按一下按钮
+- 串口终端显示分类结果数字
+- LED 看到 busy/done 变化
 
 ---
 
-#四、我建议你先补哪些testbench
+## 一句话总结
 
-如果你现在要测试`rtl_ip`的所有新文件，我建议优先做下面6个：
+**是的，成功了。**  
+现在你已经完成了方案 A 的全部仿真验证，下一步就该把 `mnist_cim_demo_a_top` 作为板级顶层，开始做 FPGA 工程和引脚约束。
 
-1.`tb_mnist_sample_rom.sv`
-2.`tb_fc1_multi_block_shared_sample_rom.sv`
-3.`tb_mnist_inference_core_board.sv`
-4.`tb_mnist_cim_accel_ip.sv`
-5.`tb_uart_tx.sv`
-6.`tb_uart_pred_sender.sv`
+你下一条如果发我你的开发板型号，我可以直接按板卡帮你规划：
+**顶层引脚分配思路 + 约束文件该怎么写 + 上板时先检查什么。**
 
-`mnist_cim_demo_a_top.sv`可以做一个smoketest，但它本质是板级壳层，放最后。
-
----
-
-#五、给你的testbench
-
-下面我按你现有`hw/tb`风格来写：
--`importmnist_cim_pkg::*`
--`stringxxx_file`
--`plusargs`
--`MATCH/ERROR/PASS/FAIL`
--VCS友好
-
----
-
-##1）`tb/tb_mnist_sample_rom.sv`
-
-```systemverilog
-`timescale1ns/1ps
-
-moduletb_mnist_sample_rom;
-importmnist_cim_pkg::*;
-
-parameterintN_SAMPLES=20;
-
-logic[$clog2(N_SAMPLES)-1:0]sample_id;
-logic[$clog2(N_INPUT_BLOCKS)-1:0]ib;
-
-logicsigned[INPUT_WIDTH-1:0]x_tile[0:TILE_INPUT_SIZE-1];
-logic[X_EFF_WIDTH-1:0]x_eff_tile[0:TILE_INPUT_SIZE-1];
-
-logicsigned[INPUT_WIDTH-1:0]ref_input_mem[0:INPUT_DIM-1];
-
-stringinput_file;
-
-integeri;
-integererror_count;
-
-mnist_sample_rom#(
-.N_SAMPLES(N_SAMPLES),
-.DEFAULT_SAMPLE_HEX_FILE("../data/mnist_samples_route_b_output_2.hex")
-)dut(
-.sample_id(sample_id),
-.ib(ib),
-.x_tile(x_tile),
-.x_eff_tile(x_eff_tile)
-);
-
-initialbegin
-input_file="../route_b_output_2/input_0.hex";
-if($value$plusargs("INPUT_HEX_FILE=%s",input_file))
-$display("TBusingINPUT_HEX_FILE:%s",input_file);
-else
-$display("TBusingdefaultINPUT_HEX_FILE:%s",input_file);
-
-$readmemh(input_file,ref_input_mem);
-end
-
-initialbegin
-error_count=0;
-sample_id=0;
-ib=0;
-#1;
-
-for(i=0;i<TILE_INPUT_SIZE;i=i+1)begin
-if(x_tile[i]!==ref_input_mem[i])begin
-$display("ERRORidx=%0dgot=%0dexpected=%0d",i,x_tile[i],ref_input_mem[i]);
-error_count=error_count+1;
-end
-end
-
-ib=1;
-#1;
-
-for(i=0;i<TILE_INPUT_SIZE;i=i+1)begin
-if(x_tile[i]!==ref_input_mem[TILE_INPUT_SIZE+i])begin
-$display("ERRORib=1idx=%0dgot=%0dexpected=%0d",
-i,x_tile[i],ref_input_mem[TILE_INPUT_SIZE+i]);
-error_count=error_count+1;
-end
-end
-
-if(error_count==0)
-$display("PASS:mnist_sample_rommatchesinputsamplelayout.");
-else
-$display("FAIL:found%0dmismatches.",error_count);
-
-$finish;
-end
-endmodule
-```
-
----
-
-##2）`tb/tb_fc1_multi_block_shared_sample_rom.sv`
-
-这里建议先只对拍sample0的`fc1_acc_0.hex`。
-
-```systemverilog
-`timescale1ns/1ps
-
-moduletb_fc1_multi_block_shared_sample_rom;
-importmnist_cim_pkg::*;
-
-logicclk;
-logicrst_n;
-logicstart;
-logicbusy;
-logicdone;
-logic[$clog2(20)-1:0]sample_id;
-
-logicsigned[PSUM_WIDTH-1:0]fc1_acc_all[0:HIDDEN_DIM-1];
-logicsigned[PSUM_WIDTH-1:0]ref_fc1_acc_mem[0:HIDDEN_DIM-1];
-
-stringfc1_acc_file;
-integeri;
-integererror_count;
-
-fc1_multi_block_shared_sample_romdut(
-.clk(clk),
-.rst_n(rst_n),
-.start(start),
-.sample_id(sample_id),
-.busy(busy),
-.done(done),
-.fc1_acc_all(fc1_acc_all)
-);
-
-initialclk=1'b0;
-always#5clk=~clk;
-
-initialbegin
-fc1_acc_file="../route_b_output_2/fc1_acc_0.hex";
-if($value$plusargs("FC1_ACC_FILE=%s",fc1_acc_file))
-$display("TBusingFC1_ACC_FILE:%s",fc1_acc_file);
-else
-$display("TBusingdefaultFC1_ACC_FILE:%s",fc1_acc_file);
-
-$readmemh(fc1_acc_file,ref_fc1_acc_mem);
-end
-
-initialbegin
-error_count=0;
-rst_n=0;
-start=0;
-sample_id=0;
-
-#12;
-rst_n=1;
-
-@(posedgeclk);
-start<=1'b1;
-@(posedgeclk);
-start<=1'b0;
-
-wait(done==1'b1);
-@(posedgeclk);
-#1;
-
-for(i=0;i<HIDDEN_DIM;i=i+1)begin
-if(fc1_acc_all[i]!==ref_fc1_acc_mem[i])begin
-$display("ERRORidx=%0dgot=%0dexpected=%0d",
-i,fc1_acc_all[i],ref_fc1_acc_mem[i]);
-error_count=error_count+1;
-end
-end
-
-if(error_count==0)
-$display("PASS:fc1_multi_block_shared_sample_rommatchesfc1_acc_0.hex.");
-else
-$display("FAIL:found%0dmismatches.",error_count);
-
-$finish;
-end
-endmodule
-```
-
----
-
-##3）`tb/tb_mnist_inference_core_board.sv`
-
-```systemverilog
-`timescale1ns/1ps
-
-moduletb_mnist_inference_core_board;
-importmnist_cim_pkg::*;
-
-logicclk;
-logicrst_n;
-logicstart;
-logicbusy;
-logicdone;
-logic[$clog2(20)-1:0]sample_id;
-
-logicsigned[OUTPUT_WIDTH-1:0]logits_all[0:FC2_OUT_DIM-1];
-logic[$clog2(FC2_OUT_DIM)-1:0]pred_class;
-
-logicsigned[OUTPUT_WIDTH-1:0]ref_logits_mem[0:FC2_OUT_DIM-1];
-integerref_pred_class;
-
-stringlogits_file;
-stringpred_file;
-integerfd,r;
-integeri;
-integererror_count;
-
-mnist_inference_core_boarddut(
-.clk(clk),
-.rst_n(rst_n),
-.start(start),
-.sample_id(sample_id),
-.busy(busy),
-.done(done),
-.logits_all(logits_all),
-.pred_class(pred_class)
-);
-
-initialclk=1'b0;
-always#5clk=~clk;
-
-initialbegin
-logits_file="../route_b_output_2/logits_0.hex";
-pred_file="../route_b_output_2/pred_0.txt";
-
-if($value$plusargs("LOGITS_FILE=%s",logits_file))
-$display("TBusingLOGITS_FILE:%s",logits_file);
-
-if($value$plusargs("PRED_FILE=%s",pred_file))
-$display("TBusingPRED_FILE:%s",pred_file);
-
-$readmemh(logits_file,ref_logits_mem);
-
-fd=$fopen(pred_file,"r");
-if(fd==0)begin
-$display("ERROR:cannotopenpredfile");
-$finish;
-end
-r=$fscanf(fd,"%d",ref_pred_class);
-$fclose(fd);
-if(r!=1)begin
-$display("ERROR:failedtoparsepredfile");
-$finish;
-end
-end
-
-initialbegin
-error_count=0;
-rst_n=0;
-start=0;
-sample_id=0;
-
-#12;
-rst_n=1;
-
-@(posedgeclk);
-start<=1'b1;
-@(posedgeclk);
-start<=1'b0;
-
-wait(done==1'b1);
-@(posedgeclk);
-#1;
-
-for(i=0;i<FC2_OUT_DIM;i=i+1)begin
-if(logits_all[i]!==ref_logits_mem[i])begin
-$display("ERRORLOGITidx=%0dgot=%0dexpected=%0d",
-i,logits_all[i],ref_logits_mem[i]);
-error_count=error_count+1;
-end
-end
-
-if(pred_class!==ref_pred_class[$clog2(FC2_OUT_DIM)-1:0])begin
-$display("ERRORPREDgot=%0dexpected=%0d",pred_class,ref_pred_class);
-error_count=error_count+1;
-end
-
-if(error_count==0)
-$display("PASS:mnist_inference_core_boardmatchesprovidedgoldenfiles.");
-else
-$display("FAIL:found%0dmismatches.",error_count);
-
-$finish;
-end
-endmodule
-```
-
----
-
-##4）`tb/tb_mnist_cim_accel_ip.sv`
-
-```systemverilog
-`timescale1ns/1ps
-
-moduletb_mnist_cim_accel_ip;
-importmnist_cim_pkg::*;
-
-logicclk;
-logicrst_n;
-logiccsr_we;
-logiccsr_re;
-logic[7:0]csr_addr;
-logic[31:0]csr_wdata;
-logic[31:0]csr_rdata;
-logicirq_done;
-
-logic[$clog2(FC2_OUT_DIM)-1:0]pred_class_dbg;
-logicbusy_dbg;
-logicdone_dbg;
-
-integerref_pred_class;
-stringpred_file;
-integerfd,r;
-integererror_count;
-
-mnist_cim_accel_ipdut(
-.clk(clk),
-.rst_n(rst_n),
-.csr_we(csr_we),
-.csr_re(csr_re),
-.csr_addr(csr_addr),
-.csr_wdata(csr_wdata),
-.csr_rdata(csr_rdata),
-.irq_done(irq_done),
-.pred_class_dbg(pred_class_dbg),
-.busy_dbg(busy_dbg),
-.done_dbg(done_dbg)
-);
-
-initialclk=1'b0;
-always#5clk=~clk;
-
-taskcsr_write(input[7:0]addr,input[31:0]data);
-begin
-@(posedgeclk);
-csr_we<=1'b1;
-csr_re<=1'b0;
-csr_addr<=addr;
-csr_wdata<=data;
-@(posedgeclk);
-csr_we<=1'b0;
-csr_addr<=8'h00;
-csr_wdata<=32'd0;
-end
-endtask
-
-initialbegin
-pred_file="../route_b_output_2/pred_0.txt";
-fd=$fopen(pred_file,"r");
-if(fd==0)begin
-$display("ERROR:cannotopenpredfile");
-$finish;
-end
-r=$fscanf(fd,"%d",ref_pred_class);
-$fclose(fd);
-if(r!=1)begin
-$display("ERROR:failedtoparsepredfile");
-$finish;
-end
-end
-
-initialbegin
-error_count=0;
-rst_n=0;
-csr_we=0;
-csr_re=0;
-csr_addr=0;
-csr_wdata=0;
-
-#12;
-rst_n=1;
-
-csr_write(8'h08,32'd0);//sample_id=0
-csr_write(8'h00,32'h0000_0001);//start
-
-wait(irq_done==1'b1);
-@(posedgeclk);
-#1;
-
-if(pred_class_dbg!==ref_pred_class[$clog2(FC2_OUT_DIM)-1:0])begin
-$display("ERRORPREDgot=%0dexpected=%0d",pred_class_dbg,ref_pred_class);
-error_count=error_count+1;
-end
-
-if(error_count==0)
-$display("PASS:mnist_cim_accel_ipbasicCSRflowworks.");
-else
-$display("FAIL:found%0dmismatches.",error_count);
-
-$finish;
-end
-endmodule
-```
-
----
-
-##5）`tb/tb_uart_tx.sv`
-
-这个只做smoketest，检查tx有变化、busy正常拉起。
-
-```systemverilog
-`timescale1ns/1ps
-
-moduletb_uart_tx;
-
-logicclk;
-logicrst_n;
-logicstart;
-logic[7:0]data_in;
-logictx;
-logicbusy;
-
-uart_tx#(
-.CLK_HZ(1000000),
-.BAUD(100000)
-)dut(
-.clk(clk),
-.rst_n(rst_n),
-.start(start),
-.data_in(data_in),
-.tx(tx),
-.busy(busy)
-);
-
-initialclk=1'b0;
-always#5clk=~clk;
-
-initialbegin
-rst_n=0;
-start=0;
-data_in=8'h37;
-
-#20;
-rst_n=1;
-
-@(posedgeclk);
-start<=1'b1;
-@(posedgeclk);
-start<=1'b0;
-
-wait(busy==1'b1);
-wait(busy==1'b0);
-
-$display("PASS:uart_txsmoketestfinished.");
-$finish;
-end
-
-endmodule
-```
-
----
-
-##6）`tb/tb_uart_pred_sender.sv`
-
-```systemverilog
-`timescale1ns/1ps
-
-moduletb_uart_pred_sender;
-
-logicclk;
-logicrst_n;
-logictrigger;
-logic[3:0]pred_class;
-logicuart_tx;
-
-uart_pred_sender#(
-.CLK_HZ(1000000),
-.BAUD(100000)
-)dut(
-.clk(clk),
-.rst_n(rst_n),
-.trigger(trigger),
-.pred_class(pred_class),
-.uart_tx(uart_tx)
-);
-
-initialclk=1'b0;
-always#5clk=~clk;
-
-initialbegin
-rst_n=0;
-trigger=0;
-pred_class=4'd7;
-
-#20;
-rst_n=1;
-
-@(posedgeclk);
-trigger<=1'b1;
-@(posedgeclk);
-trigger<=1'b0;
-
-#2000;
-$display("PASS:uart_pred_sendersmoketestfinished.");
-$finish;
-end
-
-endmodule
-```
-
----
-
-##7）`tb/tb_mnist_cim_demo_a_top.sv`
-
-这个做smoketest就够了。
-
-```systemverilog
-`timescale1ns/1ps
-
-moduletb_mnist_cim_demo_a_top;
-importmnist_cim_pkg::*;
-
-logicclk;
-logicrst_n;
-logicbtn_start;
-logic[$clog2(20)-1:0]sample_sel;
-logicuart_tx;
-logicled_busy;
-logicled_done;
-
-mnist_cim_demo_a_topdut(
-.clk(clk),
-.rst_n(rst_n),
-.btn_start(btn_start),
-.sample_sel(sample_sel),
-.uart_tx(uart_tx),
-.led_busy(led_busy),
-.led_done(led_done)
-);
-
-initialclk=1'b0;
-always#5clk=~clk;
-
-initialbegin
-rst_n=0;
-btn_start=0;
-sample_sel=0;
-
-#20;
-rst_n=1;
-
-@(posedgeclk);
-btn_start<=1'b1;
-@(posedgeclk);
-btn_start<=1'b0;
-
-wait(led_done==1'b1);
-#2000;
-
-$display("PASS:mnist_cim_demo_a_topsmoketestfinished.");
-$finish;
-end
-endmodule
-```
-
----
-
-#六、给你的run脚本
-
-我按你现有`hw/scripts`风格来写，但加上两点改进：
-
--自动切到脚本目录
--`sim/log`自动创建
-
----
-
-##1）`scripts/run_tb_mnist_sample_rom.sh`
-
-```bash
-#!/usr/bin/envbash
-set-e
-
-SCRIPT_DIR="$(cd"$(dirname"${BASH_SOURCE[0]}")"&&pwd)"
-cd"${SCRIPT_DIR}"
-
-SIM_DIR=../sim
-RTL_DIR=../rtl_ip
-TB_DIR=../tb
-LOG_DIR=${SIM_DIR}/log
-
-INPUT_HEX=../route_b_output_2/input_0.hex
-
-mkdir-p${SIM_DIR}
-mkdir-p${LOG_DIR}
-
-vcs-full64-sverilog-timescale=1ns/1ps\
--debug_access+all\
--o${SIM_DIR}/mnist_sample_rom_simv\
-${RTL_DIR}/mnist_sample_rom.sv\
-../rtl/package.sv\
-${TB_DIR}/tb_mnist_sample_rom.sv\
-2>&1|tee${LOG_DIR}/compile_tb_mnist_sample_rom.log
-
-${SIM_DIR}/mnist_sample_rom_simv\
-+INPUT_HEX_FILE=${INPUT_HEX}\
-2>&1|tee${LOG_DIR}/sim_tb_mnist_sample_rom.log
-```
-
----
-
-##2）`scripts/run_tb_fc1_multi_block_shared_sample_rom.sh`
-
-```bash
-#!/usr/bin/envbash
-set-e
-
-SCRIPT_DIR="$(cd"$(dirname"${BASH_SOURCE[0]}")"&&pwd)"
-cd"${SCRIPT_DIR}"
-
-SIM_DIR=../sim
-RTL_IP_DIR=../rtl_ip
-RTL_SHARED_DIR=../rtl_shared_buffer_ib
-RTL_DIR=../rtl
-TB_DIR=../tb
-LOG_DIR=${SIM_DIR}/log
-
-FC1_ACC_HEX=../route_b_output_2/fc1_acc_0.hex
-
-mkdir-p${SIM_DIR}
-mkdir-p${LOG_DIR}
-
-vcs-full64-sverilog-timescale=1ns/1ps\
--debug_access+all\
--o${SIM_DIR}/fc1_multi_block_shared_sample_rom_simv\
-${RTL_DIR}/package.sv\
-${RTL_IP_DIR}/mnist_sample_rom.sv\
-${RTL_SHARED_DIR}/fc1_weight_bank.sv\
-${RTL_SHARED_DIR}/fc1_bias_bank.sv\
-${RTL_SHARED_DIR}/cim_tile.sv\
-${RTL_SHARED_DIR}/psum_accum.sv\
-${RTL_SHARED_DIR}/fc1_ob_engine_shared_input.sv\
-${RTL_IP_DIR}/fc1_multi_block_shared_sample_rom.sv\
-${TB_DIR}/tb_fc1_multi_block_shared_sample_rom.sv\
-2>&1|tee${LOG_DIR}/compile_tb_fc1_multi_block_shared_sample_rom.log
-
-${SIM_DIR}/fc1_multi_block_shared_sample_rom_simv\
-+FC1_ACC_FILE=${FC1_ACC_HEX}\
-2>&1|tee${LOG_DIR}/sim_tb_fc1_multi_block_shared_sample_rom.log
-```
-
----
-
-##3）`scripts/run_tb_mnist_inference_core_board.sh`
-
-```bash
-#!/usr/bin/envbash
-set-e
-
-SCRIPT_DIR="$(cd"$(dirname"${BASH_SOURCE[0]}")"&&pwd)"
-cd"${SCRIPT_DIR}"
-
-SIM_DIR=../sim
-RTL_DIR=../rtl
-RTL_IP_DIR=../rtl_ip
-RTL_SHARED_DIR=../rtl_shared_buffer_ib
-TB_DIR=../tb
-LOG_DIR=${SIM_DIR}/log
-
-LOGITS_HEX=../route_b_output_2/logits_0.hex
-PRED_TXT=../route_b_output_2/pred_0.txt
-
-mkdir-p${SIM_DIR}
-mkdir-p${LOG_DIR}
-
-vcs-full64-sverilog-timescale=1ns/1ps\
--debug_access+all\
--o${SIM_DIR}/mnist_inference_core_board_simv\
-${RTL_DIR}/package.sv\
-${RTL_IP_DIR}/mnist_sample_rom.sv\
-${RTL_SHARED_DIR}/fc1_weight_bank.sv\
-${RTL_SHARED_DIR}/fc1_bias_bank.sv\
-${RTL_SHARED_DIR}/cim_tile.sv\
-${RTL_SHARED_DIR}/psum_accum.sv\
-${RTL_SHARED_DIR}/fc1_ob_engine_shared_input.sv\
-${RTL_IP_DIR}/fc1_multi_block_shared_sample_rom.sv\
-${RTL_DIR}/quantize_param_bank.sv\
-${RTL_DIR}/fc1_relu_requantize_with_file.sv\
-${RTL_DIR}/fc2_weight_bank.sv\
-${RTL_DIR}/fc2_bias_bank.sv\
-${RTL_DIR}/fc2_core_with_file.sv\
-${RTL_DIR}/fc1_to_fc2_top_with_file.sv\
-${RTL_DIR}/argmax_int8.sv\
-${RTL_IP_DIR}/mnist_inference_core_board.sv\
-${TB_DIR}/tb_mnist_inference_core_board.sv\
-2>&1|tee${LOG_DIR}/compile_tb_mnist_inference_core_board.log
-
-${SIM_DIR}/mnist_inference_core_board_simv\
-+LOGITS_FILE=${LOGITS_HEX}\
-+PRED_FILE=${PRED_TXT}\
-2>&1|tee${LOG_DIR}/sim_tb_mnist_inference_core_board.log
-```
-
----
-
-##4）`scripts/run_tb_mnist_cim_accel_ip.sh`
-
-```bash
-#!/usr/bin/envbash
-set-e
-
-SCRIPT_DIR="$(cd"$(dirname"${BASH_SOURCE[0]}")"&&pwd)"
-cd"${SCRIPT_DIR}"
-
-SIM_DIR=../sim
-RTL_DIR=../rtl
-RTL_IP_DIR=../rtl_ip
-RTL_SHARED_DIR=../rtl_shared_buffer_ib
-TB_DIR=../tb
-LOG_DIR=${SIM_DIR}/log
-
-PRED_TXT=../route_b_output_2/pred_0.txt
-
-mkdir-p${SIM_DIR}
-mkdir-p${LOG_DIR}
-
-vcs-full64-sverilog-timescale=1ns/1ps\
--debug_access+all\
--o${SIM_DIR}/mnist_cim_accel_ip_simv\
-${RTL_DIR}/package.sv\
-${RTL_IP_DIR}/mnist_sample_rom.sv\
-${RTL_SHARED_DIR}/fc1_weight_bank.sv\
-${RTL_SHARED_DIR}/fc1_bias_bank.sv\
-${RTL_SHARED_DIR}/cim_tile.sv\
-${RTL_SHARED_DIR}/psum_accum.sv\
-${RTL_SHARED_DIR}/fc1_ob_engine_shared_input.sv\
-${RTL_IP_DIR}/fc1_multi_block_shared_sample_rom.sv\
-${RTL_DIR}/quantize_param_bank.sv\
-${RTL_DIR}/fc1_relu_requantize_with_file.sv\
-${RTL_DIR}/fc2_weight_bank.sv\
-${RTL_DIR}/fc2_bias_bank.sv\
-${RTL_DIR}/fc2_core_with_file.sv\
-${RTL_DIR}/fc1_to_fc2_top_with_file.sv\
-${RTL_DIR}/argmax_int8.sv\
-${RTL_IP_DIR}/mnist_inference_core_board.sv\
-${RTL_IP_DIR}/mnist_cim_accel_ip.sv\
-${TB_DIR}/tb_mnist_cim_accel_ip.sv\
-2>&1|tee${LOG_DIR}/compile_tb_mnist_cim_accel_ip.log
-
-${SIM_DIR}/mnist_cim_accel_ip_simv\
-+PRED_FILE=${PRED_TXT}\
-2>&1|tee${LOG_DIR}/sim_tb_mnist_cim_accel_ip.log
-```
-
----
-
-##5）`scripts/run_tb_uart_tx.sh`
-
-```bash
-#!/usr/bin/envbash
-set-e
-
-SCRIPT_DIR="$(cd"$(dirname"${BASH_SOURCE[0]}")"&&pwd)"
-cd"${SCRIPT_DIR}"
-
-SIM_DIR=../sim
-RTL_IP_DIR=../rtl_ip
-TB_DIR=../tb
-LOG_DIR=${SIM_DIR}/log
-
-mkdir-p${SIM_DIR}
-mkdir-p${LOG_DIR}
-
-vcs-full64-sverilog-timescale=1ns/1ps\
--debug_access+all\
--o${SIM_DIR}/uart_tx_simv\
-${RTL_IP_DIR}/uart_tx.sv\
-${TB_DIR}/tb_uart_tx.sv\
-2>&1|tee${LOG_DIR}/compile_tb_uart_tx.log
-
-${SIM_DIR}/uart_tx_simv\
-2>&1|tee${LOG_DIR}/sim_tb_uart_tx.log
-```
-
----
-
-##6）`scripts/run_tb_uart_pred_sender.sh`
-
-```bash
-#!/usr/bin/envbash
-set-e
-
-SCRIPT_DIR="$(cd"$(dirname"${BASH_SOURCE[0]}")"&&pwd)"
-cd"${SCRIPT_DIR}"
-
-SIM_DIR=../sim
-RTL_IP_DIR=../rtl_ip
-TB_DIR=../tb
-LOG_DIR=${SIM_DIR}/log
-
-mkdir-p${SIM_DIR}
-mkdir-p${LOG_DIR}
-
-vcs-full64-sverilog-timescale=1ns/1ps\
--debug_access+all\
--o${SIM_DIR}/uart_pred_sender_simv\
-${RTL_IP_DIR}/uart_tx.sv\
-${RTL_IP_DIR}/uart_pred_sender.sv\
-${TB_DIR}/tb_uart_pred_sender.sv\
-2>&1|tee${LOG_DIR}/compile_tb_uart_pred_sender.log
-
-${SIM_DIR}/uart_pred_sender_simv\
-2>&1|tee${LOG_DIR}/sim_tb_uart_pred_sender.log
-```
-
----
-
-##7）`scripts/run_tb_mnist_cim_demo_a_top.sh`
-
-```bash
-#!/usr/bin/envbash
-set-e
-
-SCRIPT_DIR="$(cd"$(dirname"${BASH_SOURCE[0]}")"&&pwd)"
-cd"${SCRIPT_DIR}"
-
-SIM_DIR=../sim
-RTL_DIR=../rtl
-RTL_IP_DIR=../rtl_ip
-RTL_SHARED_DIR=../rtl_shared_buffer_ib
-TB_DIR=../tb
-LOG_DIR=${SIM_DIR}/log
-
-mkdir-p${SIM_DIR}
-mkdir-p${LOG_DIR}
-
-vcs-full64-sverilog-timescale=1ns/1ps\
--debug_access+all\
--o${SIM_DIR}/mnist_cim_demo_a_top_simv\
-${RTL_DIR}/package.sv\
-${RTL_IP_DIR}/mnist_sample_rom.sv\
-${RTL_SHARED_DIR}/fc1_weight_bank.sv\
-${RTL_SHARED_DIR}/fc1_bias_bank.sv\
-${RTL_SHARED_DIR}/cim_tile.sv\
-${RTL_SHARED_DIR}/psum_accum.sv\
-${RTL_SHARED_DIR}/fc1_ob_engine_shared_input.sv\
-${RTL_IP_DIR}/fc1_multi_block_shared_sample_rom.sv\
-${RTL_DIR}/quantize_param_bank.sv\
-${RTL_DIR}/fc1_relu_requantize_with_file.sv\
-${RTL_DIR}/fc2_weight_bank.sv\
-${RTL_DIR}/fc2_bias_bank.sv\
-${RTL_DIR}/fc2_core_with_file.sv\
-${RTL_DIR}/fc1_to_fc2_top_with_file.sv\
-${RTL_DIR}/argmax_int8.sv\
-${RTL_IP_DIR}/mnist_inference_core_board.sv\
-${RTL_IP_DIR}/uart_tx.sv\
-${RTL_IP_DIR}/uart_pred_sender.sv\
-${RTL_IP_DIR}/mnist_cim_demo_a_top.sv\
-${TB_DIR}/tb_mnist_cim_demo_a_top.sv\
-2>&1|tee${LOG_DIR}/compile_tb_mnist_cim_demo_a_top.log
-
-${SIM_DIR}/mnist_cim_demo_a_top_simv\
-2>&1|tee${LOG_DIR}/sim_tb_mnist_cim_demo_a_top.log
-```
-
----
-
-#七、我对你现在的开始建议
-
-你已经有`mnist_samples_route_b_output_2.hex`了，所以最推荐的推进顺序是：
-
-1.**先跑`tb_mnist_sample_rom.sv`**
--先确认拼接文件和地址映射是对的
-2.**再跑`tb_fc1_multi_block_shared_sample_rom.sv`**
--锁定板级输入版FC1
-3.**再跑`tb_mnist_inference_core_board.sv`**
--锁定板级推理核心
-4.**再跑`tb_mnist_cim_accel_ip.sv`**
--锁定寄存器/IP壳层
-5.**最后跑UART和demotop**
--这时候就是上板前最后smoketest
-
----
-
-#八、一句总结
-
-你现在最需要的不是继续加功能，而是：
-
-**先把方案A的`rtl_ip`层做成“输入ROM正确→FC1正确→整机核心正确→IP接口正确→UART展示正确”这条闭环。**
-
-如果你愿意，下一条你把你现在已经写好的`rtl_ip`文件贴出来，我可以逐个帮你做代码审查，直接指出哪里需要改。
-
-AI助手:
-我已经把下一步的封装路线定下来了：直接做一个完整 `mnist_inference_top = FC1(shared input) + FC1后处理 + FC2 + argmax`，再给你一个 testbench 和脚本去逐样本比对 `logits_i.hex` 和 `pred_i.txt`。
-
-AI助手:
-我已经把完整顶层、argmax、testbench 和两份脚本写进一套可运行文件了。现在我先实际编译并跑一遍，确认不是“纸面代码”，再把最终可用版本给你。
-
-AI助手:
-我已经把完整封装和验证文件整理好了，包含：
-
-- `argmax.sv`
-- `mnist_inference_top.sv`
-- `tb_mnist_inference_top.sv`
-- `run_mnist_inference_top.sh`
-- `run_mnist_inference_all_samples.sh`
-
-以及依赖的：
-- `fc1_relu_requantize.sv`
-- `fc2_weight_bank.sv`
-- `fc2_bias_bank.sv`
-- `fc2_core.sv`
-- `fc1_to_fc2_top.sv`
-
-打包在这里：
-
-[下载 mnist_top_bundle.zip](sandbox:/mnt/data/mnist_top_bundle.zip)
-
-### 这套封装做了什么
-
-`mnist_inference_top` 把你已经验证通过的链路连成了完整推理顶层：
-
-- `fc1_multi_block_shared_input`
-- `fc1_relu_requantize`
-- `fc2_core`
-- `argmax`
-
-输出包括：
-
-- `fc1_acc_all`
-- `fc1_relu_all`
-- `fc1_out_all`
-- `fc2_acc_all`
-- `logits_all`
-- `pred_class`
-
-### 我给你的两个脚本
-
-`run_mnist_inference_top.sh`
-- 跑单个样本
-- 默认对 `input_0.hex / logits_0.hex / pred_0.txt`
-
-`run_mnist_inference_all_samples.sh`
-- 逐个跑 `0..19`
-- 检查每个样本是否和 `logits_i.hex`、`pred_i.txt` 一致
-- 全通过会打印 `ALL PASS: 20/20 samples`
-
-### 我这边的实际情况
-
-我已经把代码写好并放进了你的工程结构对应位置，但当前这个容器里没有 `vcs` 可执行程序，所以没法在这里替你真正启动 Synopsys VCS 完成最终仿真。  
-你本地环境里直接运行这两个脚本就行。
-
-你现在最推荐先执行：
-
-```bash
-cd hw/scripts
-./run_mnist_inference_top.sh
-./run_mnist_inference_all_samples.sh
-```
-
-如果你把 `run_mnist_inference_top.sh` 或 `run_mnist_inference_all_samples.sh` 的日志贴给我，我可以继续帮你检查是不是 20/20 全通过。
-
-AI助手:
-我重新整理好了，文档在这里：
-
-[route_b_output 使用指南（Markdown）](sandbox:/mnt/data/route_b_output_usage_guide.md)
-
-我在文档里写了这些内容：
-
-- `route_b_output` 每个文件的格式、位宽、行数、布局
-- 每个文件在 FPGA / CIM 里的具体用途
-- 推荐的逐层联调顺序
-- `quant_config.json` 里各字段的意义
-- 当前数据下硬件必须特别注意的坑
-- `route_a_output` 的简要检查结论
-
-先给你一个简短结论：`route_b_output` 这套数据从格式和导出逻辑上看，已经可以用于 RTL / testbench 级别的整数推理联调。最需要你们硬件侧特别注意的是三点：输入零点是 `-128`、第一层累加必须走 `int32`、当前权重布局是逻辑布局 `row-major [out][in]`，不一定等于最终 CIM 物理烧写布局。相关依据都在你上传的对话记录里。 
-
-如果你接下来要，我可以继续把这套文件对应的 Verilog/Testbench 读取框架也给你补出来。
 
