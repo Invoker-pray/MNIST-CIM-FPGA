@@ -1,6 +1,6 @@
 Chronologic VCS simulator copyright 1991-2018
 Contains Synopsys proprietary information.
-Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 14:11 2026
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 14:36 2026
 Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
 Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
 Using WEIGHT_HEX_FILE from plusarg: ../data/fc1_weight_int8.hex
@@ -20,6 +20,7 @@ Using FC1_BIAS_FILE from plusarg: ../data/fc1_bias_int32.hex
 Using FC2_WEIGHT_HEX_FILE from plusarg: ../data/fc2_weight_int8.hex
 Using FC2_BIAS_FILE from plusarg: ../data/fc2_bias_int32.hex
 Using QUANT_PARAM_FILE from plusarg: ../data/quant_params.hex
+time=0 : monitor start
 ============================================================
 TB_mnist_cim_demo_a_top start
   SAMPLE_HEX_FILE     = ../data/mnist_samples_route_b_output_2.hex
@@ -31,383 +32,39 @@ TB_mnist_cim_demo_a_top start
   PRED_FILE           = ../route_b_output_2/pred_0.txt
 ============================================================
 Reference pred_class from file = 7
-time=0 : monitor start
-time=5000 clk=1 rst_n=0 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=15000 clk=1 rst_n=0 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=25000 clk=1 rst_n=0 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
 time=30000 : release reset
-time=35000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
 time=35000 : pulse btn_start high
-time=45000 clk=1 rst_n=1 btn_start=1 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
 time=45000 : pulse btn_start low
-time=55000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=65000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=75000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=85000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=95000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=105000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=115000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=125000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=135000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=145000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=155000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=165000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=175000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=185000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=195000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=205000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=215000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=225000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=235000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=245000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=255000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=265000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=275000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=285000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=295000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=305000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=315000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=325000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=335000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=345000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=355000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=365000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=375000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=385000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=395000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=405000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=415000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=425000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=435000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=445000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=455000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=465000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=475000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=485000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=495000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=505000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=515000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=525000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=535000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=545000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
-time=555000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=1 uart_tx=1
-time=565000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=575000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=585000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=595000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=605000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=615000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=625000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=635000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=645000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=655000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=665000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=675000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=685000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=695000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=705000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=715000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=725000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=735000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=745000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=755000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=765000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=775000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=785000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=795000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=805000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=815000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=825000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=835000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=845000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=855000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=865000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=875000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=885000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=895000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=905000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=915000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=925000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=935000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=945000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=955000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=965000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=975000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=985000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=995000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1005000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1015000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1025000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1035000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1045000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1055000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1065000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1075000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1085000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1095000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1105000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1115000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1125000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1135000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1145000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1155000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1165000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1175000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1185000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1195000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1205000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1215000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1225000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1235000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1245000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1255000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1265000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1275000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1285000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1295000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1305000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1315000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1325000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1335000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1345000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1355000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1365000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1375000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1385000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1395000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1405000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1415000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1425000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1435000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1445000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1455000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1465000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1475000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1485000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1495000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1505000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1515000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1525000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1535000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1545000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1555000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1565000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1575000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1585000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1595000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=55000 rst_n=1 btn_start=0 sample_sel=0 led_busy=1 led_done=0 uart_tx=1
+time=555000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=1 uart_tx=1
+time=565000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=665000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=965000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1065000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1265000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1465000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+UART monitor captured byte[0] at time=1505000
+  captured = 0x37 (55, '7')
+time=1575000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1675000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=1775000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=1875000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2075000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2475000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+UART monitor captured byte[1] at time=2515000
+  captured = 0x0d (13)
+time=2585000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2785000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=2885000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=2985000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+time=3085000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
+time=3485000 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
+UART monitor captured byte[2] at time=3525000
+  captured = 0x0a (10)
+------------------------------------------------------------
 UART byte0 received = 0x37 (55, '7')
-time=1605000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1615000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1625000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1635000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1645000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1655000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1665000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1675000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1685000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1695000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1705000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1715000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1725000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1735000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1745000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1755000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1765000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1775000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1785000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1795000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1805000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1815000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1825000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1835000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1845000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1855000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1865000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=1875000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1885000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1895000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1905000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1915000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1925000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1935000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1945000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1955000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1965000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1975000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1985000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=1995000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2005000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2015000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2025000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2035000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2045000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2055000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2065000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2075000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2085000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2095000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2105000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2115000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2125000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2135000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2145000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2155000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2165000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2175000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2185000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2195000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2205000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2215000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2225000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2235000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2245000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2255000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2265000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2275000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2285000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2295000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2305000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2315000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2325000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2335000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2345000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2355000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2365000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2375000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2385000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2395000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2405000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2415000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2425000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2435000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2445000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2455000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2465000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2475000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2485000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2495000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2505000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2515000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2525000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2535000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2545000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2555000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2565000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2575000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2585000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2595000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2605000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2615000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2625000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2635000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2645000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
 UART byte1 received = 0x0d (13)
-time=2655000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2665000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2675000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2685000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2695000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2705000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2715000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2725000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2735000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2745000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2755000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2765000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2775000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2785000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2795000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2805000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2815000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2825000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2835000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2845000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2855000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2865000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2875000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2885000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2895000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2905000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2915000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2925000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2935000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2945000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2955000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2965000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2975000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=2985000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=2995000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3005000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3015000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3025000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3035000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3045000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3055000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3065000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3075000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3085000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3095000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3105000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3115000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3125000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3135000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3145000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3155000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3165000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3175000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3185000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3195000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3205000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3215000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3225000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3235000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3245000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3255000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3265000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3275000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3285000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3295000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3305000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3315000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3325000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3335000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3345000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3355000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3365000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3375000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3385000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3395000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3405000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3415000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3425000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3435000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3445000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3455000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3465000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3475000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=0
-time=3485000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3495000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3505000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3515000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3525000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3535000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3545000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3555000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3565000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3575000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3585000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3595000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3605000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3615000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3625000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3635000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3645000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3655000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3665000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3675000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3685000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-time=3695000 clk=1 rst_n=1 btn_start=0 sample_sel=0 led_busy=0 led_done=0 uart_tx=1
-UART byte2 received = 0x85 (133)
+UART byte2 received = 0x0a (10)
 ------------------------------------------------------------
 Expected byte0 = ASCII('0' + pred) = 0x37
 Expected byte1 = 0x0D
@@ -415,13 +72,12 @@ Expected byte2 = 0x0A
 ------------------------------------------------------------
 MATCH: byte0 correct
 MATCH: byte1 correct (CR)
-ERROR: byte2 mismatch, got=0x85 expected=0x0A
+MATCH: byte2 correct (LF)
 Final LED states: led_busy=0 led_done=0
-FAIL: found 1 mismatches in UART output.
-DETAIL: ref_pred_class=7, actual bytes = [37 0d 85]
-$finish called from file "../tb/tb_mnist_cim_demo_a_top.sv", line 180.
-$finish at simulation time              3705000
+PASS: mnist_cim_demo_a_top sends pred_class over UART correctly.
+$finish called from file "../tb/tb_mnist_cim_demo_a_top.sv", line 250.
+$finish at simulation time              3525000
            V C S   S i m u l a t i o n   R e p o r t 
-Time: 3705000 ps
+Time: 3525000 ps
 CPU Time:      0.170 seconds;       Data structure size:   3.3Mb
-Mon Mar  9 14:11:23 2026
+Mon Mar  9 14:36:38 2026

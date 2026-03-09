@@ -39,6 +39,9 @@ module fc1_multi_block_shared_sample_rom #(
 
   logic signed [PSUM_WIDTH-1:0] fc1_acc_block[0:PAR_OB-1][0:TILE_OUTPUT_SIZE-1];
 
+  // ------------------------------------------------------------
+  // Sample ROM: provide one input tile according to sample_id + ib
+  // ------------------------------------------------------------
   mnist_sample_rom #(
       .N_SAMPLES(N_SAMPLES),
       .DEFAULT_SAMPLE_HEX_FILE(DEFAULT_SAMPLE_HEX_FILE)
@@ -49,6 +52,9 @@ module fc1_multi_block_shared_sample_rom #(
       .x_eff_tile(x_eff_tile)
   );
 
+  // ------------------------------------------------------------
+  // State / ib counter registers
+  // ------------------------------------------------------------
   always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       state <= S_IDLE;
@@ -59,6 +65,9 @@ module fc1_multi_block_shared_sample_rom #(
     end
   end
 
+  // ------------------------------------------------------------
+  // Control FSM
+  // ------------------------------------------------------------
   always_comb begin
     state_n    = state;
     ib_n       = ib;
@@ -83,6 +92,7 @@ module fc1_multi_block_shared_sample_rom #(
       S_ACCUM: begin
         busy    = 1'b1;
         en_psum = 1'b1;
+
         if (ib == N_INPUT_BLOCKS - 1) begin
           state_n = S_DONE;
           ib_n    = ib;
@@ -95,12 +105,26 @@ module fc1_multi_block_shared_sample_rom #(
         done = 1'b1;
         if (!start) state_n = S_IDLE;
       end
+
+      default: begin
+        state_n    = S_IDLE;
+        ib_n       = '0;
+        clear_psum = 1'b0;
+        en_psum    = 1'b0;
+        busy       = 1'b0;
+        done       = 1'b0;
+      end
     endcase
   end
 
+  // ------------------------------------------------------------
+  // Parallel OB engines
+  // ------------------------------------------------------------
   genvar g_ob, g_idx;
   generate
     for (g_ob = 0; g_ob < PAR_OB; g_ob = g_ob + 1) begin : GEN_OB_ENGINE
+      localparam logic [$clog2(N_OUTPUT_BLOCKS)-1:0] OB_SEL = BASE_OB + g_ob;
+
       fc1_ob_engine_shared_input #(
           .DEFAULT_WEIGHT_HEX_FILE(DEFAULT_WEIGHT_HEX_FILE),
           .DEFAULT_BIAS_HEX_FILE  (DEFAULT_BIAS_HEX_FILE)
@@ -110,7 +134,7 @@ module fc1_multi_block_shared_sample_rom #(
           .clear_psum(clear_psum),
           .en_psum(en_psum),
           .ib(ib),
-          .ob_sel(BASE_OB + g_ob),
+          .ob_sel(OB_SEL),
           .x_eff_tile(x_eff_tile),
           .fc1_acc_block(fc1_acc_block[g_ob])
       );
@@ -122,3 +146,4 @@ module fc1_multi_block_shared_sample_rom #(
   endgenerate
 
 endmodule
+
