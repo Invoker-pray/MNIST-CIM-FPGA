@@ -2,6 +2,9 @@ SIM_DIR=../sim
 RTL_DIR=../rtl
 TB_DIR=../tb
 
+mkdir -p ${SIM_DIR}
+mkdir -p ${SIM_DIR}/log
+
 vcs -full64 -sverilog -timescale=1ns/1ps \
 	-debug_access+all \
 	-o ${SIM_DIR}/input_buffer_simv \

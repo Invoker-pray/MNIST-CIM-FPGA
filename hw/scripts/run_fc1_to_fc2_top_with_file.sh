@@ -11,6 +11,9 @@ FC2_ACC_HEX="../route_b_output_2/fc2_acc_0.hex"
 LOGITS_HEX="../route_b_output_2/logits_0.hex"
 QUANT_PARAM_HEX="../route_b_output_2/quant_params.hex"
 
+mkdir -p ${SIM_DIR}
+mkdir -p ${SIM_DIR}/log
+
 vcs -full64 -sverilog -timescale=1ns/1ps \
 	-debug_access+all \
 	-o ${SIM_DIR}/fc1_to_fc2_top_with_file_simv \

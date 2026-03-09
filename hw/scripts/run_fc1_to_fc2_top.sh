@@ -10,6 +10,9 @@ FC2_BIAS_HEX="../route_b_output/fc2_bias_int32.hex"
 FC2_ACC_HEX="../route_b_output/fc2_acc_0.hex"
 LOGITS_HEX="../route_b_output/logits_0.hex"
 
+mkdir -p ${SIM_DIR}
+mkdir -p ${SIM_DIR}/log
+
 vcs -full64 -sverilog -timescale=1ns/1ps \
 	-debug_access+all \
 	-o ${SIM_DIR}/fc1_to_fc2_top_simv \

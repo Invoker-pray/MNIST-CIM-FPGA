@@ -4,6 +4,9 @@ TB_DIR=../tb
 
 FC2_WEIGHT_HEX="../route_b_output/fc2_weight_int8.hex"
 
+mkdir -p ${SIM_DIR}
+mkdir -p ${SIM_DIR}/log
+
 vcs -full64 -sverilog -timescale=1ns/1ps \
 	-debug_access+all \
 	-o ${SIM_DIR}/fc2_weight_bank_simv \

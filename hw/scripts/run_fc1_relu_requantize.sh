@@ -6,6 +6,9 @@ FC1_ACC_HEX="../route_b_output/fc1_acc_0.hex"
 FC1_RELU_HEX="../route_b_output/fc1_relu_0.hex"
 FC1_OUT_HEX="../route_b_output/fc1_out_0.hex"
 
+mkdir -p ${SIM_DIR}
+mkdir -p ${SIM_DIR}/log
+
 vcs -full64 -sverilog -timescale=1ns/1ps \
 	-debug_access+all \
 	-o ${SIM_DIR}/fc1_relu_requantize_simv \

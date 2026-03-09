@@ -7,6 +7,9 @@ WEIGHT_HEX="../route_b_output/fc1_weight_int8.hex"
 FC1_ACC_HEX="../route_b_output/fc1_acc_0.hex"
 FC1_BIAS_HEX="../route_b_output/fc1_bias_int32.hex"
 
+mkdir -p ${SIM_DIR}
+mkdir -p ${SIM_DIR}/log
+
 vcs -full64 -sverilog -timescale=1ns/1ps \
 	-debug_access+all \
 	-o ${SIM_DIR}/fc1_cim_core_dual_instance_simv \

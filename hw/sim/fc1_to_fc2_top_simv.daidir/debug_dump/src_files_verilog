@@ -1,7 +1,0 @@
-/home/icer/MNIST-CIM-FPGA/hw/rtl/fc1_relu_requantize.sv
-/home/icer/MNIST-CIM-FPGA/hw/rtl/fc1_to_fc2_top.sv
-/home/icer/MNIST-CIM-FPGA/hw/rtl/fc2_bias_bank.sv
-/home/icer/MNIST-CIM-FPGA/hw/rtl/fc2_core.sv
-/home/icer/MNIST-CIM-FPGA/hw/rtl/fc2_weight_bank.sv
-/home/icer/MNIST-CIM-FPGA/hw/rtl/package.sv
-/home/icer/MNIST-CIM-FPGA/hw/tb/tb_fc1_to_fc2_top.sv
