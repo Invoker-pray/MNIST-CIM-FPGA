@@ -112,8 +112,10 @@ module fc1_multi_block_shared_input #(
   // Parallel output-block engines
   // --------------------------------------------
   genvar g_ob, g_idx;
+
   generate
     for (g_ob = 0; g_ob < PAR_OB; g_ob = g_ob + 1) begin : GEN_OB_ENGINE
+      localparam logic [$clog2(N_OUTPUT_BLOCKS)-1:0] OB_SEL = BASE_OB + g_ob;
 
       fc1_ob_engine_shared_input #(
           .DEFAULT_WEIGHT_HEX_FILE(DEFAULT_WEIGHT_HEX_FILE),
@@ -124,10 +126,11 @@ module fc1_multi_block_shared_input #(
           .clear_psum(clear_psum),
           .en_psum(en_psum),
           .ib(ib),
-          .ob_sel(BASE_OB + g_ob),
+          .ob_sel(OB_SEL),
           .x_eff_tile(x_eff_tile),
           .fc1_acc_block(fc1_acc_block[g_ob])
       );
+
 
 
       for (g_idx = 0; g_idx < TILE_OUTPUT_SIZE; g_idx = g_idx + 1) begin : GEN_PACK

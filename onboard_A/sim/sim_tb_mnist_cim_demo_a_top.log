@@ -1,6 +1,6 @@
 Chronologic VCS simulator copyright 1991-2018
 Contains Synopsys proprietary information.
-Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 19:22 2026
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Mar  9 19:35 2026
 Using default INPUT_HEX_FILE: ../data/samples/input_0.hex
 Using WEIGHT_HEX_FILE from plusarg: ../data/weights/fc1_weight_int8.hex
 Using FC1_BIAS_FILE from plusarg: ../data/weights/fc1_bias_int32.hex
@@ -94,5 +94,5 @@ $finish called from file "../tb/tb_mnist_cim_demo_a_top.sv", line 252.
 $finish at simulation time              3525000
            V C S   S i m u l a t i o n   R e p o r t 
 Time: 3525000 ps
-CPU Time:      0.230 seconds;       Data structure size:   6.5Mb
-Mon Mar  9 19:22:52 2026
+CPU Time:      0.300 seconds;       Data structure size:   6.5Mb
+Mon Mar  9 19:35:39 2026

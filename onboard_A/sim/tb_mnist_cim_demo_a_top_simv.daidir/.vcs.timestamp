@@ -148,7 +148,7 @@ CALIBRE_HOME=/opt/Mentor/calibre2018/aoi_cal_2018.4_34.26
 1773054443 ../rtl/mem/fc2_weight_bank.sv
 1773048478 ../rtl/core/fc1_relu_requantize_with_file.sv
 1773054498 ../rtl/mem/quantize_param_bank.sv
-1773054190 ../rtl/core/fc1_multi_block_shared_input.sv
+1773056113 ../rtl/core/fc1_multi_block_shared_input.sv
 1773054991 ../rtl/mem/fc1_multi_block_shared_sample_rom.sv
 1773054470 ../rtl/mem/mnist_sample_rom.sv
 1773054218 ../rtl/core/fc1_ob_engine_shared_input.sv
@@ -165,5 +165,5 @@ CALIBRE_HOME=/opt/Mentor/calibre2018/aoi_cal_2018.4_34.26
 1551421792 /opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib/liberrorinf.so
 1551421768 /opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib/libsnpsmalloc.so
 1551421789 /opt/Synopsys/VCS2018/vcs/O-2018.09-SP2/linux64/lib/libvfs.so
-1773055371 ../sim/tb_mnist_cim_demo_a_top_simv.daidir
+1773056138 ../sim/tb_mnist_cim_demo_a_top_simv.daidir
 -1 partitionlib
