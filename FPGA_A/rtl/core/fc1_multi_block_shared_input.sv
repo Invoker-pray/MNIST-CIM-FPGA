@@ -1,6 +1,6 @@
 
 module fc1_multi_block_shared_input #(
-    parameter int PAR_OB = 8,
+    parameter int PAR_OB = 1,
     parameter int BASE_OB = 0,
     parameter string DEFAULT_INPUT_HEX_FILE = "input_0.hex",
     parameter string DEFAULT_WEIGHT_HEX_FILE = "fc1_weight_int8.hex",
@@ -144,4 +144,3 @@ module fc1_multi_block_shared_input #(
   endgenerate
 
 endmodule
-
