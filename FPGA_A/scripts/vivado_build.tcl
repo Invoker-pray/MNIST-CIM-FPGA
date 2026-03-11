@@ -28,89 +28,130 @@ puts "TOP_NAME   = $TOP_NAME"
 puts "============================================================"
 
 file mkdir $VIVADO_DIR
-
 if {[file exists $PROJ_DIR]} {
     puts "INFO: deleting old project dir: $PROJ_DIR"
     file delete -force $PROJ_DIR
 }
 
 create_project $PROJ_NAME $PROJ_DIR -part $PART_NAME
-
-# ------------------------------------------------------------
-# Source management
-# ------------------------------------------------------------
 set_property target_language Verilog [current_project]
 set_property simulator_language Mixed [current_project]
 set_property source_mgmt_mode All [current_project]
 
 # ------------------------------------------------------------
-# Add design sources
+# Collect source files
 # ------------------------------------------------------------
+set rtl_files [list \
+    [file join $ROOT_DIR rtl pkg package.sv] \
+    [file join $ROOT_DIR rtl ctrl debounce.sv] \
+    [file join $ROOT_DIR rtl ctrl onepulse.sv] \
+    [file join $ROOT_DIR rtl mem fc1_bias_bank.sv] \
+    [file join $ROOT_DIR rtl mem fc1_multi_block_shared_sample_rom.sv] \
+    [file join $ROOT_DIR rtl mem fc1_weight_bank.sv] \
+    [file join $ROOT_DIR rtl mem fc2_bias_bank.sv] \
+    [file join $ROOT_DIR rtl mem fc2_weight_bank.sv] \
+    [file join $ROOT_DIR rtl mem mnist_sample_rom.sv] \
+    [file join $ROOT_DIR rtl mem quantize_param_bank.sv] \
+    [file join $ROOT_DIR rtl core argmax_int8.sv] \
+    [file join $ROOT_DIR rtl core cim_tile.sv] \
+    [file join $ROOT_DIR rtl core fc1_multi_block_shared_input.sv] \
+    [file join $ROOT_DIR rtl core fc1_ob_engine_shared_input.sv] \
+    [file join $ROOT_DIR rtl core fc1_relu_requantize_with_file.sv] \
+    [file join $ROOT_DIR rtl core fc1_to_fc2_top_with_file.sv] \
+    [file join $ROOT_DIR rtl core fc2_core_with_file.sv] \
+    [file join $ROOT_DIR rtl core input_buffer.sv] \
+    [file join $ROOT_DIR rtl core mnist_cim_accel_ip.sv] \
+    [file join $ROOT_DIR rtl core mnist_inference_core_board.sv] \
+    [file join $ROOT_DIR rtl core psum_accum.sv] \
+    [file join $ROOT_DIR rtl uart uart_pred_sender.sv] \
+    [file join $ROOT_DIR rtl uart uart_tx.sv] \
+    [file join $ROOT_DIR rtl top mnist_cim_demo_a_top.sv] \
+]
 
-# pkg
-add_files -norecurse [file join $ROOT_DIR rtl pkg package.sv]
+set xdc_files [list \
+    [file join $ROOT_DIR constr top.xdc] \
+]
 
-# ctrl
-add_files -norecurse [file join $ROOT_DIR rtl ctrl debounce.sv]
-add_files -norecurse [file join $ROOT_DIR rtl ctrl onepulse.sv]
+set mem_init_files [list \
+    [file join $ROOT_DIR data weights fc1_weight_int8.hex] \
+    [file join $ROOT_DIR data weights fc1_bias_int32.hex] \
+    [file join $ROOT_DIR data samples mnist_samples_route_b_output_2.hex] \
+    [file join $ROOT_DIR data quant quant_params.hex] \
+    [file join $ROOT_DIR data weights fc2_weight_int8.hex] \
+    [file join $ROOT_DIR data weights fc2_bias_int32.hex] \
+]
 
-# mem
-add_files -norecurse [file join $ROOT_DIR rtl mem fc1_bias_bank.sv]
-add_files -norecurse [file join $ROOT_DIR rtl mem fc1_multi_block_shared_sample_rom.sv]
-add_files -norecurse [file join $ROOT_DIR rtl mem fc1_weight_bank.sv]
-add_files -norecurse [file join $ROOT_DIR rtl mem fc2_bias_bank.sv]
-add_files -norecurse [file join $ROOT_DIR rtl mem fc2_weight_bank.sv]
-add_files -norecurse [file join $ROOT_DIR rtl mem mnist_sample_rom.sv]
-add_files -norecurse [file join $ROOT_DIR rtl mem quantize_param_bank.sv]
-
-# core
-add_files -norecurse [file join $ROOT_DIR rtl core argmax_int8.sv]
-add_files -norecurse [file join $ROOT_DIR rtl core cim_tile.sv]
-add_files -norecurse [file join $ROOT_DIR rtl core fc1_multi_block_shared_input.sv]
-add_files -norecurse [file join $ROOT_DIR rtl core fc1_ob_engine_shared_input.sv]
-add_files -norecurse [file join $ROOT_DIR rtl core fc1_relu_requantize_with_file.sv]
-add_files -norecurse [file join $ROOT_DIR rtl core fc1_to_fc2_top_with_file.sv]
-add_files -norecurse [file join $ROOT_DIR rtl core fc2_core_with_file.sv]
-add_files -norecurse [file join $ROOT_DIR rtl core input_buffer.sv]
-add_files -norecurse [file join $ROOT_DIR rtl core mnist_cim_accel_ip.sv]
-add_files -norecurse [file join $ROOT_DIR rtl core mnist_inference_core_board.sv]
-add_files -norecurse [file join $ROOT_DIR rtl core psum_accum.sv]
-
-# uart
-add_files -norecurse [file join $ROOT_DIR rtl uart uart_pred_sender.sv]
-add_files -norecurse [file join $ROOT_DIR rtl uart uart_tx.sv]
-
-# top
-add_files -norecurse [file join $ROOT_DIR rtl top mnist_cim_demo_a_top.sv]
-
-# constraints
-add_files -fileset constrs_1 -norecurse [file join $ROOT_DIR constr top.xdc]
-
-# ------------------------------------------------------------
-# Add memory initialization/data files
-# ------------------------------------------------------------
-add_files -norecurse [file join $ROOT_DIR data quant quant_params.hex]
-add_files -norecurse [file join $ROOT_DIR data weights fc1_weight_int8.hex]
-add_files -norecurse [file join $ROOT_DIR data weights fc1_bias_int32.hex]
-add_files -norecurse [file join $ROOT_DIR data weights fc2_weight_int8.hex]
-add_files -norecurse [file join $ROOT_DIR data weights fc2_bias_int32.hex]
-add_files -norecurse [file join $ROOT_DIR data samples mnist_samples_route_b_output_2.hex]
-
-# Optional sample files
+# Optional extra sample files
 for {set i 0} {$i < 20} {incr i} {
     set f [file join $ROOT_DIR data samples [format "input_%d.hex" $i]]
     if {[file exists $f]} {
-        add_files -norecurse $f
+        lappend mem_init_files $f
     }
 }
 
 # ------------------------------------------------------------
-# Top and compile order
+# Sanity check: required files must exist
 # ------------------------------------------------------------
+foreach f $rtl_files {
+    if {![file exists $f]} {
+        puts "ERROR: missing RTL file: $f"
+        exit 1
+    }
+}
+foreach f $xdc_files {
+    if {![file exists $f]} {
+        puts "ERROR: missing XDC file: $f"
+        exit 1
+    }
+}
+foreach f $mem_init_files {
+    if {![file exists $f]} {
+        puts "ERROR: missing memory init file: $f"
+        exit 1
+    }
+}
+
+# ------------------------------------------------------------
+# Add files to project
+# ------------------------------------------------------------
+add_files -norecurse {*}$rtl_files
+add_files -fileset constrs_1 -norecurse {*}$xdc_files
+add_files -norecurse {*}$mem_init_files
+
 set_property top $TOP_NAME [current_fileset]
 update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
 
+# ------------------------------------------------------------
+# Copy memory init files into run directories so $readmemh()
+# can resolve bare filenames during synthesis/implementation
+# ------------------------------------------------------------
+set SYNTH_RUN_DIR [file join $PROJ_DIR "${PROJ_NAME}.runs" "synth_1"]
+set IMPL_RUN_DIR  [file join $PROJ_DIR "${PROJ_NAME}.runs" "impl_1"]
+
+file mkdir $SYNTH_RUN_DIR
+file mkdir $IMPL_RUN_DIR
+
+foreach f $mem_init_files {
+    set base [file tail $f]
+    file copy -force $f [file join $SYNTH_RUN_DIR $base]
+    file copy -force $f [file join $IMPL_RUN_DIR  $base]
+    puts "INFO: copied $base to synth_1 and impl_1 run dirs"
+}
+
+# Also copy into project root for extra robustness
+foreach f $mem_init_files {
+    set base [file tail $f]
+    file copy -force $f [file join $PROJ_DIR $base]
+    puts "INFO: copied $base to project dir"
+}
+
+
+# ------------------------------------------------------------
+# Save / refresh project state
+# ------------------------------------------------------------
+update_compile_order -fileset sources_1
+update_compile_order -fileset sim_1
 # ------------------------------------------------------------
 # Launch synthesis
 # ------------------------------------------------------------
@@ -126,7 +167,7 @@ if {[string match "*ERROR*" $synth_status] || [string match "*failed*" $synth_st
 }
 
 # ------------------------------------------------------------
-# Launch implementation to bitstream
+# Launch implementation through bitstream
 # ------------------------------------------------------------
 launch_runs impl_1 -to_step write_bitstream -jobs 8
 wait_on_run impl_1

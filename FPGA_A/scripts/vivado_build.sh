@@ -12,4 +12,11 @@ echo "INFO: ROOT_DIR   = ${ROOT_DIR}"
 echo "INFO: VIVADO_DIR = ${VIVADO_DIR}"
 echo "INFO: TCL_SCRIPT = ${TCL_SCRIPT}"
 
-vivado -mode batch -source "${TCL_SCRIPT}" -tclargs "${ROOT_DIR}" "${VIVADO_DIR}"
+cd "${VIVADO_DIR}"
+
+vivado \
+	-mode batch \
+	-source "${TCL_SCRIPT}" \
+	-journal "${VIVADO_DIR}/vivado.jou" \
+	-log "${VIVADO_DIR}/vivado.log" \
+	-tclargs "${ROOT_DIR}" "${VIVADO_DIR}"
