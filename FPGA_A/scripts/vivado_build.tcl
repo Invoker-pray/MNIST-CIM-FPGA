@@ -155,7 +155,7 @@ update_compile_order -fileset sim_1
 # ------------------------------------------------------------
 # Launch synthesis
 # ------------------------------------------------------------
-launch_runs synth_1 -jobs 32 -checkpoint
+launch_runs synth_1 -jobs 16
 wait_on_run synth_1
 
 set synth_status [get_property STATUS [get_runs synth_1]]
@@ -169,7 +169,7 @@ if {[string match "*ERROR*" $synth_status] || [string match "*failed*" $synth_st
 # ------------------------------------------------------------
 # Launch implementation through bitstream
 # ------------------------------------------------------------
-launch_runs impl_1 -to_step write_bitstream -jobs 32 -checkpoint
+launch_runs impl_1 -to_step write_bitstream -jobs 16
 wait_on_run impl_1
 
 set impl_status [get_property STATUS [get_runs impl_1]]
