@@ -1,6 +1,6 @@
 
 module input_buffer #(
-    parameter string DEFAULT_INPUT_HEX_FILE = "../data/samples/input_0.hex"
+    parameter string DEFAULT_INPUT_HEX_FILE = "input_0.hex"
 ) (
     input logic [$clog2(mnist_cim_pkg::N_INPUT_BLOCKS)-1:0] ib,
 

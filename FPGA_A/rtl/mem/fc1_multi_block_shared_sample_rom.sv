@@ -3,9 +3,9 @@ module fc1_multi_block_shared_sample_rom #(
     parameter int PAR_OB = 8,
     parameter int BASE_OB = 0,
     parameter int N_SAMPLES = 20,
-    parameter string DEFAULT_SAMPLE_HEX_FILE = "../data/samples/mnist_samples_route_b_output_2.hex",
-    parameter string DEFAULT_WEIGHT_HEX_FILE = "../data/weights/fc1_weight_int8.hex",
-    parameter string DEFAULT_BIAS_HEX_FILE = "../data/weights/fc1_bias_int32.hex"
+    parameter string DEFAULT_SAMPLE_HEX_FILE = "mnist_samples_route_b_output_2.hex",
+    parameter string DEFAULT_WEIGHT_HEX_FILE = "fc1_weight_int8.hex",
+    parameter string DEFAULT_BIAS_HEX_FILE = "fc1_bias_int32.hex"
 ) (
     input logic clk,
     input logic rst_n,

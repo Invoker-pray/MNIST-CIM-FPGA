@@ -1,6 +1,6 @@
 
 module fc1_weight_bank #(
-    parameter string DEFAULT_WEIGHT_HEX_FILE = "../data/weights/fc1_weight_int8.hex"
+    parameter string DEFAULT_WEIGHT_HEX_FILE = "fc1_weight_int8.hex"
 ) (
     input logic [$clog2(mnist_cim_pkg::N_OUTPUT_BLOCKS)-1:0] ob,
     input logic [ $clog2(mnist_cim_pkg::N_INPUT_BLOCKS)-1:0] ib,

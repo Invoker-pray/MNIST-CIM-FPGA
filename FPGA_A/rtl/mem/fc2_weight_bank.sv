@@ -1,6 +1,6 @@
 
 module fc2_weight_bank #(
-    parameter string DEFAULT_WEIGHT_HEX_FILE = "../data/weights/fc2_weight_int8.hex"
+    parameter string DEFAULT_WEIGHT_HEX_FILE = "fc2_weight_int8.hex"
 ) (
     output logic signed [mnist_cim_pkg::WEIGHT_WIDTH-1:0]
         w_all [0:mnist_cim_pkg::FC2_OUT_DIM-1]

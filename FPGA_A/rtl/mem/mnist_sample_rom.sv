@@ -2,7 +2,7 @@
 
 module mnist_sample_rom #(
     parameter int N_SAMPLES = 20,
-    parameter string DEFAULT_SAMPLE_HEX_FILE = "../data/samples/mnist_samples_route_b_output_2.hex"
+    parameter string DEFAULT_SAMPLE_HEX_FILE = "mnist_samples_route_b_output_2.hex"
 ) (
     input logic [$clog2(N_SAMPLES)-1:0] sample_id,
     input logic [$clog2(mnist_cim_pkg::N_INPUT_BLOCKS)-1:0] ib,

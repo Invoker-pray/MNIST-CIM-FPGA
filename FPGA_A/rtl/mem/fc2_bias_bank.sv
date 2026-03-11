@@ -1,6 +1,6 @@
 
 module fc2_bias_bank #(
-    parameter string DEFAULT_BIAS_HEX_FILE = "../data/weights/fc2_bias_int32.hex"
+    parameter string DEFAULT_BIAS_HEX_FILE = "fc2_bias_int32.hex"
 ) (
     output logic signed [mnist_cim_pkg::BIAS_WIDTH-1:0] bias_all[0:mnist_cim_pkg::FC2_OUT_DIM-1]
 );

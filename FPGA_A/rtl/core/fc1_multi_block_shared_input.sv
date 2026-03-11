@@ -2,9 +2,9 @@
 module fc1_multi_block_shared_input #(
     parameter int PAR_OB = 8,
     parameter int BASE_OB = 0,
-    parameter string DEFAULT_INPUT_HEX_FILE = "../data/samples/input_0.hex",
-    parameter string DEFAULT_WEIGHT_HEX_FILE = "../data/weights/fc1_weight_int8.hex",
-    parameter string DEFAULT_BIAS_HEX_FILE = "../data/weights/fc1_bias_int32.hex"
+    parameter string DEFAULT_INPUT_HEX_FILE = "input_0.hex",
+    parameter string DEFAULT_WEIGHT_HEX_FILE = "fc1_weight_int8.hex",
+    parameter string DEFAULT_BIAS_HEX_FILE = "fc1_bias_int32.hex"
 ) (
     input logic clk,
     input logic rst_n,

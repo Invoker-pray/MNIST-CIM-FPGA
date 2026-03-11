@@ -7,12 +7,12 @@ module mnist_cim_demo_a_top #(
     parameter int BTN_DEBOUNCE_MS = 20,
     parameter bit SIM_BYPASS_DEBOUNCE = 1'b0,
 
-    parameter string DEFAULT_SAMPLE_HEX_FILE = "../data/samples/mnist_samples_route_b_output_2.hex",
-    parameter string DEFAULT_FC1_WEIGHT_HEX_FILE = "../data/weights/fc1_weight_int8.hex",
-    parameter string DEFAULT_FC1_BIAS_HEX_FILE = "../data/weights/fc1_bias_int32.hex",
-    parameter string DEFAULT_QUANT_PARAM_FILE = "../data/quant/quant_params.hex",
-    parameter string DEFAULT_FC2_WEIGHT_HEX_FILE = "../data/weights/fc2_weight_int8.hex",
-    parameter string DEFAULT_FC2_BIAS_HEX_FILE = "../data/weights/fc2_bias_int32.hex"
+    parameter string DEFAULT_SAMPLE_HEX_FILE = "mnist_samples_route_b_output_2.hex",
+    parameter string DEFAULT_FC1_WEIGHT_HEX_FILE = "fc1_weight_int8.hex",
+    parameter string DEFAULT_FC1_BIAS_HEX_FILE = "fc1_bias_int32.hex",
+    parameter string DEFAULT_QUANT_PARAM_FILE = "quant_params.hex",
+    parameter string DEFAULT_FC2_WEIGHT_HEX_FILE = "fc2_weight_int8.hex",
+    parameter string DEFAULT_FC2_BIAS_HEX_FILE = "fc2_bias_int32.hex"
 ) (
     input logic clk,
     input logic rst_n,

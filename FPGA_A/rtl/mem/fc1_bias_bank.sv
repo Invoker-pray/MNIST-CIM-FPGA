@@ -1,6 +1,6 @@
 
 module fc1_bias_bank #(
-    parameter string DEFAULT_BIAS_HEX_FILE = "../data/weights/fc1_bias_int32.hex"
+    parameter string DEFAULT_BIAS_HEX_FILE = "fc1_bias_int32.hex"
 ) (
     input logic [$clog2(mnist_cim_pkg::N_OUTPUT_BLOCKS)-1:0] ob,
 

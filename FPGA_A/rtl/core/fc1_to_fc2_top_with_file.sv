@@ -1,9 +1,9 @@
 
 
 module fc1_to_fc2_top_with_file #(
-    parameter string DEFAULT_QUANT_PARAM_FILE = "../data/quant/quant_params.hex",
-    parameter string DEFAULT_FC2_WEIGHT_HEX_FILE = "../data/weights/fc2_weight_int8.hex",
-    parameter string DEFAULT_FC2_BIAS_HEX_FILE = "../data/weights/fc2_bias_int32.hex"
+    parameter string DEFAULT_QUANT_PARAM_FILE = "quant_params.hex",
+    parameter string DEFAULT_FC2_WEIGHT_HEX_FILE = "fc2_weight_int8.hex",
+    parameter string DEFAULT_FC2_BIAS_HEX_FILE = "fc2_bias_int32.hex"
 ) (
     input logic signed [mnist_cim_pkg::PSUM_WIDTH-1:0] fc1_acc_all[0:mnist_cim_pkg::HIDDEN_DIM-1],
 

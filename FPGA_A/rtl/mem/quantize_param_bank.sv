@@ -1,6 +1,6 @@
 
 module quantize_param_bank #(
-    parameter string DEFAULT_QUANT_PARAM_FILE = "../data/quant/quant_params.hex"
+    parameter string DEFAULT_QUANT_PARAM_FILE = "quant_params.hex"
 ) (
     output logic [31:0] fc1_requant_mult,
     output logic [31:0] fc1_requant_shift,
@@ -24,4 +24,3 @@ module quantize_param_bank #(
   end
 
 endmodule
-

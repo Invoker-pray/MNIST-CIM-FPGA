@@ -1,7 +1,7 @@
 
 module fc1_ob_engine_shared_input #(
-    parameter string DEFAULT_WEIGHT_HEX_FILE = "../data/weights/fc1_weight_int8.hex",
-    parameter string DEFAULT_BIAS_HEX_FILE   = "../data/weights/fc1_bias_int32.hex"
+    parameter string DEFAULT_WEIGHT_HEX_FILE = "fc1_weight_int8.hex",
+    parameter string DEFAULT_BIAS_HEX_FILE   = "fc1_bias_int32.hex"
 ) (
     input logic clk,
     input logic rst_n,
