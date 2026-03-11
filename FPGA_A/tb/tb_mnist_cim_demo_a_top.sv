@@ -1,5 +1,4 @@
 
-
 `timescale 1ns / 1ps
 
 module tb_mnist_cim_demo_a_top;
@@ -8,13 +7,14 @@ module tb_mnist_cim_demo_a_top;
   parameter int CLK_HZ = 1000;
   parameter int BAUD = 100;
   parameter int N_SAMPLES = 20;
-  parameter string DEFAULT_SAMPLE_HEX_FILE = "../data/samples/mnist_samples_route_b_output_2.hex";
-  parameter string DEFAULT_FC1_WEIGHT_HEX_FILE = "../data/weights/fc1_weight_int8.hex";
-  parameter string DEFAULT_FC1_BIAS_HEX_FILE = "../data/weights/fc1_bias_int32.hex";
-  parameter string DEFAULT_QUANT_PARAM_FILE = "../data/quant/quant_params.hex";
-  parameter string DEFAULT_FC2_WEIGHT_HEX_FILE = "../data/weights/fc2_weight_int8.hex";
-  parameter string DEFAULT_FC2_BIAS_HEX_FILE = "../data/weights/fc2_bias_int32.hex";
-  parameter string PRED_FILE = "../data/expected/pred_0.txt";
+
+  parameter string DEFAULT_SAMPLE_HEX_FILE     = "../data_packed/samples/mnist_samples_route_b_output_2.hex";
+  parameter string DEFAULT_FC1_WEIGHT_HEX_FILE = "../data_packed/weights/fc1_weight_int8.hex";
+  parameter string DEFAULT_FC1_BIAS_HEX_FILE = "../data_packed/weights/fc1_bias_int32.hex";
+  parameter string DEFAULT_QUANT_PARAM_FILE = "../data_packed/quant/quant_params.hex";
+  parameter string DEFAULT_FC2_WEIGHT_HEX_FILE = "../data_packed/weights/fc2_weight_int8.hex";
+  parameter string DEFAULT_FC2_BIAS_HEX_FILE = "../data_packed/weights/fc2_bias_int32.hex";
+  parameter string PRED_FILE = "../data_packed/expected/pred_0.txt";
 
   localparam int DIV = CLK_HZ / BAUD;
   localparam time CLK_PERIOD = 10ns;
@@ -34,7 +34,6 @@ module tb_mnist_cim_demo_a_top;
 
   reg [7:0] rx_bytes[0:15];
   integer rx_count;
-  integer k;
 
   logic monitor_enable;
 
@@ -50,7 +49,6 @@ module tb_mnist_cim_demo_a_top;
       .DEFAULT_QUANT_PARAM_FILE(DEFAULT_QUANT_PARAM_FILE),
       .DEFAULT_FC2_WEIGHT_HEX_FILE(DEFAULT_FC2_WEIGHT_HEX_FILE),
       .DEFAULT_FC2_BIAS_HEX_FILE(DEFAULT_FC2_BIAS_HEX_FILE)
-
   ) dut (
       .clk(clk),
       .rst_n(rst_n),
@@ -67,7 +65,7 @@ module tb_mnist_cim_demo_a_top;
   // ------------------------------------------------------------
   // Helper: print byte as hex / dec / printable char
   // ------------------------------------------------------------
-  task automatic print_uart_byte(input [8*24-1:0] name, input [7:0] data);
+  task automatic print_uart_byte(input [8*32-1:0] name, input [7:0] data);
     begin
       if (data >= 8'd32 && data <= 8'd126)
         $display("%0s = 0x%02x (%0d, '%s')", name, data, data, {data});
@@ -76,28 +74,23 @@ module tb_mnist_cim_demo_a_top;
   endtask
 
   // ------------------------------------------------------------
-  // Background UART receiver:
-  // continuously monitors uart_tx and captures each full byte
-  // This avoids missing back-to-back frames.
+  // Background UART receiver
   // ------------------------------------------------------------
   task automatic uart_capture_one_byte(output reg [7:0] data);
     integer i;
     begin
       data = 8'h00;
 
-      // Wait for a true start-bit falling edge
+      // wait for start bit
       @(negedge uart_tx);
 
-      // Move to center of bit0
+      // move to center of bit0
       #(BIT_TIME + BIT_TIME / 2);
 
       for (i = 0; i < 8; i = i + 1) begin
         data[i] = uart_tx;
         #BIT_TIME;
       end
-
-      // Optional stop-bit time
-      //#BIT_TIME;
     end
   endtask
 
@@ -120,7 +113,7 @@ module tb_mnist_cim_demo_a_top;
   end
 
   // ------------------------------------------------------------
-  // Optional monitor: only print when key signals change
+  // Optional signal monitor
   // ------------------------------------------------------------
   logic prev_led_busy, prev_led_done, prev_uart_tx;
   initial begin
@@ -150,14 +143,13 @@ module tb_mnist_cim_demo_a_top;
   // ------------------------------------------------------------
   initial begin
     $display("============================================================");
-
     $display("  SAMPLE_HEX_FILE     = %s", DEFAULT_SAMPLE_HEX_FILE);
     $display("  FC1_WEIGHT_HEX_FILE = %s", DEFAULT_FC1_WEIGHT_HEX_FILE);
     $display("  FC1_BIAS_HEX_FILE   = %s", DEFAULT_FC1_BIAS_HEX_FILE);
     $display("  QUANT_PARAM_FILE    = %s", DEFAULT_QUANT_PARAM_FILE);
     $display("  FC2_WEIGHT_HEX_FILE = %s", DEFAULT_FC2_WEIGHT_HEX_FILE);
     $display("  FC2_BIAS_HEX_FILE   = %s", DEFAULT_FC2_BIAS_HEX_FILE);
-
+    $display("  PRED_FILE           = %s", PRED_FILE);
     $display("============================================================");
 
     fd = $fopen(PRED_FILE, "r");
@@ -191,7 +183,6 @@ module tb_mnist_cim_demo_a_top;
     rst_n = 1'b1;
     $display("time=%0t : release reset", $time);
 
-    // Enable UART monitor before start pulse
     monitor_enable = 1'b1;
 
     @(posedge clk);
@@ -202,10 +193,13 @@ module tb_mnist_cim_demo_a_top;
     btn_start <= 1'b0;
     $display("time=%0t : pulse btn_start low", $time);
 
-    // Wait until at least 3 bytes are captured
-    wait (rx_count >= 3);
+    // New design takes much longer than old one:
+    // wait for end-to-end done first
+    wait (led_done == 1'b1);
+    $display("time=%0t : led_done observed high", $time);
 
-    // Disable monitor after collecting expected bytes
+    // then UART should emit pred + CR + LF
+    wait (rx_count >= 3);
     monitor_enable = 1'b0;
 
     $display("------------------------------------------------------------");
@@ -253,4 +247,15 @@ module tb_mnist_cim_demo_a_top;
     $finish;
   end
 
+  // ------------------------------------------------------------
+  // Timeout: must be much larger than old version
+  // ------------------------------------------------------------
+  initial begin
+    #200_000_000ns;
+    $display("ERROR: timeout waiting for LED/UART result.");
+    $finish;
+  end
+
 endmodule
+
+

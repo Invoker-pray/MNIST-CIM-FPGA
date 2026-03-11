@@ -25,6 +25,9 @@ puts "VIVADO_DIR = $VIVADO_DIR"
 puts "PROJ_DIR   = $PROJ_DIR"
 puts "PART_NAME  = $PART_NAME"
 puts "TOP_NAME   = $TOP_NAME"
+puts "INFO: Using data_packed for memory init files"
+puts "INFO: Reminder: fc1/sample hex files are packed tile/block format"
+puts "INFO: Reminder: fc2 hex files remain element-per-line format"
 puts "============================================================"
 
 file mkdir $VIVADO_DIR
@@ -72,25 +75,29 @@ set xdc_files [list \
     [file join $ROOT_DIR constr top.xdc] \
 ]
 
+# ------------------------------------------------------------
+# Memory init files
+# Use data_packed
+# ------------------------------------------------------------
 set mem_init_files [list \
-    [file join $ROOT_DIR data weights fc1_weight_int8.hex] \
-    [file join $ROOT_DIR data weights fc1_bias_int32.hex] \
-    [file join $ROOT_DIR data samples mnist_samples_route_b_output_2.hex] \
-    [file join $ROOT_DIR data quant quant_params.hex] \
-    [file join $ROOT_DIR data weights fc2_weight_int8.hex] \
-    [file join $ROOT_DIR data weights fc2_bias_int32.hex] \
+    [file join $ROOT_DIR data_packed weights fc1_weight_int8.hex] \
+    [file join $ROOT_DIR data_packed weights fc1_bias_int32.hex] \
+    [file join $ROOT_DIR data_packed samples mnist_samples_route_b_output_2.hex] \
+    [file join $ROOT_DIR data_packed quant quant_params.hex] \
+    [file join $ROOT_DIR data_packed weights fc2_weight_int8.hex] \
+    [file join $ROOT_DIR data_packed weights fc2_bias_int32.hex] \
 ]
 
-# Optional extra sample files
+# Optional extra input_*.hex files
 for {set i 0} {$i < 20} {incr i} {
-    set f [file join $ROOT_DIR data samples [format "input_%d.hex" $i]]
+    set f [file join $ROOT_DIR data_packed samples [format "input_%d.hex" $i]]
     if {[file exists $f]} {
         lappend mem_init_files $f
     }
 }
 
 # ------------------------------------------------------------
-# Sanity check: required files must exist
+# Sanity checks
 # ------------------------------------------------------------
 foreach f $rtl_files {
     if {![file exists $f]} {
@@ -112,7 +119,7 @@ foreach f $mem_init_files {
 }
 
 # ------------------------------------------------------------
-# Add files to project
+# Add files
 # ------------------------------------------------------------
 add_files -norecurse {*}$rtl_files
 add_files -fileset constrs_1 -norecurse {*}$xdc_files
@@ -126,8 +133,9 @@ update_compile_order -fileset sim_1
 # Copy memory init files into run directories so $readmemh()
 # can resolve bare filenames during synthesis/implementation
 # ------------------------------------------------------------
-set SYNTH_RUN_DIR [file join $PROJ_DIR "${PROJ_NAME}.runs" "synth_1"]
-set IMPL_RUN_DIR  [file join $PROJ_DIR "${PROJ_NAME}.runs" "impl_1"]
+set RUNS_DIR      [file join $PROJ_DIR "${PROJ_NAME}.runs"]
+set SYNTH_RUN_DIR [file join $RUNS_DIR "synth_1"]
+set IMPL_RUN_DIR  [file join $RUNS_DIR "impl_1"]
 
 file mkdir $SYNTH_RUN_DIR
 file mkdir $IMPL_RUN_DIR
@@ -146,16 +154,19 @@ foreach f $mem_init_files {
     puts "INFO: copied $base to project dir"
 }
 
-
 # ------------------------------------------------------------
 # Save / refresh project state
 # ------------------------------------------------------------
 update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
+
+# Optional: make synthesis lighter on host machine
+#set_property strategy Flow_RuntimeOptimized [get_runs synth_1]
+
 # ------------------------------------------------------------
 # Launch synthesis
 # ------------------------------------------------------------
-launch_runs synth_1 -jobs 16
+launch_runs synth_1 -jobs 4
 wait_on_run synth_1
 
 set synth_status [get_property STATUS [get_runs synth_1]]
@@ -167,9 +178,17 @@ if {[string match "*ERROR*" $synth_status] || [string match "*failed*" $synth_st
 }
 
 # ------------------------------------------------------------
+# Open synth run, write reports and checkpoint
+# ------------------------------------------------------------
+open_run synth_1
+report_utilization    -file [file join $VIVADO_DIR synth_utilization.rpt]
+report_timing_summary -file [file join $VIVADO_DIR synth_timing_summary.rpt]
+write_checkpoint -force [file join $VIVADO_DIR "${TOP_NAME}_synth.dcp"]
+
+# ------------------------------------------------------------
 # Launch implementation through bitstream
 # ------------------------------------------------------------
-launch_runs impl_1 -to_step write_bitstream -jobs 16
+launch_runs impl_1 -to_step write_bitstream -jobs 4
 wait_on_run impl_1
 
 set impl_status [get_property STATUS [get_runs impl_1]]
@@ -183,18 +202,15 @@ if {[string match "*ERROR*" $impl_status] || [string match "*failed*" $impl_stat
 # ------------------------------------------------------------
 # Reports
 # ------------------------------------------------------------
-open_run synth_1
-report_utilization    -file [file join $VIVADO_DIR synth_utilization.rpt]
-report_timing_summary -file [file join $VIVADO_DIR synth_timing_summary.rpt]
-
 open_run impl_1
 report_utilization    -file [file join $VIVADO_DIR impl_utilization.rpt]
 report_timing_summary -file [file join $VIVADO_DIR impl_timing_summary.rpt]
 report_io             -file [file join $VIVADO_DIR impl_io.rpt]
 report_drc            -file [file join $VIVADO_DIR impl_drc.rpt]
+write_checkpoint -force [file join $VIVADO_DIR "${TOP_NAME}_impl.dcp"]
 
 # ------------------------------------------------------------
-# Copy bitstream to a stable top-level path
+# Copy bitstream to stable top-level path
 # ------------------------------------------------------------
 set bitfile_src [file join $PROJ_DIR "${PROJ_NAME}.runs" "impl_1" "${TOP_NAME}.bit"]
 set bitfile_dst [file join $VIVADO_DIR "${TOP_NAME}.bit"]
@@ -214,3 +230,4 @@ puts "Reports dir : $VIVADO_DIR"
 puts "============================================================"
 
 exit
+

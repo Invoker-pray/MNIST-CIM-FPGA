@@ -2,6 +2,7 @@
 module fc1_bias_bank #(
     parameter string DEFAULT_BIAS_HEX_FILE = "fc1_bias_int32.hex"
 ) (
+    input logic clk,
     input logic [$clog2(mnist_cim_pkg::N_OUTPUT_BLOCKS)-1:0] ob,
 
     output logic signed [mnist_cim_pkg::BIAS_WIDTH-1:0]
@@ -10,27 +11,36 @@ module fc1_bias_bank #(
 
   import mnist_cim_pkg::*;
 
-  //string bias_file;
+  localparam int BLOCK_BITS = TILE_OUTPUT_SIZE * BIAS_WIDTH;
 
-  logic signed [BIAS_WIDTH-1:0] bias_mem[0:FC1_BIAS_DEPTH-1];
+  // One packed line = one 16-element bias block
+  (* rom_style = "block" *)
+  logic [BLOCK_BITS-1:0] bias_mem[0:N_OUTPUT_BLOCKS-1];
+
+  logic [BLOCK_BITS-1:0] bias_word_r;
 
   integer i;
-  integer idx;
-
 
   initial begin
 `ifndef SYNTHESIS
-    $display("Using default FC1_BIAS_FILE: %s", DEFAULT_BIAS_HEX_FILE);
+    $display("Using packed FC1 bias block file: %s", DEFAULT_BIAS_HEX_FILE);
 `endif
     $readmemh(DEFAULT_BIAS_HEX_FILE, bias_mem);
   end
 
+  // synchronous ROM read
+  always_ff @(posedge clk) begin
+    bias_word_r <= bias_mem[ob];
+  end
 
+  // unpack block
+  // bias_block[i] = bias_word_r[i*BIAS_WIDTH +: BIAS_WIDTH]
   always_comb begin
     for (i = 0; i < TILE_OUTPUT_SIZE; i = i + 1) begin
-      idx = ob * TILE_OUTPUT_SIZE + i;
-      bias_block[i] = bias_mem[idx];
+      bias_block[i] = bias_word_r[i*BIAS_WIDTH+:BIAS_WIDTH];
     end
   end
 
 endmodule
+
+

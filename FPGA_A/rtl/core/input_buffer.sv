@@ -2,6 +2,7 @@
 module input_buffer #(
     parameter string DEFAULT_INPUT_HEX_FILE = "input_0.hex"
 ) (
+    input logic clk,
     input logic [$clog2(mnist_cim_pkg::N_INPUT_BLOCKS)-1:0] ib,
 
     output logic signed [mnist_cim_pkg::INPUT_WIDTH-1:0] x_tile[0:mnist_cim_pkg::TILE_INPUT_SIZE-1],
@@ -11,36 +12,36 @@ module input_buffer #(
 
   import mnist_cim_pkg::*;
 
-  // 运行时文件路径
-  //string input_file;
+  localparam int TILE_BITS = TILE_INPUT_SIZE * INPUT_WIDTH;
+  localparam int TILE_DEPTH = N_INPUT_BLOCKS;
 
-  // 完整输入缓存：784 x int8
-  logic signed [INPUT_WIDTH-1:0] input_mem[0:INPUT_DIM-1];
+  // One packed line = one input tile
+  (* rom_style = "block" *)
+  logic [TILE_BITS-1:0] input_mem[0:TILE_DEPTH-1];
+
+  logic [TILE_BITS-1:0] tile_word_r;
 
   integer tc;
-  integer in_idx;
   integer x_eff_tmp;
-
 
   initial begin
 `ifndef SYNTHESIS
-    $display("Using default INPUT_HEX_FILE: %s", DEFAULT_INPUT_HEX_FILE);
+    $display("Using packed INPUT_HEX_FILE: %s", DEFAULT_INPUT_HEX_FILE);
 `endif
     $readmemh(DEFAULT_INPUT_HEX_FILE, input_mem);
   end
 
+  // synchronous ROM read
+  always_ff @(posedge clk) begin
+    tile_word_r <= input_mem[ib];
+  end
 
+  // unpack tile
   always_comb begin
     for (tc = 0; tc < TILE_INPUT_SIZE; tc = tc + 1) begin
-      in_idx = ib * TILE_INPUT_SIZE + tc;
+      x_tile[tc] = tile_word_r[tc*INPUT_WIDTH+:INPUT_WIDTH];
 
-      // 原始 int8 输入
-      x_tile[tc] = input_mem[in_idx];
-
-      // 零点修正
-      x_eff_tmp = input_mem[in_idx] - INPUT_ZERO_POINT;
-
-      // 防御性限幅
+      x_eff_tmp  = $signed(x_tile[tc]) - INPUT_ZERO_POINT;
       if (x_eff_tmp < 0) x_eff_tile[tc] = '0;
       else if (x_eff_tmp > ((1 << X_EFF_WIDTH) - 1)) x_eff_tile[tc] = {X_EFF_WIDTH{1'b1}};
       else x_eff_tile[tc] = x_eff_tmp[X_EFF_WIDTH-1:0];
@@ -48,3 +49,4 @@ module input_buffer #(
   end
 
 endmodule
+

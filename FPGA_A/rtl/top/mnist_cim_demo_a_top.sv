@@ -1,5 +1,4 @@
 
-
 module mnist_cim_demo_a_top #(
     parameter int CLK_HZ = 125_000_000,
     parameter int BAUD = 115200,
@@ -25,13 +24,11 @@ module mnist_cim_demo_a_top #(
 );
   import mnist_cim_pkg::*;
 
-  //  logic btn_start_db_raw;
   logic btn_start_db;
   logic start_pulse;
 
   logic busy, done;
   logic done_d;
-
   logic done_latched;
 
   logic signed [OUTPUT_WIDTH-1:0] logits_all[0:FC2_OUT_DIM-1];
@@ -40,7 +37,6 @@ module mnist_cim_demo_a_top #(
   //--------------------------------------------------------------------------
   // Button conditioning: debounce + onepulse
   //--------------------------------------------------------------------------
-
 
   generate
     if (SIM_BYPASS_DEBOUNCE) begin : GEN_BYPASS_DEBOUNCE
@@ -75,33 +71,24 @@ module mnist_cim_demo_a_top #(
       .pulse(start_pulse)
   );
 
-
   //--------------------------------------------------------------------------
   // done rising-edge detect for UART trigger
   //--------------------------------------------------------------------------
 
   always_ff @(posedge clk or negedge rst_n) begin
-    if (!rst_n) begin
-      done_d <= 1'b0;
-    end else begin
-      done_d <= done;
-    end
+    if (!rst_n) done_d <= 1'b0;
+    else done_d <= done;
   end
 
   //--------------------------------------------------------------------------
-  // done
+  // done latch for LED
   //--------------------------------------------------------------------------
 
   always_ff @(posedge clk or negedge rst_n) begin
-    if (!rst_n) begin
-      done_latched <= 1'b0;
-    end else if (start_pulse) begin
-      done_latched <= 1'b0;
-    end else if (done) begin
-      done_latched <= 1'b1;
-    end
+    if (!rst_n) done_latched <= 1'b0;
+    else if (start_pulse) done_latched <= 1'b0;
+    else if (done) done_latched <= 1'b1;
   end
-
 
   //--------------------------------------------------------------------------
   // Core inference block
@@ -146,7 +133,7 @@ module mnist_cim_demo_a_top #(
   //--------------------------------------------------------------------------
 
   assign led_busy = busy;
-  //assign led_done = done;
   assign led_done = done_latched;
 
 endmodule
+

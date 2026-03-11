@@ -2,16 +2,14 @@
 module fc2_bias_bank #(
     parameter string DEFAULT_BIAS_HEX_FILE = "fc2_bias_int32.hex"
 ) (
-    output logic signed [mnist_cim_pkg::BIAS_WIDTH-1:0] bias_all[0:mnist_cim_pkg::FC2_OUT_DIM-1]
+    input logic clk,
+    input logic [$clog2(mnist_cim_pkg::FC2_OUT_DIM)-1:0] addr,
+    output logic signed [mnist_cim_pkg::BIAS_WIDTH-1:0] bias_data
 );
   import mnist_cim_pkg::*;
 
-  //string bias_file;
-
+  (* rom_style = "block" *)
   logic signed [BIAS_WIDTH-1:0] bias_mem[0:FC2_OUT_DIM-1];
-
-  integer i;
-
 
   initial begin
 `ifndef SYNTHESIS
@@ -20,11 +18,10 @@ module fc2_bias_bank #(
     $readmemh(DEFAULT_BIAS_HEX_FILE, bias_mem);
   end
 
-
-  always_comb begin
-    for (i = 0; i < FC2_OUT_DIM; i = i + 1) begin
-      bias_all[i] = bias_mem[i];
-    end
+  // synchronous ROM read
+  always_ff @(posedge clk) begin
+    bias_data <= bias_mem[addr];
   end
 
 endmodule
+

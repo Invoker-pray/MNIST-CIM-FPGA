@@ -20,42 +20,40 @@ module fc1_ob_engine_shared_input #(
   import mnist_cim_pkg::*;
 
   logic signed [WEIGHT_WIDTH-1:0] w_tile[0:TILE_OUTPUT_SIZE-1][0:TILE_INPUT_SIZE-1];
-
   logic signed [PSUM_WIDTH-1:0] tile_psum[0:TILE_OUTPUT_SIZE-1];
-
   logic signed [PSUM_WIDTH-1:0] psum[0:TILE_OUTPUT_SIZE-1];
-
   logic signed [BIAS_WIDTH-1:0] bias_block[0:TILE_OUTPUT_SIZE-1];
-
   logic signed [PSUM_WIDTH-1:0] fc1_acc_with_bias[0:TILE_OUTPUT_SIZE-1];
 
   fc1_weight_bank #(
       .DEFAULT_WEIGHT_HEX_FILE(DEFAULT_WEIGHT_HEX_FILE)
   ) u_fc1_weight_bank (
-      .ob(ob_sel),
-      .ib(ib),
+      .clk   (clk),
+      .ob    (ob_sel),
+      .ib    (ib),
       .w_tile(w_tile)
   );
 
   cim_tile u_cim_tile (
       .x_eff_tile(x_eff_tile),
-      .w_tile(w_tile),
-      .tile_psum(tile_psum)
+      .w_tile    (w_tile),
+      .tile_psum (tile_psum)
   );
 
   psum_accum u_psum_accum (
-      .clk(clk),
-      .rst_n(rst_n),
-      .clear(clear_psum),
-      .en(en_psum),
+      .clk      (clk),
+      .rst_n    (rst_n),
+      .clear    (clear_psum),
+      .en       (en_psum),
       .tile_psum(tile_psum),
-      .psum(psum)
+      .psum     (psum)
   );
 
   fc1_bias_bank #(
       .DEFAULT_BIAS_HEX_FILE(DEFAULT_BIAS_HEX_FILE)
   ) u_fc1_bias_bank (
-      .ob(ob_sel),
+      .clk       (clk),
+      .ob        (ob_sel),
       .bias_block(bias_block)
   );
 
@@ -68,3 +66,4 @@ module fc1_ob_engine_shared_input #(
   endgenerate
 
 endmodule
+

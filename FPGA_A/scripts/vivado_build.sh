@@ -11,6 +11,8 @@ mkdir -p "${VIVADO_DIR}"
 echo "INFO: ROOT_DIR   = ${ROOT_DIR}"
 echo "INFO: VIVADO_DIR = ${VIVADO_DIR}"
 echo "INFO: TCL_SCRIPT = ${TCL_SCRIPT}"
+echo "INFO: Reminder: fc1/sample hex files now use packed tile/block format."
+echo "INFO: Reminder: fc2 hex files still use old element-per-line format."
 
 cd "${VIVADO_DIR}"
 
