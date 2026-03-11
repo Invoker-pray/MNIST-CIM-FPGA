@@ -155,6 +155,7 @@ update_compile_order -fileset sim_1
 # ------------------------------------------------------------
 # Launch synthesis
 # ------------------------------------------------------------
+set_property strategy Flow_RuntimeOptimized [get_runs synth_1]
 launch_runs synth_1 -jobs 32 -checkpoint
 wait_on_run synth_1
 
