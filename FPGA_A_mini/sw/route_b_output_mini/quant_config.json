@@ -4,6 +4,7 @@
     "fc1": "row-major [out][in] = [16][784]",
     "fc2": "row-major [out][in] = [10][16]"
   },
+  "input_layout": "[784]",
   "hidden_layout": "[16]",
   "output_layout": "[10]",
   "qparams": {
@@ -13,24 +14,24 @@
       "dtype": "int8"
     },
     "fc1": {
-      "weight_scale": 0.006150596723781796,
+      "weight_scale": 0.006801396843016617,
       "weight_zero_point": 0,
-      "bias_scale": 2.4119987152085474e-05,
-      "output_scale": 0.1528501135157788,
+      "bias_scale": 2.6672144482418107e-05,
+      "output_scale": 0.1402934517447404,
       "output_zero_point": 0,
-      "real_multiplier": 0.0001578015651888643,
-      "multiplier_q31": 1388037246,
+      "real_multiplier": 0.00019011681693417346,
+      "multiplier_q31": 1672285207,
       "shift": 43
     },
     "fc2": {
-      "weight_scale": 0.008522545258829914,
+      "weight_scale": 0.008666152090538205,
       "weight_zero_point": 0,
-      "bias_scale": 0.0013026720102555147,
-      "output_scale": 0.16108293608417662,
+      "bias_scale": 0.0012158043901265027,
+      "output_scale": 0.17630078473429042,
       "output_zero_point": 0,
-      "real_multiplier": 0.008086964652635717,
-      "multiplier_q31": 1111463959,
-      "shift": 37
+      "real_multiplier": 0.006896193865267744,
+      "multiplier_q31": 1895611336,
+      "shift": 38
     }
   }
 }

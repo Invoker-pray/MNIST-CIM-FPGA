@@ -4,8 +4,8 @@
 module tb_mnist_cim_demo_a_top;
   import mnist_cim_pkg::*;
 
-  parameter int CLK_HZ = 1000;
-  parameter int BAUD = 100;
+  parameter int CLK_HZ = 125_000_000;
+  parameter int BAUD = 115200;
   parameter int N_SAMPLES = 20;
 
   parameter string DEFAULT_SAMPLE_HEX_FILE     = "../data_packed/samples/mnist_samples_route_b_output_2.hex";
@@ -14,7 +14,7 @@ module tb_mnist_cim_demo_a_top;
   parameter string DEFAULT_QUANT_PARAM_FILE = "../data_packed/quant/quant_params.hex";
   parameter string DEFAULT_FC2_WEIGHT_HEX_FILE = "../data_packed/weights/fc2_weight_int8.hex";
   parameter string DEFAULT_FC2_BIAS_HEX_FILE = "../data_packed/weights/fc2_bias_int32.hex";
-  parameter string PRED_FILE = "../data_packed/expected/pred_0.txt";
+  parameter string EXPECTED_DIR = "../data_packed/expected";
 
   localparam int DIV = CLK_HZ / BAUD;
   localparam time CLK_PERIOD = 10ns;
@@ -28,13 +28,12 @@ module tb_mnist_cim_demo_a_top;
   logic led_busy;
   logic led_done;
 
-  integer ref_pred_class;
-  integer fd, r;
   integer error_count;
+  integer pass_count;
+  integer fail_count;
 
   reg [7:0] rx_bytes[0:15];
   integer rx_count;
-
   logic monitor_enable;
 
   mnist_cim_demo_a_top #(
@@ -42,7 +41,6 @@ module tb_mnist_cim_demo_a_top;
       .BAUD(BAUD),
       .N_SAMPLES(N_SAMPLES),
       .SIM_BYPASS_DEBOUNCE(1'b1),
-
       .DEFAULT_SAMPLE_HEX_FILE(DEFAULT_SAMPLE_HEX_FILE),
       .DEFAULT_FC1_WEIGHT_HEX_FILE(DEFAULT_FC1_WEIGHT_HEX_FILE),
       .DEFAULT_FC1_BIAS_HEX_FILE(DEFAULT_FC1_BIAS_HEX_FILE),
@@ -62,9 +60,6 @@ module tb_mnist_cim_demo_a_top;
   initial clk = 1'b0;
   always #(CLK_PERIOD / 2) clk = ~clk;
 
-  // ------------------------------------------------------------
-  // Helper: print byte as hex / dec / printable char
-  // ------------------------------------------------------------
   task automatic print_uart_byte(input [8*32-1:0] name, input [7:0] data);
     begin
       if (data >= 8'd32 && data <= 8'd126)
@@ -73,20 +68,12 @@ module tb_mnist_cim_demo_a_top;
     end
   endtask
 
-  // ------------------------------------------------------------
-  // Background UART receiver
-  // ------------------------------------------------------------
   task automatic uart_capture_one_byte(output reg [7:0] data);
     integer i;
     begin
       data = 8'h00;
-
-      // wait for start bit
       @(negedge uart_tx);
-
-      // move to center of bit0
       #(BIT_TIME + BIT_TIME / 2);
-
       for (i = 0; i < 8; i = i + 1) begin
         data[i] = uart_tx;
         #BIT_TIME;
@@ -102,7 +89,6 @@ module tb_mnist_cim_demo_a_top;
     forever begin
       wait (monitor_enable == 1'b1);
       uart_capture_one_byte(tmp);
-
       if (monitor_enable) begin
         rx_bytes[rx_count] = tmp;
         $display("UART monitor captured byte[%0d] at time=%0t", rx_count, $time);
@@ -112,35 +98,79 @@ module tb_mnist_cim_demo_a_top;
     end
   end
 
-  // ------------------------------------------------------------
-  // Optional signal monitor
-  // ------------------------------------------------------------
-  logic prev_led_busy, prev_led_done, prev_uart_tx;
-  initial begin
-    prev_led_busy = 1'b0;
-    prev_led_done = 1'b0;
-    prev_uart_tx  = 1'b1;
+  task automatic load_ref_pred(input integer sid, output integer ref_pred_class);
+    integer fd, r;
+    string pred_file;
+    begin
+      pred_file = $sformatf("%0s/pred_%0d.txt", EXPECTED_DIR, sid);
 
-    $display("time=%0t : monitor start", $time);
+      fd = $fopen(pred_file, "r");
+      if (fd == 0) begin
+        $display("ERROR: cannot open pred file: %0s", pred_file);
+        $finish;
+      end
 
-    forever begin
-      @(posedge clk);
-      if ((led_busy !== prev_led_busy) ||
-          (led_done !== prev_led_done) ||
-          (uart_tx  !== prev_uart_tx)) begin
-        $display(
-            "time=%0t rst_n=%0b btn_start=%0b sample_sel=%0d led_busy=%0b led_done=%0b uart_tx=%0b",
-            $time, rst_n, btn_start, sample_sel, led_busy, led_done, uart_tx);
-        prev_led_busy = led_busy;
-        prev_led_done = led_done;
-        prev_uart_tx  = uart_tx;
+      r = $fscanf(fd, "%d", ref_pred_class);
+      $fclose(fd);
+
+      if (r != 1) begin
+        $display("ERROR: failed to parse pred file: %0s", pred_file);
+        $finish;
       end
     end
-  end
+  endtask
 
-  // ------------------------------------------------------------
-  // Read reference prediction
-  // ------------------------------------------------------------
+  task automatic run_one_sample(input integer sid);
+    integer ref_pred_class;
+    begin
+      load_ref_pred(sid, ref_pred_class);
+
+      rx_count = 0;
+      monitor_enable = 1'b1;
+      sample_sel = sid[$clog2(N_SAMPLES)-1:0];
+
+      @(posedge clk);
+      btn_start <= 1'b1;
+      @(posedge clk);
+      btn_start <= 1'b0;
+
+      wait (led_done == 1'b1);
+      wait (rx_count >= 3);
+      monitor_enable = 1'b0;
+
+      $display("------------------------------------------------------------");
+      $display("SAMPLE %0d", sid);
+      $display("Reference pred_class from file = %0d", ref_pred_class);
+      print_uart_byte("UART byte0 received", rx_bytes[0]);
+      print_uart_byte("UART byte1 received", rx_bytes[1]);
+      print_uart_byte("UART byte2 received", rx_bytes[2]);
+      $display("------------------------------------------------------------");
+
+      if (rx_bytes[0] !== (8'd48 + ref_pred_class[3:0])) begin
+        $display("ERROR: sample %0d byte0 mismatch, got=0x%02x expected=0x%02x", sid, rx_bytes[0],
+                 (8'd48 + ref_pred_class[3:0]));
+        error_count = error_count + 1;
+        fail_count  = fail_count + 1;
+      end else if (rx_bytes[1] !== 8'h0D) begin
+        $display("ERROR: sample %0d byte1 mismatch, got=0x%02x expected=0x0D", sid, rx_bytes[1]);
+        error_count = error_count + 1;
+        fail_count  = fail_count + 1;
+      end else if (rx_bytes[2] !== 8'h0A) begin
+        $display("ERROR: sample %0d byte2 mismatch, got=0x%02x expected=0x0A", sid, rx_bytes[2]);
+        error_count = error_count + 1;
+        fail_count  = fail_count + 1;
+      end else begin
+        $display("PASS: sample %0d correct.", sid);
+        pass_count = pass_count + 1;
+      end
+
+      wait (led_done == 1'b0 || led_busy == 1'b0);
+      repeat (10) @(posedge clk);
+    end
+  endtask
+
+  integer sid;
+
   initial begin
     $display("============================================================");
     $display("  SAMPLE_HEX_FILE     = %s", DEFAULT_SAMPLE_HEX_FILE);
@@ -149,31 +179,12 @@ module tb_mnist_cim_demo_a_top;
     $display("  QUANT_PARAM_FILE    = %s", DEFAULT_QUANT_PARAM_FILE);
     $display("  FC2_WEIGHT_HEX_FILE = %s", DEFAULT_FC2_WEIGHT_HEX_FILE);
     $display("  FC2_BIAS_HEX_FILE   = %s", DEFAULT_FC2_BIAS_HEX_FILE);
-    $display("  PRED_FILE           = %s", PRED_FILE);
+    $display("  EXPECTED_DIR        = %s", EXPECTED_DIR);
     $display("============================================================");
 
-    fd = $fopen(PRED_FILE, "r");
-    if (fd == 0) begin
-      $display("ERROR: cannot open pred file: %s", PRED_FILE);
-      $finish;
-    end
-
-    r = $fscanf(fd, "%d", ref_pred_class);
-    $fclose(fd);
-
-    if (r != 1) begin
-      $display("ERROR: failed to parse pred file: %s", PRED_FILE);
-      $finish;
-    end
-
-    $display("Reference pred_class from file = %0d", ref_pred_class);
-  end
-
-  // ------------------------------------------------------------
-  // Main test flow
-  // ------------------------------------------------------------
-  initial begin
     error_count = 0;
+    pass_count  = 0;
+    fail_count  = 0;
 
     rst_n       = 1'b0;
     btn_start   = 1'b0;
@@ -183,79 +194,23 @@ module tb_mnist_cim_demo_a_top;
     rst_n = 1'b1;
     $display("time=%0t : release reset", $time);
 
-    monitor_enable = 1'b1;
-
-    @(posedge clk);
-    btn_start <= 1'b1;
-    $display("time=%0t : pulse btn_start high", $time);
-
-    @(posedge clk);
-    btn_start <= 1'b0;
-    $display("time=%0t : pulse btn_start low", $time);
-
-    // New design takes much longer than old one:
-    // wait for end-to-end done first
-    wait (led_done == 1'b1);
-    $display("time=%0t : led_done observed high", $time);
-
-    // then UART should emit pred + CR + LF
-    wait (rx_count >= 3);
-    monitor_enable = 1'b0;
-
-    $display("------------------------------------------------------------");
-    print_uart_byte("UART byte0 received", rx_bytes[0]);
-    print_uart_byte("UART byte1 received", rx_bytes[1]);
-    print_uart_byte("UART byte2 received", rx_bytes[2]);
-    $display("------------------------------------------------------------");
-    $display("Expected byte0 = ASCII('0' + pred) = 0x%02x", (8'd48 + ref_pred_class[3:0]));
-    $display("Expected byte1 = 0x0D");
-    $display("Expected byte2 = 0x0A");
-    $display("------------------------------------------------------------");
-
-    if (rx_bytes[0] !== (8'd48 + ref_pred_class[3:0])) begin
-      $display("ERROR: byte0 mismatch, got=0x%02x expected=0x%02x", rx_bytes[0],
-               (8'd48 + ref_pred_class[3:0]));
-      error_count = error_count + 1;
-    end else begin
-      $display("MATCH: byte0 correct");
+    for (sid = 0; sid < N_SAMPLES; sid = sid + 1) begin
+      run_one_sample(sid);
     end
 
-    if (rx_bytes[1] !== 8'h0D) begin
-      $display("ERROR: byte1 mismatch, got=0x%02x expected=0x0D", rx_bytes[1]);
-      error_count = error_count + 1;
-    end else begin
-      $display("MATCH: byte1 correct (CR)");
-    end
-
-    if (rx_bytes[2] !== 8'h0A) begin
-      $display("ERROR: byte2 mismatch, got=0x%02x expected=0x0A", rx_bytes[2]);
-      error_count = error_count + 1;
-    end else begin
-      $display("MATCH: byte2 correct (LF)");
-    end
-
-    $display("Final LED states: led_busy=%0b led_done=%0b", led_busy, led_done);
-
-    if (error_count == 0) begin
-      $display("PASS: mnist_cim_demo_a_top sends pred_class over UART correctly.");
-    end else begin
-      $display("FAIL: found %0d mismatches in UART output.", error_count);
-      $display("DETAIL: ref_pred_class=%0d, actual bytes=[%02x %02x %02x]", ref_pred_class,
-               rx_bytes[0], rx_bytes[1], rx_bytes[2]);
-    end
+    $display("============================================================");
+    $display("FINAL SUMMARY: pass=%0d fail=%0d total=%0d", pass_count, fail_count, N_SAMPLES);
+    if (error_count == 0) $display("PASS: all %0d samples correct.", N_SAMPLES);
+    else $display("FAIL: %0d sample(s) mismatched.", error_count);
+    $display("============================================================");
 
     $finish;
   end
 
-  // ------------------------------------------------------------
-  // Timeout: must be much larger than old version
-  // ------------------------------------------------------------
   initial begin
-    #200_000_000ns;
+    #5_000_000_000ns;
     $display("ERROR: timeout waiting for LED/UART result.");
     $finish;
   end
 
 endmodule
-
-

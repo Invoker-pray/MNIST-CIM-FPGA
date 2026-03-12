@@ -9,8 +9,12 @@ module fc1_ob_engine_shared_input #(
     input logic clear_psum,
     input logic en_psum,
 
-    input logic [ $clog2(mnist_cim_pkg::N_INPUT_BLOCKS)-1:0] ib,
-    input logic [$clog2(mnist_cim_pkg::N_OUTPUT_BLOCKS)-1:0] ob_sel,
+    input logic [$clog2(mnist_cim_pkg::N_INPUT_BLOCKS)-1:0] ib,
+
+    input logic [((mnist_cim_pkg::N_OUTPUT_BLOCKS > 1) ? $clog2(
+mnist_cim_pkg::N_OUTPUT_BLOCKS
+) : 1)-1:0] ob_sel,
+
 
     input logic [mnist_cim_pkg::X_EFF_WIDTH-1:0] x_eff_tile[0:mnist_cim_pkg::TILE_INPUT_SIZE-1],
 
@@ -66,4 +70,3 @@ module fc1_ob_engine_shared_input #(
   endgenerate
 
 endmodule
-

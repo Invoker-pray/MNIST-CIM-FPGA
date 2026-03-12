@@ -1,14 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run this script from onboard_A/scripts/
-# Example:
-#   cd onboard_A/scripts
-#   bash run.sh
-# Optional overrides:
-#   bash run.sh SAMPLE_ID=3 PRED_FILE=../data/expected/pred_3.txt
-#   bash run.sh SIM=vcs
-
 SIM="${SIM:-vcs}"
 TOP="tb_mnist_cim_demo_a_top"
 BUILD_DIR="../sim"
@@ -16,14 +8,16 @@ SIMV="${BUILD_DIR}/${TOP}_simv"
 COMPILE_LOG="${BUILD_DIR}/compile_${TOP}.log"
 RUN_LOG="${BUILD_DIR}/sim_${TOP}.log"
 
-SAMPLE_ID="${SAMPLE_ID:-0}"
-SAMPLE_HEX_FILE="${SAMPLE_HEX_FILE:-../data/samples/mnist_samples_route_b_output_2.hex}"
-FC1_WEIGHT_HEX_FILE="${FC1_WEIGHT_HEX_FILE:-../data/weights/fc1_weight_int8.hex}"
-FC1_BIAS_HEX_FILE="${FC1_BIAS_HEX_FILE:-../data/weights/fc1_bias_int32.hex}"
-QUANT_PARAM_FILE="${QUANT_PARAM_FILE:-../data/quant/quant_params.hex}"
-FC2_WEIGHT_HEX_FILE="${FC2_WEIGHT_HEX_FILE:-../data/weights/fc2_weight_int8.hex}"
-FC2_BIAS_HEX_FILE="${FC2_BIAS_FILE:-../data/weights/fc2_bias_int32.hex}"
-PRED_FILE="${PRED_FILE:-../data/expected/pred_${SAMPLE_ID}.txt}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+SAMPLE_HEX_FILE="${SAMPLE_HEX_FILE:-${ROOT_DIR}/data_packed/samples/mnist_samples_route_b_output_2.hex}"
+FC1_WEIGHT_HEX_FILE="${FC1_WEIGHT_HEX_FILE:-${ROOT_DIR}/data_packed/weights/fc1_weight_int8.hex}"
+FC1_BIAS_HEX_FILE="${FC1_BIAS_HEX_FILE:-${ROOT_DIR}/data_packed/weights/fc1_bias_int32.hex}"
+QUANT_PARAM_FILE="${QUANT_PARAM_FILE:-${ROOT_DIR}/data_packed/quant/quant_params.hex}"
+FC2_WEIGHT_HEX_FILE="${FC2_WEIGHT_HEX_FILE:-${ROOT_DIR}/data_packed/weights/fc2_weight_int8.hex}"
+FC2_BIAS_HEX_FILE="${FC2_BIAS_HEX_FILE:-${ROOT_DIR}/data_packed/weights/fc2_bias_int32.hex}"
+EXPECTED_DIR="${EXPECTED_DIR:-${ROOT_DIR}/data_packed/expected}"
 
 mkdir -p "${BUILD_DIR}"
 rm -rf "${SIMV}" "${SIMV}.daidir"
@@ -58,48 +52,47 @@ SRC_FILES=(
 echo "============================================================" | tee "${COMPILE_LOG}"
 echo "Compile ${TOP}" | tee -a "${COMPILE_LOG}"
 echo "PWD                  = $(pwd)" | tee -a "${COMPILE_LOG}"
+echo "ROOT_DIR             = ${ROOT_DIR}" | tee -a "${COMPILE_LOG}"
 echo "SIM                  = ${SIM}" | tee -a "${COMPILE_LOG}"
-echo "SAMPLE_ID            = ${SAMPLE_ID}" | tee -a "${COMPILE_LOG}"
 echo "SAMPLE_HEX_FILE      = ${SAMPLE_HEX_FILE}" | tee -a "${COMPILE_LOG}"
 echo "FC1_WEIGHT_HEX_FILE  = ${FC1_WEIGHT_HEX_FILE}" | tee -a "${COMPILE_LOG}"
 echo "FC1_BIAS_HEX_FILE    = ${FC1_BIAS_HEX_FILE}" | tee -a "${COMPILE_LOG}"
 echo "QUANT_PARAM_FILE     = ${QUANT_PARAM_FILE}" | tee -a "${COMPILE_LOG}"
 echo "FC2_WEIGHT_HEX_FILE  = ${FC2_WEIGHT_HEX_FILE}" | tee -a "${COMPILE_LOG}"
 echo "FC2_BIAS_HEX_FILE    = ${FC2_BIAS_HEX_FILE}" | tee -a "${COMPILE_LOG}"
-echo "PRED_FILE            = ${PRED_FILE}" | tee -a "${COMPILE_LOG}"
+echo "EXPECTED_DIR         = ${EXPECTED_DIR}" | tee -a "${COMPILE_LOG}"
 echo "============================================================" | tee -a "${COMPILE_LOG}"
 
 if [[ "${SIM}" == "vcs" ]]; then
 	vcs -full64 -sverilog -timescale=1ns/1ps -debug_acc+all -lca \
+		-top "${TOP}" \
 		-o "${SIMV}" \
 		"${SRC_FILES[@]}" \
 		>"${COMPILE_LOG}" 2>&1
 
-	"./${SIMV}" \
+	"${SIMV}" \
 		+SAMPLE_HEX_FILE="${SAMPLE_HEX_FILE}" \
 		+FC1_WEIGHT_HEX_FILE="${FC1_WEIGHT_HEX_FILE}" \
-		+FC1_BIAS_FILE="${FC1_BIAS_HEX_FILE}" \
-		+WEIGHT_HEX_FILE="${FC1_WEIGHT_HEX_FILE}" \
+		+FC1_BIAS_HEX_FILE="${FC1_BIAS_HEX_FILE}" \
 		+QUANT_PARAM_FILE="${QUANT_PARAM_FILE}" \
 		+FC2_WEIGHT_HEX_FILE="${FC2_WEIGHT_HEX_FILE}" \
-		+FC2_BIAS_FILE="${FC2_BIAS_HEX_FILE}" \
-		+PRED_FILE="${PRED_FILE}" \
+		+FC2_BIAS_HEX_FILE="${FC2_BIAS_HEX_FILE}" \
+		+EXPECTED_DIR="${EXPECTED_DIR}" \
 		>"${RUN_LOG}" 2>&1
 else
-	iverilog -g2012 -o "${SIMV}" "${SRC_FILES[@]}" >"${COMPILE_LOG}" 2>&1
+	iverilog -g2012 -s "${TOP}" -o "${SIMV}" "${SRC_FILES[@]}" >"${COMPILE_LOG}" 2>&1
 	vvp "${SIMV}" \
 		+SAMPLE_HEX_FILE="${SAMPLE_HEX_FILE}" \
 		+FC1_WEIGHT_HEX_FILE="${FC1_WEIGHT_HEX_FILE}" \
-		+FC1_BIAS_FILE="${FC1_BIAS_HEX_FILE}" \
-		+WEIGHT_HEX_FILE="${FC1_WEIGHT_HEX_FILE}" \
+		+FC1_BIAS_HEX_FILE="${FC1_BIAS_HEX_FILE}" \
 		+QUANT_PARAM_FILE="${QUANT_PARAM_FILE}" \
 		+FC2_WEIGHT_HEX_FILE="${FC2_WEIGHT_HEX_FILE}" \
-		+FC2_BIAS_FILE="${FC2_BIAS_HEX_FILE}" \
-		+PRED_FILE="${PRED_FILE}" \
+		+FC2_BIAS_HEX_FILE="${FC2_BIAS_HEX_FILE}" \
+		+EXPECTED_DIR="${EXPECTED_DIR}" \
 		>"${RUN_LOG}" 2>&1
 fi
 
 echo "[OK] compile log: ${COMPILE_LOG}"
 echo "[OK] run log:     ${RUN_LOG}"
 echo "----- tail ${RUN_LOG} -----"
-tail -n 40 "${RUN_LOG}" || true
+tail -n 80 "${RUN_LOG}" || true

@@ -67,10 +67,26 @@ def convert_fc1_weight(
     out_tile: int,
     in_tile: int,
     weight_bits: int,
+    total_out: int = 16,
+    total_in: int = 784,
 ) -> None:
     words = read_hex_lines(src)
-    elems_per_tile = out_tile * in_tile
-    write_packed_lines(dst, words, weight_bits, elems_per_tile)
+    # words[out * total_in + in] = W[out][in]  (row-major)
+
+    # RTL 期望: tile[ob*N_IB+ib][tr*in_tile+tc] = W[ob*out_tile+tr][ib*in_tile+tc]
+    n_ob = total_out // out_tile  # = 1
+    n_ib = total_in // in_tile  # = 49
+
+    reordered = []
+    for ob in range(n_ob):
+        for ib in range(n_ib):
+            for tr in range(out_tile):  # output neuron offset
+                for tc in range(in_tile):  # input pixel offset
+                    out_idx = ob * out_tile + tr
+                    in_idx = ib * in_tile + tc
+                    reordered.append(words[out_idx * total_in + in_idx])
+
+    write_packed_lines(dst, reordered, weight_bits, out_tile * in_tile)
 
 
 def convert_fc1_bias(
