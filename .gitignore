@@ -1,0 +1,10 @@
+.venv/
+.venv
+
+sim/
+vivado/
+
+ucli.key
+
+csrc/
+csrc
