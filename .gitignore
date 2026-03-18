@@ -14,3 +14,6 @@ data
 
 route_b_output/
 route_b_output_mini/
+
+.ipynb_checkpoints/
+.python_version
