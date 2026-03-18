@@ -8,3 +8,9 @@ ucli.key
 
 csrc/
 csrc
+
+data/
+data
+
+route_b_output/
+route_b_output_mini/
